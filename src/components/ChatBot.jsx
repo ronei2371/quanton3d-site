@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Card } from '@/components/ui/card.jsx'
-import { Send, X, MessageCircle, User, Bot, History, Calendar } from 'lucide-react'
+import { Send, X, MessageCircle, User, Bot } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function ChatBot() {
@@ -11,7 +11,7 @@ export function ChatBot() {
     {
       id: 1,
       type: 'bot',
-      text: 'Olá! Sou o assistente virtual da Quanton3D. Como posso ajudá-lo hoje?',
+      text: 'Olá! Sou o assistente virtual da Quanton3D IA. Diga o que está acontecendo com sua impressão 3D e vou tentar ajudar.',
       timestamp: new Date()
     }
   ])
@@ -49,52 +49,46 @@ export function ChatBot() {
     setInputValue('')
     setIsTyping(true)
 
-    // Simular resposta do bot com base em palavras-chave
-    setTimeout(() => {
-      const botResponse = generateBotResponse(inputValue.toLowerCase())
+    try {
+      const response = await fetch("https://quanton3d-bot-v2.onrender.com/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: "Você é o QuantonBot3D IA, um especialista em impressão 3D SLA/DLP que responde de forma técnica, educada e detalhada." },
+            ...messages.map(msg => ({
+              role: msg.type === "user" ? "user" : "assistant",
+              content: msg.text
+            })),
+            { role: "user", content: inputValue }
+          ]
+        }),
+      })
+
+      const data = await response.json()
+
       const botMessage = {
         id: messages.length + 2,
-        type: 'bot',
-        text: botResponse,
-        timestamp: new Date()
+        type: "bot",
+        text: data.reply || "⚠️ Erro: IA não respondeu corretamente.",
+        timestamp: new Date(),
+      }
+
+      setMessages(prev => [...prev, botMessage])
+    } catch (error) {
+      console.error("Erro ao enviar mensagem:", error)
+      const botMessage = {
+        id: messages.length + 2,
+        type: "bot",
+        text: "⚠️ Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.",
+        timestamp: new Date(),
       }
       setMessages(prev => [...prev, botMessage])
+    } finally {
       setIsTyping(false)
-    }, 1000 + Math.random() * 1000)
-  }
-
-  const generateBotResponse = (input) => {
-    // Respostas baseadas em palavras-chave
-    if (input.includes('resina') || input.includes('material')) {
-      return 'Temos diversas opções de resinas UV SLA para impressão 3D! Nossas resinas são formuladas para diferentes aplicações: padrão, flexível, resistente, biocompatível e muito mais. Qual tipo de aplicação você precisa?'
     }
-    
-    if (input.includes('preço') || input.includes('valor') || input.includes('custo')) {
-      return 'Para informações sobre preços e orçamentos, por favor entre em contato conosco pelo telefone (31) 3271-6935 ou email atendimento@quanton3d.com.br. Teremos prazer em preparar um orçamento personalizado!'
-    }
-    
-    if (input.includes('impressora') || input.includes('equipamento')) {
-      return 'Trabalhamos com diversas impressoras 3D SLA/DLP. Posso ajudá-lo com configurações, calibração, nivelamento de plataforma e otimização de parâmetros de impressão. Qual é sua dúvida específica?'
-    }
-    
-    if (input.includes('suporte') || input.includes('problema') || input.includes('ajuda')) {
-      return 'Oferecemos suporte técnico completo! Posso ajudá-lo com:\n\n• Nivelamento de plataforma\n• Calibração de resina\n• Configuração de fatiadores (Chitubox, etc.)\n• Posicionamento de suportes\n• Diagnóstico de problemas\n\nSobre qual desses tópicos você precisa de ajuda?'
-    }
-    
-    if (input.includes('agendar') || input.includes('atendimento') || input.includes('chamada')) {
-      return 'Posso agendar um atendimento técnico personalizado para você! Nossa equipe está disponível para chamadas de vídeo e suporte detalhado. Qual seria o melhor horário para você? (Segunda a Sexta, 8h às 18h)'
-    }
-    
-    if (input.includes('olá') || input.includes('oi') || input.includes('bom dia') || input.includes('boa tarde') || input.includes('boa noite')) {
-      return `Olá${userName ? ', ' + userName : ''}! Seja bem-vindo à Quanton3D. Estou aqui para ajudá-lo com informações sobre nossas resinas UV SLA, suporte técnico e muito mais. Como posso ajudá-lo?`
-    }
-    
-    if (input.includes('horário') || input.includes('funcionamento')) {
-      return 'Nosso horário de atendimento é de Segunda a Sexta-feira, das 8h às 18h. Você pode nos contatar por telefone (31) 3271-6935 ou email atendimento@quanton3d.com.br'
-    }
-    
-    // Resposta padrão
-    return 'Entendo sua pergunta. Para melhor atendê-lo, recomendo que entre em contato com nossa equipe técnica pelo telefone (31) 3271-6935 ou email atendimento@quanton3d.com.br. Também posso agendar um atendimento personalizado para você. Deseja agendar?'
   }
 
   const handleKeyPress = (e) => {
@@ -110,7 +104,7 @@ export function ChatBot() {
       const welcomeMessage = {
         id: messages.length + 1,
         type: 'bot',
-        text: `Olá ${userName}! Obrigado por entrar em contato. Seu número ${userPhone} foi registrado. Como posso ajudá-lo hoje?`,
+        text: `Olá ${userName}! Seu número ${userPhone} foi registrado. Como posso ajudá-lo hoje?`,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, welcomeMessage])
@@ -119,7 +113,6 @@ export function ChatBot() {
 
   return (
     <>
-      {/* Botão flutuante */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
@@ -138,7 +131,6 @@ export function ChatBot() {
         )}
       </AnimatePresence>
 
-      {/* Janela do chat */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -149,7 +141,6 @@ export function ChatBot() {
             className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
           >
             <Card className="h-full flex flex-col shadow-2xl border-2 border-blue-200 dark:border-blue-900 overflow-hidden bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950">
-              {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -157,7 +148,7 @@ export function ChatBot() {
                   </div>
                   <div>
                     <h3 className="text-white font-bold">Quanton3D IA</h3>
-                    <p className="text-white/80 text-xs">Assistente Virtual</p>
+                    <p className="text-white/80 text-xs">Assistente Virtual GPT</p>
                   </div>
                 </div>
                 <Button
@@ -170,76 +161,45 @@ export function ChatBot() {
                 </Button>
               </div>
 
-              {/* Formulário de contato */}
               {showContactForm && (
                 <div className="p-4 bg-blue-100 dark:bg-blue-900/30 border-b">
                   <p className="text-sm font-semibold mb-3 text-blue-900 dark:text-blue-100">
-                    Para melhor atendê-lo, por favor informe:
+                    Para começar, por favor informe:
                   </p>
                   <div className="space-y-2">
-                    <Input
-                      placeholder="Seu nome"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      className="bg-white dark:bg-gray-800"
-                    />
-                    <Input
-                      placeholder="Seu telefone"
-                      value={userPhone}
-                      onChange={(e) => setUserPhone(e.target.value)}
-                      className="bg-white dark:bg-gray-800"
-                    />
-                    <Button
-                      onClick={handleContactSubmit}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      disabled={!userName || !userPhone}
-                    >
-                      Iniciar Conversa
+                    <Input placeholder="Seu nome" value={userName} onChange={(e) => setUserName(e.target.value)} />
+                    <Input placeholder="Seu telefone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} />
+                    <Button onClick={handleContactSubmit} disabled={!userName || !userPhone} className="w-full bg-blue-600 hover:bg-blue-700">
+                      Iniciar conversa
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Mensagens */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {message.type === 'bot' && (
+                {messages.map((msg) => (
+                  <motion.div key={msg.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.type === 'bot' && (
                       <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                         <Bot className="h-5 w-5 text-white" />
                       </div>
                     )}
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                        message.type === 'user'
-                          ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
-                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                      <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-white/70' : 'text-gray-500'}`}>
-                        {message.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${msg.type === 'user' ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}>
+                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                      <p className={`text-xs mt-1 ${msg.type === 'user' ? 'text-white/70' : 'text-gray-500'}`}>
+                        {msg.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    {message.type === 'user' && (
+                    {msg.type === 'user' && (
                       <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
                         <User className="h-5 w-5 text-white" />
                       </div>
                     )}
                   </motion.div>
                 ))}
-                
+
                 {isTyping && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex gap-2"
-                  >
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2">
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                       <Bot className="h-5 w-5 text-white" />
                     </div>
@@ -252,26 +212,13 @@ export function ChatBot() {
                     </div>
                   </motion.div>
                 )}
-                
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
               <div className="p-4 border-t bg-white dark:bg-gray-900">
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Digite sua mensagem..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={showContactForm}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || showContactForm}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
+                  <Input placeholder="Digite sua mensagem..." value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={handleKeyPress} disabled={showContactForm} className="flex-1" />
+                  <Button onClick={handleSendMessage} disabled={!inputValue.trim() || showContactForm} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                     <Send className="h-5 w-5" />
                   </Button>
                 </div>
@@ -283,4 +230,3 @@ export function ChatBot() {
     </>
   )
 }
-
