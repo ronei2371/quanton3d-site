@@ -50,20 +50,13 @@ export function ChatBot() {
     setIsTyping(true)
 
     try {
-      const response = await fetch("https://quanton3d-bot-v2.onrender.com/api/chat", {
+      const response = await fetch("https://quanton3d-bot-v2.onrender.com/ask", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [
-            { role: "system", content: "Você é o QuantonBot3D IA, um especialista em impressão 3D SLA/DLP que responde de forma técnica, educada e detalhada." },
-            ...messages.map(msg => ({
-              role: msg.type === "user" ? "user" : "assistant",
-              content: msg.text
-            })),
-            { role: "user", content: inputValue }
-          ]
+          message: inputValue
         }),
       })
 
