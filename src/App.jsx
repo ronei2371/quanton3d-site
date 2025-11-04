@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBot.jsx'
+import { MenuSelector } from '@/components/MenuSelector.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -265,6 +266,9 @@ function App() {
 
       {/* ChatBot */}
       <ChatBot />
+      
+      {/* Menu Selector */}
+      <MenuSelector onSelect={(option) => console.log('Opção selecionada:', option)} />
     </div>
   )
 }

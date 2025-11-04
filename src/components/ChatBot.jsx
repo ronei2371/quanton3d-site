@@ -140,7 +140,7 @@ export function ChatBot() {
             transition={{ type: 'spring', damping: 20 }}
             className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
           >
-            <Card className="h-full flex flex-col shadow-2xl border-2 border-blue-200 dark:border-blue-900 overflow-hidden bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950">
+            <Card className="h-full flex flex-col shadow-2xl border-2 border-blue-200 dark:border-blue-900 overflow-hidden" style={{backgroundImage: 'url(/chat-bg.gif)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
