@@ -63,6 +63,10 @@ Depois que o site estiver no ar na Netlify, você pode apontar seu domínio para
 
 **Atenção:** A propagação do DNS pode levar de alguns minutos a 48 horas. Após esse período, seu site `axtonronei.online` estará funcionando e apontando para a versão hospedada na Netlify, com certificado de segurança (HTTPS) ativado automaticamente.
 
+## Atualizações
+
+- **04/11/2024:** Interface de menu e chat com imagens de circuito implementada
+
 ## Próximos Passos
 
 - **Evoluir o Chatbot:** O chatbot atual tem respostas pré-definidas. Para o futuro, ele pode ser conectado a um serviço de Processamento de Linguagem Natural (como o da OpenAI) para se tornar verdadeiramente inteligente.
