@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Headphones, ShoppingCart, MessageSquare, X } from 'lucide-react'
 
-export function MenuSelector({ onSelect }) {
+export function MenuSelector({ onSelect, isChatOpen }) {
   const [isOpen, setIsOpen] = useState(false)
 
   const menuOptions = [
@@ -39,7 +39,7 @@ export function MenuSelector({ onSelect }) {
   return (
     <>
       <AnimatePresence>
-        {!isOpen && (
+        {!isOpen && !isChatOpen && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}

@@ -5,13 +5,36 @@ import { Card } from '@/components/ui/card.jsx'
 import { Send, X, MessageCircle, User, Bot } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export function ChatBot() {
+export function ChatBot({ isOpen: externalIsOpen, setIsOpen: externalSetIsOpen, mode }) {
   const [isOpen, setIsOpen] = useState(false)
+  
+  // Sincronizar com o estado externo
+  useEffect(() => {
+    if (externalIsOpen !== undefined) {
+      setIsOpen(externalIsOpen)
+    }
+  }, [externalIsOpen])
+  
+  const handleSetIsOpen = (value) => {
+    setIsOpen(value)
+    if (externalSetIsOpen) {
+      externalSetIsOpen(value)
+    }
+  }
+  const getInitialMessage = (mode) => {
+    const messages = {
+      'suporte': 'Olá! Sou o assistente virtual da Quanton3D IA. Diga o que está acontecendo com sua impressão 3D e vou tentar ajudar.',
+      'vendas': 'Olá! Bem-vindo à Quanton3D! Estou aqui para apresentar nossas resinas UV SLA de alta performance. Como posso ajudá-lo?',
+      'atendente': 'Olá! Vou conectar você com um de nossos atendentes. Enquanto isso, pode me contar como posso ajudá-lo?'
+    }
+    return messages[mode] || messages['suporte']
+  }
+  
   const [messages, setMessages] = useState([
     {
       id: 1,
       type: 'bot',
-      text: 'Olá! Sou o assistente virtual da Quanton3D IA. Diga o que está acontecendo com sua impressão 3D e vou tentar ajudar.',
+      text: getInitialMessage(mode),
       timestamp: new Date()
     }
   ])
@@ -29,6 +52,19 @@ export function ChatBot() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+  
+  // Resetar mensagens quando o modo mudar
+  useEffect(() => {
+    if (mode) {
+      setMessages([{
+        id: 1,
+        type: 'bot',
+        text: getInitialMessage(mode),
+        timestamp: new Date()
+      }])
+      setShowContactForm(true)
+    }
+  }, [mode])
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
@@ -115,7 +151,7 @@ export function ChatBot() {
             className="fixed bottom-6 right-6 z-50"
           >
             <Button
-              onClick={() => setIsOpen(true)}
+              onClick={() => handleSetIsOpen(true)}
               className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl hover:shadow-blue-500/50 transition-all duration-300"
             >
               <MessageCircle className="h-8 w-8 text-white" />
@@ -147,7 +183,7 @@ export function ChatBot() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => handleSetIsOpen(false)}
                   className="text-white hover:bg-white/20"
                 >
                   <X className="h-5 w-5" />

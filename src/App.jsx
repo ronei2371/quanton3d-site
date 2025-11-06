@@ -9,6 +9,14 @@ import logo from './assets/logo.png'
 import './App.css'
 
 function App() {
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [chatMode, setChatMode] = useState('suporte')
+
+  const handleMenuSelect = (option) => {
+    setChatMode(option)
+    setIsChatOpen(true)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950">
       {/* Header */}
@@ -265,10 +273,10 @@ function App() {
       </footer>
 
       {/* ChatBot */}
-      <ChatBot />
+      <ChatBot isOpen={isChatOpen} setIsOpen={setIsChatOpen} mode={chatMode} />
       
       {/* Menu Selector */}
-      <MenuSelector onSelect={(option) => console.log('Opção selecionada:', option)} />
+      <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} />
     </div>
   )
 }
