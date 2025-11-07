@@ -5,6 +5,7 @@ import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
 import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
+import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -13,6 +14,7 @@ import './App.css'
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [chatMode, setChatMode] = useState('suporte')
+  const [modalService, setModalService] = useState(null)
 
   const handleMenuSelect = (option) => {
     setChatMode(option)
@@ -191,14 +193,14 @@ function App() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              'Nivelamento de Plataforma',
-              'Calibração de Resina',
-              'Configuração de Fatiadores',
-              'Posicionamento de Suportes',
-              'Diagnóstico de Problemas',
-              'Otimização de Parâmetros',
-              'Chamadas de Vídeo',
-              'Atendimento Prioritário'
+              { name: 'Nivelamento de Plataforma', key: 'nivelamento' },
+              { name: 'Calibração de Resina', key: 'calibracao' },
+              { name: 'Configuração de Fatiadores', key: 'configuracao' },
+              { name: 'Posicionamento de Suportes', key: 'posicionamento' },
+              { name: 'Diagnóstico de Problemas', key: 'diagnostico' },
+              { name: 'Otimização de Parâmetros', key: 'otimizacao' },
+              { name: 'Chamadas de Vídeo', key: 'chamadas' },
+              { name: 'Atendimento Prioritário', key: 'prioritario' }
             ].map((service, index) => (
               <motion.div
                 key={index}
@@ -207,8 +209,11 @@ function App() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
               >
-                <Card className="p-4 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-                  <p className="font-semibold">{service}</p>
+                <Card 
+                  className="p-4 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 border-2"
+                  onClick={() => setModalService(service.key)}
+                >
+                  <p className="font-semibold">{service.name}</p>
                 </Card>
               </motion.div>
             ))}
@@ -281,6 +286,13 @@ function App() {
       
       {/* Menu Selector */}
       <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} />
+      
+      {/* Service Modal */}
+      <ServiceModal 
+        isOpen={modalService !== null} 
+        onClose={() => setModalService(null)} 
+        service={modalService} 
+      />
     </div>
   )
 }
