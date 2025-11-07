@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBot.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
+import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -34,6 +35,7 @@ function App() {
           <nav className="hidden md:flex items-center gap-6">
             <a href="#produtos" className="text-sm font-medium hover:text-blue-600 transition-colors">Produtos</a>
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
+            <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
             <a href="#contato" className="text-sm font-medium hover:text-blue-600 transition-colors">Contato</a>
           </nav>
         </div>
@@ -131,22 +133,17 @@ function App() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {[
             {
               title: 'Resina Padrão',
               description: 'Ideal para protótipos e modelos gerais',
-              features: ['Alta precisão', 'Ótimo acabamento', 'Custo-benefício']
+              features: ['Alta precisão', 'Ótimo acabamento', 'Custo-benefício', 'Versátil']
             },
             {
               title: 'Resina Flexível',
               description: 'Para aplicações que exigem elasticidade',
-              features: ['Resistente a rasgos', 'Mantém flexibilidade', 'Durável']
-            },
-            {
-              title: 'Resina Biocompatível',
-              description: 'Certificada para uso médico e odontológico',
-              features: ['Biocompatível', 'Atóxica', 'Certificações']
+              features: ['Resistente a rasgos', 'Mantém flexibilidade', 'Durável', 'Ideal para borrachas']
             }
           ].map((product, index) => (
             <motion.div
@@ -217,6 +214,9 @@ function App() {
           </div>
         </div>
       </section>
+
+      {/* Technical Tabs Section */}
+      <TechnicalTabs />
 
       {/* Contato Section */}
       <section id="contato" className="container mx-auto px-4 py-20">

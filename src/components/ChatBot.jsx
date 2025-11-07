@@ -43,6 +43,8 @@ export function ChatBot({ isOpen: externalIsOpen, setIsOpen: externalSetIsOpen, 
   const [userName, setUserName] = useState('')
   const [userPhone, setUserPhone] = useState('')
   const [showContactForm, setShowContactForm] = useState(true)
+  const [showTerms, setShowTerms] = useState(true)
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -190,7 +192,30 @@ export function ChatBot({ isOpen: externalIsOpen, setIsOpen: externalSetIsOpen, 
                 </Button>
               </div>
 
-              {showContactForm && (
+              {showTerms && !termsAccepted && (
+                <div className="p-6 bg-white dark:bg-gray-900 flex-1 overflow-y-auto">
+                  <h3 className="text-lg font-bold mb-4 text-blue-900 dark:text-blue-100">Termos de Uso</h3>
+                  <div className="text-sm space-y-3 text-gray-700 dark:text-gray-300 mb-4">
+                    <p>Ao usar este assistente virtual, você concorda com os seguintes termos:</p>
+                    <ul className="list-disc pl-5 space-y-2">
+                      <li>As informações fornecidas são para fins informativos e de suporte técnico.</li>
+                      <li>Seus dados (nome e telefone) serão usados apenas para atendimento e não serão compartilhados.</li>
+                      <li>O assistente utiliza inteligência artificial e pode não ter todas as respostas.</li>
+                      <li>Para questões complexas, recomendamos contato direto com nossa equipe.</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={() => handleSetIsOpen(false)} variant="outline" className="flex-1">
+                      Não aceito
+                    </Button>
+                    <Button onClick={() => { setTermsAccepted(true); setShowTerms(false); }} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                      Aceito
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {showContactForm && termsAccepted && (
                 <div className="p-4 bg-blue-100 dark:bg-blue-900/30 border-b">
                   <p className="text-sm font-semibold mb-3 text-blue-900 dark:text-blue-100">
                     Para começar, por favor informe:

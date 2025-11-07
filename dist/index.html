@@ -1,71 +1,14 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>QuantonBot3D IA Pro</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <!-- Modal LGPD / Termos -->
-  <div id="termsModal" class="modal hide">
-    <div class="modal__card">
-      <h3>Termos de Uso • Quanton3D</h3>
-      <div class="modal__scroll">
-        <p>Este assistente fornece recomendações técnicas para impressão 3D (SLA/DLP).</p>
-        <ul>
-          <li>As respostas são sugestões baseadas em boas práticas.</li>
-          <li>Valide os parâmetros para sua impressora, resina e ambiente.</li>
-          <li>Podemos registrar interações de forma anônima para melhoria.</li>
-        </ul>
-        <p>Ao continuar, você concorda com estes termos.</p>
-      </div>
-      <div class="modal__actions">
-        <button id="declineBtn" class="ghost">Não aceito</button>
-        <button id="acceptBtn" class="primary">Aceito e continuar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Container principal -->
-  <div id="chat-container">
-    <div class="brand">
-      <div class="logo">Q</div>
-      <div class="brand-text">
-        <h1>QuantonBot3D <span>IA Pro</span></h1>
-        <p>Assistente técnico com parâmetros e IA — SLA/DLP</p>
-      </div>
-    </div>
-
-    <div id="chat">
-      <div class="msg bot">
-        <div class="avatar">🤖</div>
-        <div class="bubble">
-          Olá! Sou o <b>QuantonBot3D IA Pro</b>. Diga seu <b>modelo</b>, <b>resina</b> e o <b>problema</b>.<br />
-          Ex.: <i>“Elegoo Saturn 2 com ABS-like, peça não adere”</i> ou <i>“Photon M3, parâmetros para ABS-like”</i>.
-        </div>
-      </div>
-    </div>
-
-    <form id="composer">
-      <input id="input" type="text" placeholder="Digite sua dúvida…" autocomplete="off" />
-      <button id="send" type="submit">Enviar</button>
-    </form>
-  </div>
-
-  <!-- Robô flutuante -->
-  <img
-    id="robot"
-    src="robot-neutral.png"
-    alt="QuantonBot"
-    data-neutral="robot-neutral.png"
-    data-thinking="robot-thinking.png"
-    data-speaking="robot-speaking.png"
-  />
-
-  <!-- Botão Som -->
-  <button id="soundBtn" class="sound muted" title="Ativar som">🔇</button>
-
-  <script src="bot.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quanton3D - Site</title>
+    <script type="module" crossorigin src="/assets/index-jNa9dZjU.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BdMrSNZx.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
