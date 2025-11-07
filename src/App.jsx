@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
 import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
+import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -217,6 +218,9 @@ function App() {
 
       {/* Technical Tabs Section */}
       <TechnicalTabs />
+
+      {/* Documents Section */}
+      <DocumentsSection />
 
       {/* Contato Section */}
       <section id="contato" className="container mx-auto px-4 py-20">
