@@ -294,33 +294,110 @@ export function TechnicalTabs() {
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                        <th className="p-3 text-left">Tipo de Resina</th>
-                        <th className="p-3 text-center">Altura Camada</th>
-                        <th className="p-3 text-center">Exposição Normal</th>
-                        <th className="p-3 text-center">Exposição Base</th>
-                        <th className="p-3 text-center">Lift Speed</th>
+                        <th className="p-3 text-left">Resina</th>
+                        <th className="p-3 text-center">Altura</th>
+                        <th className="p-3 text-center">Exposição</th>
+                        <th className="p-3 text-center">Base</th>
+                        <th className="p-3 text-left">Aplicações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       <tr className="hover:bg-blue-50 dark:hover:bg-blue-950/30">
-                        <td className="p-3 font-semibold">Resina Padrão</td>
+                        <td className="p-3 font-semibold">Pyroblast+</td>
                         <td className="p-3 text-center">0.05mm</td>
-                        <td className="p-3 text-center">2.5s - 3.5s</td>
-                        <td className="p-3 text-center">30s - 40s</td>
-                        <td className="p-3 text-center">120 mm/min</td>
+                        <td className="p-3 text-center">2-8s</td>
+                        <td className="p-3 text-center">35-70s</td>
+                        <td className="p-3 text-sm">Moldes, alta temperatura</td>
                       </tr>
                       <tr className="hover:bg-purple-50 dark:hover:bg-purple-950/30">
-                        <td className="p-3 font-semibold">Resina Flexível</td>
+                        <td className="p-3 font-semibold">Iron / Iron 7030</td>
                         <td className="p-3 text-center">0.05mm</td>
-                        <td className="p-3 text-center">3.5s - 5s</td>
-                        <td className="p-3 text-center">35s - 50s</td>
-                        <td className="p-3 text-center">80 mm/min</td>
+                        <td className="p-3 text-center">2-6s</td>
+                        <td className="p-3 text-center">30-60s</td>
+                        <td className="p-3 text-sm">Peças funcionais, mecânica</td>
+                      </tr>
+                      <tr className="hover:bg-green-50 dark:hover:bg-green-950/30">
+                        <td className="p-3 font-semibold">Spin+</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-5s</td>
+                        <td className="p-3 text-center">30-50s</td>
+                        <td className="p-3 text-sm">Fundição, joalheria</td>
+                      </tr>
+                      <tr className="hover:bg-cyan-50 dark:hover:bg-cyan-950/30">
+                        <td className="p-3 font-semibold">Poseidon</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-45s</td>
+                        <td className="p-3 text-sm">Lavável em água, ecológica</td>
+                      </tr>
+                      <tr className="hover:bg-yellow-50 dark:hover:bg-yellow-950/30">
+                        <td className="p-3 font-semibold">Spark</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-40s</td>
+                        <td className="p-3 text-sm">Uso geral, protótipos</td>
+                      </tr>
+                      <tr className="hover:bg-pink-50 dark:hover:bg-pink-950/30">
+                        <td className="p-3 font-semibold">FlexForm</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">3-6s</td>
+                        <td className="p-3 text-center">35-50s</td>
+                        <td className="p-3 text-sm">Flexível, juntas, vedações</td>
+                      </tr>
+                      <tr className="hover:bg-indigo-50 dark:hover:bg-indigo-950/30">
+                        <td className="p-3 font-semibold">Alchemist</td>
+                        <td className="p-3 text-center">0.025mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-40s</td>
+                        <td className="p-3 text-sm">Alta precisão, miniaturas</td>
+                      </tr>
+                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-950/30">
+                        <td className="p-3 font-semibold">LowSmell</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-40s</td>
+                        <td className="p-3 text-sm">Baixo odor, uso doméstico</td>
+                      </tr>
+                      <tr className="hover:bg-blue-50 dark:hover:bg-blue-950/30">
+                        <td className="p-3 font-semibold">VulcanCast</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-5s</td>
+                        <td className="p-3 text-center">30-50s</td>
+                        <td className="p-3 text-sm">Fundição premium</td>
+                      </tr>
+                      <tr className="hover:bg-orange-50 dark:hover:bg-orange-950/30">
+                        <td className="p-3 font-semibold">Athom Dental</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-40s</td>
+                        <td className="p-3 text-sm">Modelos odontológicos</td>
+                      </tr>
+                      <tr className="hover:bg-red-50 dark:hover:bg-red-950/30">
+                        <td className="p-3 font-semibold">Athom Gengiva</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-40s</td>
+                        <td className="p-3 text-sm">Simulação gengiva</td>
+                      </tr>
+                      <tr className="hover:bg-purple-50 dark:hover:bg-purple-950/30">
+                        <td className="p-3 font-semibold">Athom Castable</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-5s</td>
+                        <td className="p-3 text-center">30-50s</td>
+                        <td className="p-3 text-sm">Fundição odontológica</td>
+                      </tr>
+                      <tr className="hover:bg-teal-50 dark:hover:bg-teal-950/30">
+                        <td className="p-3 font-semibold">Athom Alinhadores</td>
+                        <td className="p-3 text-center">0.05mm</td>
+                        <td className="p-3 text-center">2-4s</td>
+                        <td className="p-3 text-center">30-40s</td>
+                        <td className="p-3 text-sm">Alinhadores, bruxismo</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 italic">
-                  * Valores para impressoras com tela monocromática. Ajuste conforme sua impressora específica.
+                  * Valores para impressoras monocromáticas. Para RGB, multiplique por 3-5x. Sempre faça teste de exposição.
                 </p>
               </div>
 

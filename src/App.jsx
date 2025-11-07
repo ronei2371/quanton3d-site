@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
-import { ChatBot } from '@/components/ChatBot.jsx'
+import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
 import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
