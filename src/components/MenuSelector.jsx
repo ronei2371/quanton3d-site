@@ -46,12 +46,23 @@ export function MenuSelector({ onSelect, isChatOpen }) {
             exit={{ scale: 0, opacity: 0 }}
             className="fixed bottom-6 left-6 z-50"
           >
-            <Button
-              onClick={() => setIsOpen(true)}
-              className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300"
-            >
-              <MessageSquare className="h-8 w-8 text-white" />
-            </Button>
+            <div className="flex flex-col items-center gap-3">
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="bg-white px-4 py-2 rounded-full shadow-lg"
+              >
+                <p className="text-sm font-semibold text-purple-600 whitespace-nowrap">
+                  👋 Estou aqui se precisar!
+                </p>
+              </motion.div>
+              <Button
+                onClick={() => setIsOpen(true)}
+                className="h-20 w-20 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-2xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-110"
+              >
+                <img src="/robot-idle.png" alt="Bot" className="h-16 w-16" />
+              </Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

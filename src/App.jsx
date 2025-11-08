@@ -6,6 +6,7 @@ import { MenuSelector } from '@/components/MenuSelector.jsx'
 import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
+import { PrivacyModal } from '@/components/PrivacyModal.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -293,6 +294,9 @@ function App() {
         onClose={() => setModalService(null)} 
         service={modalService} 
       />
+      
+      {/* Privacy Modal */}
+      <PrivacyModal />
     </div>
   )
 }
