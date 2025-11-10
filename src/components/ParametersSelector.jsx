@@ -143,12 +143,6 @@ export default function ParametersSelector() {
 }// Arquivo: quanton3d-site/src/components/ParametersSelector.jsx
 // Este é o componente ATUALIZADO que faz os dropdowns funcionarem.
 
-import { useState } from 'react';
-import { Card } from '@/components/ui/card.jsx';
-import { motion } from 'framer-motion';
-// Importa o novo banco de dados
-import { resinList, printerList, parameters } from '../data/parametersData.js';
-
 export default function ParametersSelector() {
   const [selectedResin, setSelectedResin] = useState('');
   const [selectedPrinter, setSelectedPrinter] = useState('');
