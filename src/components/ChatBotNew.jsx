@@ -1,411 +1,285 @@
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Card } from '@/components/ui/card.jsx'
-import { X, Send, Bot, User, Image as ImageIcon, Lightbulb } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+// Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
+// (Este é o código ATUALIZADO com o "Robô Maior" e a "Tela de Chat Maior")
 
-export function ChatBot({ isOpen, setIsOpen, mode }) {
-  const [messages, setMessages] = useState([])
-  const [inputValue, setInputValue] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [userName, setUserName] = useState('')
-  const [userPhone, setUserPhone] = useState('')
-  const [showContactForm, setShowContactForm] = useState(true)
-  const [showTerms, setShowTerms] = useState(true)
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
-  const [showSuggestionForm, setShowSuggestionForm] = useState(false)
-  const [suggestion, setSuggestion] = useState('')
-  const messagesEndRef = useRef(null)
-  const fileInputRef = useRef(null)
-  const sessionId = useRef(`session-${Date.now()}`).current
+import { useState, useRef, useEffect } from 'react';
+import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import robotIcon from '../assets/robot-icon.png'; // Manus deve ter adicionado este ícone
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+// URL DA API (do arquivo .env que consertamos)
+const API_URL = import.meta.env.VITE_API_URL;
+
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [suggestionText, setSuggestionText] = useState('');
+  const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+  
+  const endOfMessagesRef = useRef(null);
+
+  const toggleOpen = () => setIsOpen(!isOpen);
+
+  // Define a mensagem inicial com base no modo
+  useEffect(() => {
+    let initialText = '';
+    if (mode === 'suporte') {
+      initialText = 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
+    } else if (mode === 'parametros') {
+      initialText = 'Estou pronto para ajudar! Por favor, me diga qual Resina e qual Impressora você está usando para eu buscar os parâmetros.';
+    } else {
+      initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
+    }
+    setMessages([{ id: 1, sender: 'bot', text: initialText }]);
+  }, [mode]);
+
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  useEffect(() => {
-    if (isOpen && !showContactForm && messages.length === 0) {
-      const modeMessages = {
-        suporte: 'Olá! Sou o QuantonBot3D, seu assistente técnico especializado em impressão 3D com resinas Quanton3D. Como posso ajudá-lo hoje?',
-        vendas: 'Olá! Sou o QuantonBot3D. Estou aqui para ajudá-lo a escolher a resina Quanton3D perfeita para seu projeto. Qual tipo de aplicação você tem em mente?',
-        atendente: 'Olá! Sou o QuantonBot3D. Vou conectá-lo com nossa equipe de atendimento. Enquanto isso, em que posso ajudar?'
-      }
-
-      setMessages([{
-        id: Date.now(),
-        type: 'bot',
-        text: modeMessages[mode] || modeMessages.suporte,
-        timestamp: new Date()
-      }])
-    }
-  }, [isOpen, showContactForm, mode])
-
-  const handleSetIsOpen = (value) => {
-    setIsOpen(value)
-  }
-
-  const handleContactSubmit = () => {
-    if (userName && userPhone) {
-      setShowContactForm(false)
-    }
-  }
-
-  const handleImageSelect = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedImage(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleRemoveImage = () => {
-    setSelectedImage(null)
-    setImagePreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() && !selectedImage) return
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
 
     const userMessage = {
       id: Date.now(),
-      type: 'user',
-      text: inputValue || '[Imagem enviada]',
-      timestamp: new Date(),
-      image: imagePreview
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInputValue('')
-    setIsTyping(true)
+      sender: 'user',
+      text: inputValue,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
 
     try {
-      let response
-      
-      if (selectedImage) {
-        // Enviar com imagem
-        const formData = new FormData()
-        formData.append('image', selectedImage)
-        formData.append('message', inputValue || 'Analise esta imagem')
-        formData.append('sessionId', sessionId)
-        formData.append('userName', userName)
-
-        response = await fetch('https://quanton3d-bot-v2.onrender.com/ask-with-image', {
-          method: 'POST',
-          body: formData
-        })
-      } else {
-        // Enviar apenas texto
-        response = await fetch('https://quanton3d-bot-v2.onrender.com/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            message: inputValue,
-            sessionId,
-            userName
-          })
-        })
-      }
-
-      const data = await response.json()
-
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        text: data.reply,
-        timestamp: new Date()
-      }
-
-      setMessages((prev) => [...prev, botMessage])
-      handleRemoveImage()
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error)
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        text: '⚠️ Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
-        timestamp: new Date()
-      }
-      setMessages((prev) => [...prev, errorMessage])
-    } finally {
-      setIsTyping(false)
-    }
-  }
-
-  const handleSendSuggestion = async () => {
-    if (!suggestion.trim()) return
-
-    try {
-      const response = await fetch('https://quanton3d-bot-v2.onrender.com/suggest-knowledge', {
+      const response = await fetch(`${API_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          suggestion,
-          userName,
-          userPhone,
-          sessionId
-        })
-      })
+        body: JSON.stringify({ 
+          message: inputValue,
+          sessionId: sessionId
+        }),
+      });
 
-      const data = await response.json()
-
-      if (data.success) {
-        const confirmMessage = {
-          id: Date.now(),
-          type: 'bot',
-          text: '✅ Obrigado pela sugestão! Ela foi enviada para análise da equipe Quanton3D e poderá ser incorporada à base de conhecimento.',
-          timestamp: new Date()
-        }
-        setMessages((prev) => [...prev, confirmMessage])
-        setSuggestion('')
-        setShowSuggestionForm(false)
+      if (!response.ok) {
+        throw new Error('Ocorreu um erro ao conectar com a IA.');
       }
-    } catch (error) {
-      console.error('Erro ao enviar sugestão:', error)
-    }
-  }
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+      const data = await response.json();
+      const botMessage = {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: data.reply || 'Não consegui processar sua resposta.',
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Erro na API:', error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Envio da Sugestão
+  const handleSuggestionSubmit = async () => {
+    if (!suggestionText.trim() || isLoading) {
+      alert('Por favor, descreva sua sugestão.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/suggest-knowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          suggestion: suggestionText, 
+          userName: "Usuário do Site" // Você pode adicionar campos de nome/telefone se quiser
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Não foi possível enviar sua sugestão.');
+      }
+      
+      const data = await response.json();
+      alert(data.message || 'Obrigado! Sua sugestão foi enviada.');
+      setSuggestionText('');
+      setShowSuggestion(false);
+
+    } catch (error) {
+      console.error('Erro ao enviar sugestão:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  if (!isOpen) {
+    return (
+      // ===== MELHORIA 1: ROBÔ MAIOR + MENSAGEM =====
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="absolute bottom-5 right-[80px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
+        >
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Estou aqui se precisar!</p>
+          <div className="absolute right-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
+        </motion.div>
+        
+        <button
+          onClick={toggleOpen}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+          aria-label="Abrir chat"
+          style={{ width: '80px', height: '80px' }} // Tamanho 3x maior
+        >
+          {/* <Bot size={40} /> */} 
+          {/* O Manus trocou pelo robô que bate continência */}
+          <img src={robotIcon} alt="Bot" className="h-12 w-12" />
+        </button>
+      </div>
+      // ===== FIM DA MELHORIA 1 =====
+    );
   }
 
   return (
-    <>
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
-          >
-            <Button
-              onClick={() => handleSetIsOpen(true)}
-              className="h-20 w-20 rounded-full shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 p-0 overflow-hidden relative group"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              }}
+    // ===== MELHORIA 2: TELA DE CHAT MAIOR =====
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
+    >
+    {/* ===== FIM DA MELHORIA 2 ===== */}
+    
+      {/* Header */}
+      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <img src={robotIcon} alt="Bot" className="h-8 w-8" />
+          <div>
+            <h3 className="font-bold">Quanton3D IA</h3>
+            <p className="text-xs opacity-80">Assistente Virtual GPT</p>
+          </div>
+        </div>
+        <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Fundo de Circuito (do Guia do Manus) */}
+      <div 
+        className="flex-1 p-4 overflow-y-auto space-y-4 relative"
+        style={{ backgroundImage: "url('/chat-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
+        
+        <div className="relative z-10 space-y-4">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`p-3 rounded-lg max-w-[80%] shadow-md ${
+                  msg.sender === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                }`}
+              >
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
+                <div className="flex gap-2 items-center">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={endOfMessagesRef} />
+        </div>
+      </div>
+
+      {/* Botão de Sugestão (o "💡") */}
+      <div className="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        
+        <AnimatePresence>
+          {showSuggestion && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
             >
-              <img 
-                src="/robot-icon.png" 
-                alt="QuantonBot3D" 
-                className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-purple-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
+                  Descreva a informação que você gostaria que fosse adicionada.
+                </p>
+                <textarea
+                  value={suggestionText}
+                  onChange={(e) => setSuggestionText(e.target.value)}
+                  className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
+                  rows={3}
+                  placeholder="Ex: A resina X funciona bem com..."
+                  disabled={isLoading}
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button 
+                    onClick={() => setShowSuggestion(false)}
+                    className="text-xs px-3 py-1 rounded bg-gray-200 dark:bg-gray-600"
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSuggestionSubmit}
+                    className="text-xs px-3 py-1 rounded bg-yellow-500 text-white"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Enviando...' : 'Enviar Sugestão'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            transition={{ type: 'spring', damping: 20 }}
-            className="fixed bottom-6 right-6 z-50 w-[500px] h-[700px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
+        <button 
+          onClick={() => setShowSuggestion(!showSuggestion)}
+          className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+        >
+          <Bulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
+        </button>
+        
+        {/* Input de Chat */}
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="flex-1 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+            placeholder="Digite sua mensagem..."
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            disabled={isLoading}
           >
-            <Card className="h-full flex flex-col shadow-2xl border-2 border-blue-200 dark:border-blue-900 overflow-hidden" style={{backgroundImage: 'url(/chat-bg.gif)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-                    <img src="/robot-logo.png" alt="Bot" className="h-full w-full object-cover" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold">Quanton3D IA</h3>
-                    <p className="text-white/80 text-xs">Assistente Virtual GPT</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleSetIsOpen(false)}
-                  className="text-white hover:bg-white/20"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {showTerms && !termsAccepted && (
-                <div className="p-6 bg-white dark:bg-gray-900 flex-1 overflow-y-auto">
-                  <h3 className="text-lg font-bold mb-4 text-blue-900 dark:text-blue-100">Termos de Uso</h3>
-                  <div className="text-sm space-y-3 text-gray-700 dark:text-gray-300 mb-4">
-                    <p>Ao usar este assistente virtual, você concorda com os seguintes termos:</p>
-                    <ul className="list-disc pl-5 space-y-2">
-                      <li>As informações fornecidas são para fins informativos e de suporte técnico.</li>
-                      <li>Seus dados (nome e telefone) serão usados apenas para atendimento e não serão compartilhados.</li>
-                      <li>O assistente utiliza inteligência artificial e pode não ter todas as respostas.</li>
-                      <li>Para questões complexas, recomendamos contato direto com nossa equipe.</li>
-                      <li>O bot fornece suporte APENAS para resinas Quanton3D.</li>
-                    </ul>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={() => handleSetIsOpen(false)} variant="outline" className="flex-1">
-                      Não aceito
-                    </Button>
-                    <Button onClick={() => { setTermsAccepted(true); setShowTerms(false); }} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                      Aceito
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {showContactForm && termsAccepted && (
-                <div className="p-4 bg-blue-100 dark:bg-blue-900/30 border-b">
-                  <p className="text-sm font-semibold mb-3 text-blue-900 dark:text-blue-100">
-                    Para começar, por favor informe:
-                  </p>
-                  <div className="space-y-2">
-                    <Input placeholder="Seu nome" value={userName} onChange={(e) => setUserName(e.target.value)} />
-                    <Input placeholder="Seu telefone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} />
-                    <Button onClick={handleContactSubmit} disabled={!userName || !userPhone} className="w-full bg-blue-600 hover:bg-blue-700">
-                      Iniciar conversa
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg) => (
-                  <motion.div key={msg.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    {msg.type === 'bot' && (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        <img src="/robot-logo.png" alt="Bot" className="h-full w-full object-cover" />
-                      </div>
-                    )}
-                    <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${msg.type === 'user' ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}>
-                      {msg.image && (
-                        <img src={msg.image} alt="Enviada" className="rounded-lg mb-2 max-w-full" />
-                      )}
-                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                      <p className={`text-xs mt-1 ${msg.type === 'user' ? 'text-white/70' : 'text-gray-500'}`}>
-                        {msg.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    {msg.type === 'user' && (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-
-                {isTyping && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center overflow-hidden">
-                      <img src="/robot-thinking.png" alt="Pensando" className="h-full w-full object-cover animate-pulse" />
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {showSuggestionForm && (
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border-t">
-                  <p className="text-sm font-semibold mb-2 text-yellow-900 dark:text-yellow-100">
-                    💡 Sugerir Conhecimento
-                  </p>
-                  <textarea
-                    value={suggestion}
-                    onChange={(e) => setSuggestion(e.target.value)}
-                    placeholder="Descreva a informação que você gostaria que fosse adicionada..."
-                    className="w-full p-2 border rounded-lg text-sm mb-2 min-h-[80px]"
-                  />
-                  <div className="flex gap-2">
-                    <Button onClick={() => setShowSuggestionForm(false)} variant="outline" size="sm" className="flex-1">
-                      Cancelar
-                    </Button>
-                    <Button onClick={handleSendSuggestion} size="sm" className="flex-1 bg-yellow-600 hover:bg-yellow-700">
-                      Enviar Sugestão
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {imagePreview && (
-                <div className="p-2 bg-blue-50 dark:bg-blue-900/30 border-t">
-                  <div className="relative inline-block">
-                    <img src={imagePreview} alt="Preview" className="h-20 rounded-lg" />
-                    <button
-                      onClick={handleRemoveImage}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 border-t bg-white dark:bg-gray-900">
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-shrink-0"
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setShowSuggestionForm(!showSuggestionForm)}
-                    className="flex-shrink-0"
-                  >
-                    <Lightbulb className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    placeholder="Digite sua mensagem..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={showContactForm}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={(!inputValue.trim() && !selectedImage) || showContactForm}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  )
+            <Send size={20} />
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
 }
