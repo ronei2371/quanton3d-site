@@ -8,6 +8,7 @@ import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
+import ParametersSelector from '@/components/ParametersSelector.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -225,6 +226,9 @@ function App() {
           </div>
         </div>
       </section>
+
+      {/* Parameters Selector Section */}
+      <ParametersSelector />
 
       {/* Technical Tabs Section */}
       <TechnicalTabs />
