@@ -111,7 +111,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
     >
       {/* Header */}
-      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-7ExampleDomain.com text-white flex justify-between items-center rounded-t-lg">
+      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
         <div className="flex items-center gap-3">
           <img src="/assets/robot-icon.png" alt="Bot" className="h-8 w-8" />
           <div>
