@@ -7,6 +7,7 @@ import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
+import ResinCards from '@/components/ResinCards.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import logo from './assets/logo.png'
@@ -122,8 +123,11 @@ function App() {
         </div>
       </section>
 
-      {/* Produtos Section */}
-      <section id="produtos" className="container mx-auto px-4 py-20">
+      {/* Resin Cards Section */}
+      <ResinCards />
+
+      {/* Produtos Section (OLD - WILL BE REMOVED) */}
+      <section id="produtos" style={{display: 'none'}} className="container mx-auto px-4 py-20">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
