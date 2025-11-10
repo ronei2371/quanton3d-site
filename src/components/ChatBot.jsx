@@ -1,286 +1,237 @@
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Card } from '@/components/ui/card.jsx'
-import { Send, X, MessageCircle, User, Bot } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+// Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
+// (Este é o código CORRIGIDO. Eu consertei o caminho do robot-icon.png)
 
-export function ChatBot({ isOpen: externalIsOpen, setIsOpen: externalSetIsOpen, mode }) {
-  const [isOpen, setIsOpen] = useState(false)
+import { useState, useRef, useEffect } from 'react';
+import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+// import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [suggestionText, setSuggestionText] = useState('');
+  const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   
-  // Sincronizar com o estado externo
+  const endOfMessagesRef = useRef(null);
+
+  const toggleOpen = () => setIsOpen(!isOpen);
+
+  // Define a mensagem inicial com base no modo
   useEffect(() => {
-    if (externalIsOpen !== undefined) {
-      setIsOpen(externalIsOpen)
+    let initialText = '';
+    if (mode === 'suporte') {
+      initialText = 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
+    } else if (mode === 'vendas') {
+      initialText = 'Olá! Você está no modo "Vendas e Produtos". Posso ajudar a encontrar a resina ideal ou falar sobre nossos produtos?';
+    } else {
+      initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
     }
-  }, [externalIsOpen])
-  
-  const handleSetIsOpen = (value) => {
-    setIsOpen(value)
-    if (externalSetIsOpen) {
-      externalSetIsOpen(value)
-    }
-  }
-  const getInitialMessage = (mode) => {
-    const messages = {
-      'suporte': 'Olá! Sou o assistente virtual da Quanton3D IA. Diga o que está acontecendo com sua impressão 3D e vou tentar ajudar.',
-      'vendas': 'Olá! Bem-vindo à Quanton3D! Estou aqui para apresentar nossas resinas UV SLA de alta performance. Como posso ajudá-lo?',
-      'atendente': 'Olá! Vou conectar você com um de nossos atendentes. Enquanto isso, pode me contar como posso ajudá-lo?'
-    }
-    return messages[mode] || messages['suporte']
-  }
-  
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      text: getInitialMessage(mode),
-      timestamp: new Date()
-    }
-  ])
-  const [inputValue, setInputValue] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [userName, setUserName] = useState('')
-  const [userPhone, setUserPhone] = useState('')
-  const [showContactForm, setShowContactForm] = useState(true)
-  const [showTerms, setShowTerms] = useState(true)
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const messagesEndRef = useRef(null)
+    setMessages([{ id: 1, sender: 'bot', text: initialText }]);
+  }, [mode]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-  
-  // Resetar mensagens quando o modo mudar
-  useEffect(() => {
-    if (mode) {
-      setMessages([{
-        id: 1,
-        type: 'bot',
-        text: getInitialMessage(mode),
-        timestamp: new Date()
-      }])
-      setShowContactForm(true)
-    }
-  }, [mode])
+    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
-
-    if (showContactForm && (!userName || !userPhone)) {
-      alert('Por favor, preencha seu nome e telefone antes de enviar mensagens.')
-      return
-    }
-
-    const userMessage = {
-      id: messages.length + 1,
-      type: 'user',
-      text: inputValue,
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    setInputValue('')
-    setIsTyping(true)
-
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+    const userMessage = { id: Date.now(), sender: 'user', text: inputValue };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
     try {
-      const response = await fetch("https://quanton3d-bot-v2.onrender.com/ask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: inputValue
-        }),
-      })
-
-      const data = await response.json()
-
-      const botMessage = {
-        id: messages.length + 2,
-        type: "bot",
-        text: data.reply || "⚠️ Erro: IA não respondeu corretamente.",
-        timestamp: new Date(),
-      }
-
-      setMessages(prev => [...prev, botMessage])
+      const response = await fetch(`${API_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
+      });
+      if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
+      const data = await response.json();
+      const botMessage = { id: Date.now() + 1, sender: 'bot', text: data.reply || 'Não consegui processar sua resposta.' };
+      setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      console.error("Erro ao enviar mensagem:", error)
-      const botMessage = {
-        id: messages.length + 2,
-        type: "bot",
-        text: "⚠️ Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.",
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, botMessage])
+      console.error('Erro na API:', error);
+      const errorMessage = { id: Date.now() + 1, sender: 'bot', text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.' };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setIsTyping(false)
+      setIsLoading(false);
     }
-  }
+  };
+  const handleSuggestionSubmit = async () => {
+    if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/suggest-knowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestion: suggestionText, userName: "Usuário do Site" }),
+      });
+      if (!response.ok) { throw new Error('Não foi possível enviar sua sugestão.'); }
+      const data = await response.json();
+      alert(data.message || 'Obrigado! Sua sugestão foi enviada.');
+      setSuggestionText('');
+      setShowSuggestion(false);
+    } catch (error) {
+      console.error('Erro ao enviar sugestão:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
-    }
-  }
 
-  const handleContactSubmit = () => {
-    if (userName && userPhone) {
-      setShowContactForm(false)
-      const welcomeMessage = {
-        id: messages.length + 1,
-        type: 'bot',
-        text: `Olá ${userName}! Seu número ${userPhone} foi registrado. Como posso ajudá-lo hoje?`,
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, welcomeMessage])
+  if (!isOpen) {
+    if (isModalOpen) {
+      return null;
     }
+    
+    return (
+      <button
+        onClick={onOpenModal} // <-- Abre o MODAL
+        className="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+        aria-label="Abrir menu de opções"
+        style={{ width: '80px', height: '80px' }} // Botão grande
+      >
+        {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
+        <img src="/assets/robot-icon.png" alt="Bot" className="h-12 w-12" />
+      </button>
+    );
   }
 
   return (
-    <>
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
-          >
-            <Button
-              onClick={() => handleSetIsOpen(true)}
-              className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl hover:shadow-blue-500/50 transition-all duration-300"
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
+    >
+      {/* Header */}
+      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
+        <div className="flex items-center gap-3">
+          {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
+          <img src="/assets/robot-icon.png" alt="Bot" className="h-8 w-8" />
+          <div>
+            <h3 className="font-bold">Quanton3D IA</h3>
+            <p className="text-xs opacity-80">Assistente Virtual GPT</p>
+          </div>
+        </div>
+        <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Fundo de Circuito */}
+      <div 
+        className="flex-1 p-4 overflow-y-auto space-y-4 relative"
+        style={{ backgroundImage: "url('/chat-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+      >
+        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
+        
+        <div className="relative z-10 space-y-4">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`p-3 rounded-lg max-w-[80%] shadow-md ${
+                  msg.sender === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                }`}
+              >
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
+                <div className="flex gap-2 items-center">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={endOfMessagesRef} />
+        </div>
+      </div>
+
+      {/* Botão de Sugestão (o "💡") */}
+      <div className="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        
+        <AnimatePresence>
+          {showSuggestion && (
+             <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
             >
-              <MessageCircle className="h-8 w-8 text-white" />
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
+                  Descreva a informação que você gostaria que fosse adicionada.
+                </p>
+                <textarea
+                  value={suggestionText}
+                  onChange={(e) => setSuggestionText(e.target.value)}
+                  className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
+                  rows={3}
+                  placeholder="Ex: A resina X funciona bem com..."
+                  disabled={isLoading}
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button 
+                    onClick={() => setShowSuggestion(false)}
+                    className="text-xs px-3 py-1 rounded bg-gray-200 dark:bg-gray-600"
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSuggestionSubmit}
+                    className="text-xs px-3 py-1 rounded bg-yellow-500 text-white"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Enviando...' : 'Enviar Sugestão'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            transition={{ type: 'spring', damping: 20 }}
-            className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]"
+        <button 
+          onClick={() => setShowSuggestion(!showSuggestion)}
+          className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+        >
+          <Bulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
+        </button>
+        
+        {/* Input de Chat */}
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="flex-1 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+            placeholder="Digite sua mensagem..."
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            disabled={isLoading}
           >
-            <Card className="h-full flex flex-col shadow-2xl border-2 border-blue-200 dark:border-blue-900 overflow-hidden" style={{backgroundImage: 'url(/chat-bg.gif)', backgroundSize: 'cover', backgroundPosition: 'center'}}>
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-                    <Bot className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold">Quanton3D IA</h3>
-                    <p className="text-white/80 text-xs">Assistente Virtual GPT</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleSetIsOpen(false)}
-                  className="text-white hover:bg-white/20"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {showTerms && !termsAccepted && (
-                <div className="p-6 bg-white dark:bg-gray-900 flex-1 overflow-y-auto">
-                  <h3 className="text-lg font-bold mb-4 text-blue-900 dark:text-blue-100">Termos de Uso</h3>
-                  <div className="text-sm space-y-3 text-gray-700 dark:text-gray-300 mb-4">
-                    <p>Ao usar este assistente virtual, você concorda com os seguintes termos:</p>
-                    <ul className="list-disc pl-5 space-y-2">
-                      <li>As informações fornecidas são para fins informativos e de suporte técnico.</li>
-                      <li>Seus dados (nome e telefone) serão usados apenas para atendimento e não serão compartilhados.</li>
-                      <li>O assistente utiliza inteligência artificial e pode não ter todas as respostas.</li>
-                      <li>Para questões complexas, recomendamos contato direto com nossa equipe.</li>
-                    </ul>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={() => handleSetIsOpen(false)} variant="outline" className="flex-1">
-                      Não aceito
-                    </Button>
-                    <Button onClick={() => { setTermsAccepted(true); setShowTerms(false); }} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                      Aceito
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {showContactForm && termsAccepted && (
-                <div className="p-4 bg-blue-100 dark:bg-blue-900/30 border-b">
-                  <p className="text-sm font-semibold mb-3 text-blue-900 dark:text-blue-100">
-                    Para começar, por favor informe:
-                  </p>
-                  <div className="space-y-2">
-                    <Input placeholder="Seu nome" value={userName} onChange={(e) => setUserName(e.target.value)} />
-                    <Input placeholder="Seu telefone" value={userPhone} onChange={(e) => setUserPhone(e.target.value)} />
-                    <Button onClick={handleContactSubmit} disabled={!userName || !userPhone} className="w-full bg-blue-600 hover:bg-blue-700">
-                      Iniciar conversa
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg) => (
-                  <motion.div key={msg.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`flex gap-2 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    {msg.type === 'bot' && (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                        <Bot className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                    <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${msg.type === 'user' ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}>
-                      <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                      <p className={`text-xs mt-1 ${msg.type === 'user' ? 'text-white/70' : 'text-gray-500'}`}>
-                        {msg.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    {msg.type === 'user' && (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-
-                {isTyping && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                      <Bot className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="p-4 border-t bg-white dark:bg-gray-900">
-                <div className="flex gap-2">
-                  <Input placeholder="Digite sua mensagem..." value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={handleKeyPress} disabled={showContactForm} className="flex-1" />
-                  <Button onClick={handleSendMessage} disabled={!inputValue.trim() || showContactForm} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    <Send className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  )
+            <Send size={20} />
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
 }
