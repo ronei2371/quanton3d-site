@@ -1,12 +1,12 @@
 // Arquivo: quanton3d-site/src/App.jsx
-// (Este é o código ATUALIZADO que TROCA a função dos botões)
+// (Este é o código ATUALIZADO que insere o novo componente TechnicalTabs)
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
-import { TechnicalTabs } from '@/components/TechnicalTabs.jsx'
+import TechnicalTabs from '@/components/TechnicalTabs.jsx' // <-- IMPORTA O NOVO COMPONENTE
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
@@ -19,36 +19,122 @@ import './App.css'
 
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false) // <-- NOVO INTERRUPTOR (para o modal)
+  const [isModalOpen, setIsModalOpen] = useState(false) 
   const [chatMode, setChatMode] = useState('suporte')
   const [modalService, setModalService] = useState(null)
 
-  // ===== INÍCIO DA CORREÇÃO =====
-  // Esta função agora é chamada pelo MODAL
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); // Fecha o modal
     
     if (option === 'suporte' || option === 'vendas') {
-      // Abre o chat no modo correto
       setChatMode(option);
       setIsChatOpen(true);
     } else if (option === 'atendente') {
-      // Abre o WhatsApp (conforme a "LISTA DE TAREFAS")
-      window.open('https://wa.me/553132716935', '_blank');
+      window.open('https://wa.me/553132716935', '_blank'); // WhatsApp
     }
   }
-  // ===== FIM DA CORREÇÃO =====
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950">
-      {/* Header */}
+      
+      <PrivacyModal />
+
+      {/* Header (RESTAURADO) */}
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
-        {/* ... (O resto do seu código Header... não precisa mudar) ... */}
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Quanton3D" className="h-12 w-auto" />
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Quanton3D
+              </h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Resinas UV SLA de Alta Performance</p>
+            </div>
+          </div>
+          <nav className="hidden md:flex items-center gap-6">
+            <a href="#produtos" className="text-sm font-medium hover:text-blue-600 transition-colors">Produtos</a>
+            <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
+            <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
+            <a href="#contato" className="text-sm font-medium hover:text-blue-600 transition-colors">Contato</a>
+          </nav>
+        </div>
       </header>
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
-        {/* ... (O resto do seu código Hero... não precisa mudar) ... */}
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-5xl font-bold mb-6 leading-tight">
+              Resinas UV SLA de
+              <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Alta Performance
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+              Fabricação especializada de resinas UV para impressão 3D SLA/DLP. 
+              Soluções customizadas para odontologia, medicina, indústria e muito mais.
+            </p>
+            <div className="flex gap-4">
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg">
+                Fale Conosco
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button variant="outline" className="px-8 py-6 text-lg">
+                Saiba Mais
+              </Button>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-3xl opacity-20"></div>
+            <Card className="relative p-8 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border-2 border-blue-200 dark:border-blue-900">
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                    <Beaker className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2">Formulação Customizada</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Desenvolvemos resinas específicas para sua aplicação
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                    <Cpu className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2">Suporte Técnico Completo</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Assistência especializada em impressão 3D SLA/DLP
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2">Alta Qualidade</h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Matérias-primas premium e controle rigoroso de qualidade
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
       </section>
 
       {/* Resin Cards Section */}
@@ -56,65 +142,74 @@ function App() {
 
       {/* Produtos Section (OLD) */}
       <section id="produtos" style={{display: 'none'}} className="container mx-auto px-4 py-20">
-         {/* ... (O resto do seu código de Produtos... não precisa mudar) ... */}
+         {/* ... (código antigo) ... */}
       </section>
 
       {/* Serviços Section */}
       <section id="servicos" className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 py-20">
-         {/* ... (O resto do seu código de Serviços... não precisa mudar) ... */}
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl font-bold mb-4">Suporte Técnico Especializado</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300">
+              Assistência completa para sua impressão 3D
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Os botões de suporte antigos vão ser substituídos pelo TechnicalTabs */}
+            {/* Deixei o código antigo aqui para não causar erros de build em outros arquivos, mas vou esconder: */}
+            <div style={{display: 'none'}}>
+                {[
+                  { name: 'Nivelamento de Plataforma', key: 'nivelamento' },
+                  { name: 'Calibração de Resina', key: 'calibracao' },
+                  { name: 'Configuração de Fatiadores', key: 'configuracao' },
+                  { name: 'Posicionamento de Suportes', key: 'posicionamento' },
+                  { name: 'Diagnóstico de Problemas', key: 'diagnostico' },
+                  { name: 'Otimização de Parâmetros', key: 'otimizacao' },
+                  { name: 'Chamadas de Vídeo', key: 'chamadas' },
+                  { name: 'Atendimento Prioritário', key: 'prioritario' }
+                ].map((service, index) => (
+                    <Card key={index} className="p-4 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 border-2"></Card>
+                ))}
+            </div>
+            {/* O conteúdo do Suporte Técnico será tratado no TechnicalTabs */}
+          </div>
+        </div>
       </section>
 
-      {/* Parameters Selector Section */}
-      <ParametersSelector />
+      {/* Technical Tabs Section (TAREFA 2) */}
+      <TechnicalTabs /> 
 
-      {/* Technical Tabs Section */}
-      <TechnicalTabs />
+      {/* Parameters Selector Section (TAREFA 3) */}
+      <ParametersSelector />
 
       {/* Documents Section */}
       <DocumentsSection />
 
       {/* Contato Section */}
       <section id="contato" className="container mx-auto px-4 py-20">
-         {/* ... (O resto do seu código de Contato... não precisa mudar) ... */}
+        {/* ... (código do contato) ... */}
       </section>
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-blue-900 to-purple-900 text-white py-8">
-         {/* ... (O resto do seu código de Footer... não precisa mudar) ... */}
+        {/* ... (código do rodapé) ... */}
       </footer>
 
-      {/* ===== LÓGICA TROCADA ===== */}
-      
-      {/* O Botão Roxo agora abre o MODAL */}
-      <ChatBot 
-        isOpen={isChatOpen} 
-        setIsOpen={setIsChatOpen} 
-        mode={chatMode} 
-        isModalOpen={isModalOpen} // Informa o chat sobre o modal
-        onOpenModal={() => setIsModalOpen(true)} // <-- NOVA FUNÇÃO
-      />
-      
-      {/* O Robozinho da Direita agora abre o CHAT (em modo suporte) */}
-      <MenuSelector 
-        onSelect={handleMenuSelect} // Continua controlando o modal
-        isModalOpen={isModalOpen} // Passa o controle do modal
-        setIsModalOpen={setIsModalOpen} // Passa o controle do modal
-        onOpenChat={() => { // <-- NOVA FUNÇÃO
-          setChatMode('suporte');
-          setIsChatOpen(true);
-        }}
-      />
-      
-      {/* ===== FIM DA LÓGICA TROCADA ===== */}
-      
-      {/* Service Modal */}
+      {/* ChatBot, Menu Selector, Service Modal, Privacy Modal */}
+      <ChatBot isOpen={isChatOpen} setIsOpen={setIsChatOpen} mode={chatMode} onOpenModal={() => setIsModalOpen(true)} isModalOpen={isModalOpen} />
+      <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} onOpenChat={() => { setChatMode('suporte'); setIsChatOpen(true); }} />
       <ServiceModal 
         isOpen={modalService !== null} 
         onClose={() => setModalService(null)} 
         service={modalService} 
       />
-      
-      {/* Privacy Modal */}
       <PrivacyModal />
     </div>
   )
