@@ -1,12 +1,11 @@
-// Arquivo: quanton3d-site/src/App.jsx
-// (Este é o código ATUALIZADO que insere o novo componente TechnicalTabs)
+// Arquivo: quanton3d-site/src/App.jsx (Somente a seção de importação, você vai apagar a linha 7)
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
-import TechnicalTabs from '@/components/TechnicalTabs.jsx' // <-- IMPORTA O NOVO COMPONENTE
+import TechnicalTabs from '@/components/TechnicalTabs.jsx' // <-- ESTE É O IMPORT CORRETO
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
