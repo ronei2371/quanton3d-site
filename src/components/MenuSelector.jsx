@@ -1,10 +1,10 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código ATUALIZADO. O "Robozinho" agora abre o CHAT. O Modal é controlado pelo App.jsx)
+// (Este é o código CORRIGIDO. Eu consertei o caminho da imagem do robô.)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, ShoppingBag, Phone } from 'lucide-react';
-import robotAnimated from '../assets/robot-animated.gif'; // O robô animado
+// import robotAnimated from '../assets/robot-animated.gif'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
 // ===== MUDANÇA IMPORTANTE =====
 // O App.jsx agora controla o modal (isModalOpen, setIsModalOpen)
@@ -59,7 +59,8 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
           aria-label="Abrir chat de dúvidas"
           style={{ width: '80px', height: '80px' }} // Tamanho maior
         >
-          <img src={robotAnimated} alt="Assistente" className="w-full h-full object-cover rounded-full" />
+          {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
+          <img src="/assets/robot-animated.gif" alt="Assistente" className="w-full h-full object-cover rounded-full" />
         </button>
       </div>
       {/* ===== FIM DA MELHORIA ===== */}
