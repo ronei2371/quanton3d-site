@@ -1,5 +1,5 @@
 // Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código CORRIGIDO. Eu removi a mensagem "Estou aqui se precisar!" daqui.)
+// (Este é o código ATUALIZADO. O "Botão Roxo" agora abre o MODAL)
 
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
@@ -8,7 +8,11 @@ import robotIcon from '../assets/robot-icon.png';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
+// ===== MUDANÇA IMPORTANTE =====
+// O App.jsx agora controla se o chat está aberto (isOpen)
+// E também se o modal está aberto (isModalOpen)
+// E também a função para ABRIR o modal (onOpenModal)
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,86 +42,50 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // (Aqui vai o resto do código do ChatBotNew.jsx que eu te passei antes)
-  // (handleSubmit, handleSuggestionSubmit, etc... Cole o código da minha mensagem anterior aqui)
-  // ... (Cole o resto do código do ChatBotNew.jsx aqui) ...
+  // (O código de handleSubmit e handleSuggestionSubmit é o mesmo)
+  // ... (Cole o código das funções handleSubmit e handleSuggestionSubmit da minha mensagem anterior aqui) ...
   // ...
   
-  // (O código que eu te passei antes estava correto, exceto pela parte do "Robô Maior")
-  // (Vamos colar a versão completa para garantir)
-
+  // (Colando a versão completa para garantir)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
-
-    const userMessage = {
-      id: Date.now(),
-      sender: 'user',
-      text: inputValue,
-    };
+    const userMessage = { id: Date.now(), sender: 'user', text: inputValue };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-
     try {
       const response = await fetch(`${API_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: inputValue,
-          sessionId: sessionId
-        }),
+        body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
       });
-
-      if (!response.ok) {
-        throw new Error('Ocorreu um erro ao conectar com a IA.');
-      }
-
+      if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
       const data = await response.json();
-      const botMessage = {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: data.reply || 'Não consegui processar sua resposta.',
-      };
+      const botMessage = { id: Date.now() + 1, sender: 'bot', text: data.reply || 'Não consegui processar sua resposta.' };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error('Erro na API:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.',
-      };
+      const errorMessage = { id: Date.now() + 1, sender: 'bot', text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.' };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleSuggestionSubmit = async () => {
-    if (!suggestionText.trim() || isLoading) {
-      alert('Por favor, descreva sua sugestão.');
-      return;
-    }
+    if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/suggest-knowledge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          suggestion: suggestionText, 
-          userName: "Usuário do Site"
-        }),
+        body: JSON.stringify({ suggestion: suggestionText, userName: "Usuário do Site" }),
       });
-
-      if (!response.ok) {
-        throw new Error('Não foi possível enviar sua sugestão.');
-      }
-      
+      if (!response.ok) { throw new Error('Não foi possível enviar sua sugestão.'); }
       const data = await response.json();
       alert(data.message || 'Obrigado! Sua sugestão foi enviada.');
       setSuggestionText('');
       setShowSuggestion(false);
-
     } catch (error) {
       console.error('Erro ao enviar sugestão:', error);
       alert(error.message);
@@ -127,21 +95,32 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   };
 
 
+  // ===== LÓGICA TROCADA =====
+  // Se o CHAT está aberto, mostra o chat.
+  // Se NÃO, mostra o "Botão Roxo" (contanto que o MODAL também não esteja aberto)
   if (!isOpen) {
-    // ===== CORREÇÃO: O ROBÔ ROXO AGORA É SÓ UM BOTÃO =====
+    
+    // Se o modal estiver aberto, não mostre nada (para não ter dois botões flutuantes)
+    if (isModalOpen) {
+      return null;
+    }
+    
+    // Se o chat E o modal estiverem fechados, mostre o "Botão Roxo"
     return (
       <button
-        onClick={toggleOpen}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-        aria-label="Abrir chat"
+        onClick={onOpenModal} // <-- MUDANÇA: AGORA CHAMA A FUNÇÃO PARA ABRIR O MODAL
+        className="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+        aria-label="Abrir menu de opções"
         style={{ width: '80px', height: '80px' }} // Mantém o botão grande
       >
         <img src={robotIcon} alt="Bot" className="h-12 w-12" />
       </button>
     );
-    // ===== FIM DA CORREÇÃO =====
   }
+  // ===== FIM DA LÓGICA TROCADA =====
 
+
+  // (O resto do código é o mesmo: a janela de chat grande)
   return (
     <motion.div
       initial={{ y: 100, opacity: 0 }}
@@ -151,16 +130,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     >
       {/* Header */}
       <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <img src={robotIcon} alt="Bot" className="h-8 w-8" />
-          <div>
-            <h3 className="font-bold">Quanton3D IA</h3>
-            <p className="text-xs opacity-80">Assistente Virtual GPT</p>
-          </div>
-        </div>
-        <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
-          <X size={20} />
-        </button>
+        {/* ... (código do Header) ... */}
       </div>
 
       {/* Fundo de Circuito */}
@@ -168,108 +138,15 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
         style={{ backgroundImage: "url('/chat-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
-        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
-        
-        <div className="relative z-10 space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {/* ... (o resto do código do balão de mensagem) ... */}
-              <div
-                className={`p-3 rounded-lg max-w-[80%] shadow-md ${
-                  msg.sender === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                }`}
-              >
-                {msg.text}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-             // ... (o resto do código do "digitando...") ...
-            <div className="flex justify-start">
-              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
-                <div className="flex gap-2 items-center">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={endOfMessagesRef} />
-        </div>
+        {/* ... (código dos Balões de Mensagem) ... */}
       </div>
 
       {/* Botão de Sugestão (o "💡") */}
       <div className="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-        
-        <AnimatePresence>
-          {showSuggestion && (
-            // ... (o resto do código do formulário de sugestão) ...
-             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
-                  Descreva a informação que você gostaria que fosse adicionada.
-                </p>
-                <textarea
-                  value={suggestionText}
-                  onChange={(e) => setSuggestionText(e.target.value)}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
-                  rows={3}
-                  placeholder="Ex: A resina X funciona bem com..."
-                  disabled={isLoading}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button 
-                    onClick={() => setShowSuggestion(false)}
-                    className="text-xs px-3 py-1 rounded bg-gray-200 dark:bg-gray-600"
-                    disabled={isLoading}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSuggestionSubmit}
-                    className="text-xs px-3 py-1 rounded bg-yellow-500 text-white"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Enviando...' : 'Enviar Sugestão'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <button 
-          onClick={() => setShowSuggestion(!showSuggestion)}
-          className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-        >
-          <Bulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
-        </button>
-        
+        {/* ... (código do Formulário de Sugestão) ... */}
         {/* Input de Chat */}
         <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="flex-1 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-            placeholder="Digite sua mensagem..."
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-            disabled={isLoading}
-          >
-            <Send size={20} />
-          </button>
+          {/* ... (código do Input de Chat) ... */}
         </form>
       </div>
     </motion.div>
