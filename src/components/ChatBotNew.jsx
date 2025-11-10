@@ -1,9 +1,11 @@
 // Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Esta é a versão FINAL para o build. Ela corrige todos os erros de importação.)
+// (Este é o código FINAL que remove os erros "User" e "Bulb".)
 
 import React from 'react'; // <-- Conserto 1: Corrige o erro react/jsx-runtime
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, BrainCircuit } from 'lucide-react'; // <-- Conserto 2 & 3: Trocamos Bulb por Lightbulb e removemos User
+// ===== A CORREÇÃO ESTÁ AQUI (Trocamos Bulb por Lightbulb e removemos User) =====
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, BrainCircuit } from 'lucide-react';
+// ===== FIM DA CORREÇÃO =====
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL;
