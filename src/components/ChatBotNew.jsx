@@ -1,10 +1,10 @@
 // Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código CORRIGIDO. Eu consertei o caminho do robot-icon.png)
+// (Este é o código CORRIGIDO. Eu adicionei a Linha 2 para consertar o erro "react/jsx-runtime")
 
+import React from 'react'; // <-- A LINHA DO CONSERTO
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-// import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -98,7 +98,6 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         aria-label="Abrir menu de opções"
         style={{ width: '80px', height: '80px' }} // Botão grande
       >
-        {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
         <img src="/assets/robot-icon.png" alt="Bot" className="h-12 w-12" />
       </button>
     );
@@ -112,9 +111,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
     >
       {/* Header */}
-      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
+      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-7ExampleDomain.com text-white flex justify-between items-center rounded-t-lg">
         <div className="flex items-center gap-3">
-          {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
           <img src="/assets/robot-icon.png" alt="Bot" className="h-8 w-8" />
           <div>
             <h3 className="font-bold">Quanton3D IA</h3>
