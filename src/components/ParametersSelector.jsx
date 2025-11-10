@@ -1,11 +1,12 @@
 // Arquivo: quanton3d-site/src/components/ParametersSelector.jsx
-// Este é o código ATUALIZADO.
+// Este é o componente ATUALIZADO que faz os dropdowns funcionarem.
 
 import { useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
-// ===== MUDANÇA CRÍTICA: Trocando o caminho para o Alias (@) =====
-import { resinList, printerList, parameters } from '@/data/parametersData.js'; 
+// ===== MUDANÇA CRÍTICA: Corrigindo o caminho de importação =====
+// Isso deve forçar o Netlify a ler o arquivo de dados
+import { resinList, printerList, parameters } from '../data/parametersData.js'; 
 
 export default function ParametersSelector() {
   const [selectedResin, setSelectedResin] = useState('');
@@ -140,6 +141,4 @@ export default function ParametersSelector() {
       )}
     </section>
   );
-}// Arquivo: quanton3d-site/src/components/ParametersSelector.jsx
-// Este é o componente ATUALIZADO que faz os dropdowns funcionarem.
-
+}
