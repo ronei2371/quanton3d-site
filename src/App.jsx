@@ -1,5 +1,5 @@
 // Arquivo: quanton3d-site/src/App.jsx
-// (Este é o código ATUALIZADO que corrige o "Falar com Atendente")
+// (Este é o código ATUALIZADO que TROCA a função dos botões)
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
@@ -19,14 +19,17 @@ import './App.css'
 
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false) // <-- NOVO INTERRUPTOR (para o modal)
   const [chatMode, setChatMode] = useState('suporte')
   const [modalService, setModalService] = useState(null)
 
   // ===== INÍCIO DA CORREÇÃO =====
-  // Esta função agora sabe o que fazer com cada botão
+  // Esta função agora é chamada pelo MODAL
   const handleMenuSelect = (option) => {
+    setIsModalOpen(false); // Fecha o modal
+    
     if (option === 'suporte' || option === 'vendas') {
-      // Abre o chat
+      // Abre o chat no modo correto
       setChatMode(option);
       setIsChatOpen(true);
     } else if (option === 'atendente') {
@@ -40,23 +43,7 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950">
       {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Quanton3D" className="h-12 w-auto" />
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Quanton3D
-              </h1>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Resinas UV SLA de Alta Performance</p>
-            </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <a href="#produtos" className="text-sm font-medium hover:text-blue-600 transition-colors">Produtos</a>
-            <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
-            <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
-            <a href="#contato" className="text-sm font-medium hover:text-blue-600 transition-colors">Contato</a>
-          </nav>
-        </div>
+        {/* ... (O resto do seu código Header... não precisa mudar) ... */}
       </header>
 
       {/* Hero Section */}
@@ -67,7 +54,7 @@ function App() {
       {/* Resin Cards Section */}
       <ResinCards />
 
-      {/* Produtos Section (OLD - WILL BE REMOVED) */}
+      {/* Produtos Section (OLD) */}
       <section id="produtos" style={{display: 'none'}} className="container mx-auto px-4 py-20">
          {/* ... (O resto do seu código de Produtos... não precisa mudar) ... */}
       </section>
@@ -96,11 +83,29 @@ function App() {
          {/* ... (O resto do seu código de Footer... não precisa mudar) ... */}
       </footer>
 
-      {/* ChatBot */}
-      <ChatBot isOpen={isChatOpen} setIsOpen={setIsChatOpen} mode={chatMode} />
+      {/* ===== LÓGICA TROCADA ===== */}
       
-      {/* Menu Selector */}
-      <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} />
+      {/* O Botão Roxo agora abre o MODAL */}
+      <ChatBot 
+        isOpen={isChatOpen} 
+        setIsOpen={setIsChatOpen} 
+        mode={chatMode} 
+        isModalOpen={isModalOpen} // Informa o chat sobre o modal
+        onOpenModal={() => setIsModalOpen(true)} // <-- NOVA FUNÇÃO
+      />
+      
+      {/* O Robozinho da Direita agora abre o CHAT (em modo suporte) */}
+      <MenuSelector 
+        onSelect={handleMenuSelect} // Continua controlando o modal
+        isModalOpen={isModalOpen} // Passa o controle do modal
+        setIsModalOpen={setIsModalOpen} // Passa o controle do modal
+        onOpenChat={() => { // <-- NOVA FUNÇÃO
+          setChatMode('suporte');
+          setIsChatOpen(true);
+        }}
+      />
+      
+      {/* ===== FIM DA LÓGICA TROCADA ===== */}
       
       {/* Service Modal */}
       <ServiceModal 
