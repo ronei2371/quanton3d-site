@@ -1,11 +1,11 @@
 // Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código CORRIGIDO. Eu troquei "Bulb" por "Lightbulb")
+// (Este é o código CORRIGIDO. Eu removi o ícone "User" que estava quebrando a construção.)
 
-import React from 'react'; // <-- O conserto anterior (está correto)
+import React from 'react'; 
 import { useState, useRef, useEffect } from 'react';
 // ===== A CORREÇÃO ESTÁ AQUI =====
-import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
-// ===== FIM DA CORREÇÃO =====
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, BrainCircuit } from 'lucide-react';
+// ===== FIM DA CORREÇÃO (O "User" sumiu!) =====
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -210,7 +210,6 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           onClick={() => setShowSuggestion(!showSuggestion)}
           className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
         >
-          {/* ===== A CORREÇÃO ESTÁ AQUI ===== */}
           <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
         
