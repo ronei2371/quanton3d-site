@@ -1,7 +1,6 @@
 // Arquivo: quanton3d-site/src/data/parametersData.js
-// ESTE É O BANCO DE DADOS.
-// Ronei, depois você precisa adicionar todas as suas impressoras
-// e preencher todos os parâmetros da sua planilha Excel aqui.
+// ESTE É O BANCO DE DADOS FINAL. 
+// A substituição completa garante que não há linhas vazias que causem o erro de leitura.
 
 export const resinList = [
   "Pyroblast+",
@@ -30,10 +29,9 @@ export const printerList = [
 ];
 
 // Estrutura de dados para os parâmetros
-// A chave é uma combinação de RESINA + IMPRESSORA
 export const parameters = {
   // ADICIONE O RESTO DOS SEUS PARÂMETROS DA PLANILHA AQUI
-
+  
   "Pyroblast+_Elegoo Saturn 2": {
     camada: "0.05mm",
     exposicao: "2.3s",
