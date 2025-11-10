@@ -1,9 +1,11 @@
 // Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código CORRIGIDO. Eu adicionei a Linha 2 para consertar o erro "react/jsx-runtime")
+// (Este é o código CORRIGIDO. Eu troquei "Bulb" por "Lightbulb")
 
-import React from 'react'; // <-- A LINHA DO CONSERTO
+import React from 'react'; // <-- O conserto anterior (está correto)
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
+// ===== A CORREÇÃO ESTÁ AQUI =====
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
+// ===== FIM DA CORREÇÃO =====
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -208,7 +210,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           onClick={() => setShowSuggestion(!showSuggestion)}
           className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
         >
-          <Bulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
+          {/* ===== A CORREÇÃO ESTÁ AQUI ===== */}
+          <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
         
         {/* Input de Chat */}
