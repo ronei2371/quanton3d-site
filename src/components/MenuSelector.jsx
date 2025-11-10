@@ -1,36 +1,40 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código ATUALIZADO com o "Robô Maior" e a mensagem "Estou aqui se precisar!")
+// (Este é o código ATUALIZADO. O "Robozinho" agora abre o CHAT. O Modal é controlado pelo App.jsx)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, ShoppingBag, Phone } from 'lucide-react';
 import robotAnimated from '../assets/robot-animated.gif'; // O robô animado
 
-export function MenuSelector({ onSelect, isChatOpen }) {
-  const [isOpen, setIsOpen] = useState(false);
+// ===== MUDANÇA IMPORTANTE =====
+// O App.jsx agora controla o modal (isModalOpen, setIsModalOpen)
+// E nos dá a função para ABRIR O CHAT (onOpenChat)
+export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen, onOpenChat }) {
   const [showText, setShowText] = useState(false);
 
   // Mostra a mensagem "Estou aqui..." 3 segundos depois que a página carrega
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowText(true);
+      // Só mostra o texto se o chat e o modal estiverem fechados
+      if (!isChatOpen && !isModalOpen) {
+        setShowText(true);
+      }
     }, 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isChatOpen, isModalOpen]);
 
-  // Esconde o robô e a mensagem se o chat estiver aberto
-  if (isChatOpen) {
+  // Esconde o robô e a mensagem se o chat OU o modal estiverem abertos
+  if (isChatOpen || isModalOpen) {
     return null;
   }
-
+  
   const handleSelect = (option) => {
-    setIsOpen(false);
     onSelect(option); // Envia o comando para o App.jsx ('suporte', 'vendas' ou 'atendente')
   };
 
   return (
     <>
-      {/* ===== MELHORIA 1: ROBÔ MAIOR + MENSAGEM (O CORRETO) ===== */}
+      {/* ===== MELHORIA: ROBÔ MAIOR + MENSAGEM ===== */}
       <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
         
         {/* A Mensagem */}
@@ -50,20 +54,21 @@ export function MenuSelector({ onSelect, isChatOpen }) {
         
         {/* O Robô (Maior) */}
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={onOpenChat} // <-- MUDANÇA: AGORA CHAMA A FUNÇÃO PARA ABRIR O CHAT
           className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-          aria-label="Abrir menu"
+          aria-label="Abrir chat de dúvidas"
           style={{ width: '80px', height: '80px' }} // Tamanho maior
         >
           <img src={robotAnimated} alt="Assistente" className="w-full h-full object-cover rounded-full" />
         </button>
       </div>
-      {/* ===== FIM DA MELHORIA 1 ===== */}
+      {/* ===== FIM DA MELHORIA ===== */}
 
 
       {/* O Modal "SELECIONE UMA OPÇÃO" */}
       <AnimatePresence>
-        {isOpen && (
+        {/* O modal agora só aparece se o "interruptor" (isModalOpen) do App.jsx estiver ligado */}
+        {isModalOpen && (
           <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -71,7 +76,7 @@ export function MenuSelector({ onSelect, isChatOpen }) {
               exit={{ scale: 0.8, opacity: 0 }}
               className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-xl shadow-xl overflow-hidden"
               style={{ 
-                backgroundImage: "url('/menu-bg.gif')", // O fundo de circuito do Manus
+                backgroundImage: "url('/menu-bg.gif')",
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center' 
               }}
@@ -80,7 +85,7 @@ export function MenuSelector({ onSelect, isChatOpen }) {
                 
                 {/* Botão de Fechar */}
                 <button 
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setIsModalOpen(false)} // <-- MUDANÇA: Agora usa o "interruptor" do App.jsx
                   className="absolute top-4 right-4 text-white/70 hover:text-white/100"
                 >
                   <X size={24} />
