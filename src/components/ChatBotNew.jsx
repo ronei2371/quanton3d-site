@@ -1,12 +1,11 @@
 // Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código ATUALIZADO com o "Robô Maior" e a "Tela de Chat Maior")
+// (Este é o código CORRIGIDO. Eu removi a mensagem "Estou aqui se precisar!" daqui.)
 
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import robotIcon from '../assets/robot-icon.png'; // Manus deve ter adicionado este ícone
+import robotIcon from '../assets/robot-icon.png';
 
-// URL DA API (do arquivo .env que consertamos)
 const API_URL = import.meta.env.VITE_API_URL;
 
 export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
@@ -26,8 +25,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     let initialText = '';
     if (mode === 'suporte') {
       initialText = 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
-    } else if (mode === 'parametros') {
-      initialText = 'Estou pronto para ajudar! Por favor, me diga qual Resina e qual Impressora você está usando para eu buscar os parâmetros.';
+    } else if (mode === 'vendas') {
+      initialText = 'Olá! Você está no modo "Vendas e Produtos". Posso ajudar a encontrar a resina ideal ou falar sobre nossos produtos?';
     } else {
       initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
     }
@@ -38,6 +37,14 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // (Aqui vai o resto do código do ChatBotNew.jsx que eu te passei antes)
+  // (handleSubmit, handleSuggestionSubmit, etc... Cole o código da minha mensagem anterior aqui)
+  // ... (Cole o resto do código do ChatBotNew.jsx aqui) ...
+  // ...
+  
+  // (O código que eu te passei antes estava correto, exceto pela parte do "Robô Maior")
+  // (Vamos colar a versão completa para garantir)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,7 +93,6 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     }
   };
 
-  // Envio da Sugestão
   const handleSuggestionSubmit = async () => {
     if (!suggestionText.trim() || isLoading) {
       alert('Por favor, descreva sua sugestão.');
@@ -99,7 +105,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           suggestion: suggestionText, 
-          userName: "Usuário do Site" // Você pode adicionar campos de nome/telefone se quiser
+          userName: "Usuário do Site"
         }),
       });
 
@@ -122,44 +128,27 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
 
 
   if (!isOpen) {
+    // ===== CORREÇÃO: O ROBÔ ROXO AGORA É SÓ UM BOTÃO =====
     return (
-      // ===== MELHORIA 1: ROBÔ MAIOR + MENSAGEM =====
-      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="absolute bottom-5 right-[80px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
-        >
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Estou aqui se precisar!</p>
-          <div className="absolute right-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
-        </motion.div>
-        
-        <button
-          onClick={toggleOpen}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-          aria-label="Abrir chat"
-          style={{ width: '80px', height: '80px' }} // Tamanho 3x maior
-        >
-          {/* <Bot size={40} /> */} 
-          {/* O Manus trocou pelo robô que bate continência */}
-          <img src={robotIcon} alt="Bot" className="h-12 w-12" />
-        </button>
-      </div>
-      // ===== FIM DA MELHORIA 1 =====
+      <button
+        onClick={toggleOpen}
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+        aria-label="Abrir chat"
+        style={{ width: '80px', height: '80px' }} // Mantém o botão grande
+      >
+        <img src={robotIcon} alt="Bot" className="h-12 w-12" />
+      </button>
     );
+    // ===== FIM DA CORREÇÃO =====
   }
 
   return (
-    // ===== MELHORIA 2: TELA DE CHAT MAIOR =====
     <motion.div
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
     >
-    {/* ===== FIM DA MELHORIA 2 ===== */}
-    
       {/* Header */}
       <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
         <div className="flex items-center gap-3">
@@ -174,7 +163,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         </button>
       </div>
 
-      {/* Fundo de Circuito (do Guia do Manus) */}
+      {/* Fundo de Circuito */}
       <div 
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
         style={{ backgroundImage: "url('/chat-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
@@ -184,6 +173,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         <div className="relative z-10 space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {/* ... (o resto do código do balão de mensagem) ... */}
               <div
                 className={`p-3 rounded-lg max-w-[80%] shadow-md ${
                   msg.sender === 'user'
@@ -196,6 +186,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
             </div>
           ))}
           {isLoading && (
+             // ... (o resto do código do "digitando...") ...
             <div className="flex justify-start">
               <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
                 <div className="flex gap-2 items-center">
@@ -215,7 +206,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         
         <AnimatePresence>
           {showSuggestion && (
-            <motion.div
+            // ... (o resto do código do formulário de sugestão) ...
+             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
