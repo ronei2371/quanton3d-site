@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
 // Importa o novo banco de dados
-import { resinList, printerList, parameters } from '@/data/parametersData.js'; 
+import { resinList, printerList, parameters } from '../data/parametersData.js';
 
 export default function ParametersSelector() {
   const [selectedResin, setSelectedResin] = useState('');
