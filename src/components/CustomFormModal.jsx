@@ -1,6 +1,3 @@
-// Arquivo: quanton3d-site/src/components/CustomFormModal.jsx
-// (Este é o código para a TAREFA 4: Formulário Customizado)
-
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check } from 'lucide-react';
@@ -31,7 +28,7 @@ export default function CustomFormModal({ isOpen, onClose }) {
 
         setStatus('sending');
         try {
-            // Nova rota que o Manus precisa criar no server.js: /api/custom-request
+            // Este endpoint precisará ser criado no server.js (no backend)
             const response = await fetch(`${API_URL}/api/custom-request`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
