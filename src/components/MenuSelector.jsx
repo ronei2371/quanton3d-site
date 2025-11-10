@@ -1,14 +1,11 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código CORRIGIDO. Eu consertei o caminho da imagem do robô.)
+// (Este é o código ATUALIZADO para o "Robozinho" da Direita)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, ShoppingBag, Phone } from 'lucide-react';
-// import robotAnimated from '../assets/robot-animated.gif'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
+// import robotAnimated from '../assets/robot-animated.gif'; // Já consertamos o caminho no HTML
 
-// ===== MUDANÇA IMPORTANTE =====
-// O App.jsx agora controla o modal (isModalOpen, setIsModalOpen)
-// E nos dá a função para ABRIR O CHAT (onOpenChat)
 export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen, onOpenChat }) {
   const [showText, setShowText] = useState(false);
 
@@ -34,7 +31,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
 
   return (
     <>
-      {/* ===== MELHORIA: ROBÔ MAIOR + MENSAGEM ===== */}
+      {/* ===== ROBÔ MAIOR + MENSAGEM ("Estou aqui se precisar!") ===== */}
       <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
         
         {/* A Mensagem */}
@@ -52,21 +49,21 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
           )}
         </AnimatePresence>
         
-        {/* O Robô (Maior) */}
+        {/* O Robô (Maior) - Usando caminho público */}
         <button
-          onClick={onOpenChat} // <-- MUDANÇA: AGORA CHAMA A FUNÇÃO PARA ABRIR O CHAT
+          onClick={onOpenChat} // Abre o CHAT de dúvidas (como você queria)
           className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
           aria-label="Abrir chat de dúvidas"
           style={{ width: '80px', height: '80px' }} // Tamanho maior
         >
-          {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
+          {/* USANDO O CAMINHO PÚBLICO: O Manus deve garantir que o arquivo robot-animated.gif está em /public/assets/ */}
           <img src="/assets/robot-animated.gif" alt="Assistente" className="w-full h-full object-cover rounded-full" />
         </button>
       </div>
       {/* ===== FIM DA MELHORIA ===== */}
 
 
-      {/* O Modal "SELECIONE UMA OPÇÃO" */}
+      {/* O Modal "SELECIONE UMA OPÇÃO" (Continua igual) */}
       <AnimatePresence>
         {/* O modal agora só aparece se o "interruptor" (isModalOpen) do App.jsx estiver ligado */}
         {isModalOpen && (
@@ -77,6 +74,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
               exit={{ scale: 0.8, opacity: 0 }}
               className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-xl shadow-xl overflow-hidden"
               style={{ 
+                // Usando o fundo de circuito que o Manus subiu
                 backgroundImage: "url('/menu-bg.gif')",
                 backgroundSize: 'cover', 
                 backgroundPosition: 'center' 
@@ -86,7 +84,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
                 
                 {/* Botão de Fechar */}
                 <button 
-                  onClick={() => setIsModalOpen(false)} // <-- MUDANÇA: Agora usa o "interruptor" do App.jsx
+                  onClick={() => setIsModalOpen(false)} 
                   className="absolute top-4 right-4 text-white/70 hover:text-white/100"
                 >
                   <X size={24} />
