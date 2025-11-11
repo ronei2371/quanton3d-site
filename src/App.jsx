@@ -1,6 +1,5 @@
 // Arquivo: quanton3d-site/src/App.jsx
-// (Código FINAL que conserta cabeçalho e a lógica do robô/modal)
-// Mantenha este arquivo como a base:
+// (Código FINAL que conserta o cabeçalho, robô, lógica e a leitura de dados)
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
@@ -16,7 +15,6 @@ import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-// Corrigido: O logo é importado
 import logo from './assets/logo.png' 
 import './App.css'
 
