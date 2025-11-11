@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, ShoppingBag, Phone } from 'lucide-react';
-// import robotAnimated from '../assets/robot-animated.gif'; // Já consertamos o caminho no HTML
+// import robotAnimated from '../assets/robot-animated.gif'; // O caminho de importação quebra o build, por isso foi removido
 
 export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen, onOpenChat }) {
   const [showText, setShowText] = useState(false);
