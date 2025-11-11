@@ -1,5 +1,5 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código CORRIGIDO. Eu removi a linha que estava com erro de sintaxe.)
+// (Este é o código CORRIGIDO. Removida a sintaxe que o Netlify não aceitava.)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
