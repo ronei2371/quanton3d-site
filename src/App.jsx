@@ -1,12 +1,12 @@
 // Arquivo: quanton3d-site/src/App.jsx
-// (Este é o código ATUALIZADO que conserta o cabeçalho e a lógica do robô)
+// (Este é o código ATUALIZADO que insere o novo componente TechnicalTabs e corrige o cabeçalho)
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBotNew.jsx'
 import { MenuSelector } from '@/components/MenuSelector.jsx'
-import TechnicalTabs from '@/components/TechnicalTabs.jsx'
+import TechnicalTabs from '@/components/TechnicalTabs.jsx' // <-- IMPORT CORRETO
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
@@ -15,7 +15,6 @@ import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-// Corrigido: O logo é importado para evitar erros de renderização
 import logo from './assets/logo.png' 
 import './App.css'
 
