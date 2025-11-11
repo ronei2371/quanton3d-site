@@ -13,10 +13,11 @@ export default function ParametersSelector() {
   const [result, setResult] = useState(null);
   
   // A lista de impressoras disponíveis depende da resina selecionada.
-  // Vamos buscar todas as impressoras que têm parâmetros na nossa base de dados.
+  // MUDANÇA CRÍTICA: Filtra as impressoras que TEM dados para a resina selecionada
   const availablePrinters = selectedResin 
     ? printerList.filter(printer => parameters[`${selectedResin}_${printer}`])
-    : printerList;
+    : printerList; // Se nenhuma resina for selecionada, mostra todas (opcional)
+
 
   const handleSelectResin = (e) => {
     setSelectedResin(e.target.value);
@@ -84,7 +85,7 @@ export default function ParametersSelector() {
             onChange={handleSelectPrinter}
             value={selectedPrinter}
             className="w-full p-3 border border-gray-300 rounded-lg"
-            disabled={!selectedResin || availablePrinters.length === 0} // Desabilita se não houver resina ou impressoras
+            disabled={!selectedResin || availablePrinters.length === 0} 
           >
             <option value="">{selectedResin ? (availablePrinters.length > 0 ? 'Escolha uma impressora...' : 'Sem parâmetros para esta resina') : 'Selecione uma resina primeiro'}</option>
             {availablePrinters.map(printer => (
@@ -104,7 +105,7 @@ export default function ParametersSelector() {
           {result === 'not_found' ? (
             <Card className="p-8 text-center max-w-4xl mx-auto border-red-200 bg-red-50">
               <h3 className="text-xl font-bold text-red-700">Parâmetros Não Encontrados</h3>
-              <p className="text-red-600 mt-2">
+              <p class="text-red-600 mt-2">
                 Ainda não temos uma recomendação específica para esta combinação. 
                 Por favor, use os parâmetros gerais ou entre em contato com nosso suporte técnico.
               </p>
