@@ -1,77 +1,30 @@
 // Arquivo: quanton3d-site/src/components/ParametersSelector.jsx
-// Este código AGORA carrega o arquivo de 570 combinações que o Manus já tinha.
+// Este é o componente ATUALIZADO que faz os dropdowns funcionarem.
 
-import { useState, useEffect } from 'react'; // Adicionamos useEffect
+import { useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
-
-// ===== CORREÇÃO #2: MUDANÇA CRÍTICA AQUI =====
-// O Manus disse para usarmos o arquivo completo de 570 combinações
-// Vamos carregar o JSON completo que o Manus mencionou.
-// O componente precisa ser ajustado para ler os dados DEPOIS de carregados.
-
-const API_URL = import.meta.env.VITE_API_URL;
-let localResinList = [];
-let localPrinterList = [];
-let localParameters = {};
-
-// Função para buscar e processar os dados completos
-const fetchParameters = async () => {
-    try {
-        const response = await fetch('/parametros_completos.json'); // Caminho público
-        const data = await response.json();
-        
-        // Processar dados para criar as listas (assumindo que o JSON é uma lista de objetos)
-        const resins = new Set();
-        const printers = new Set();
-        const paramsMap = {};
-
-        data.forEach(item => {
-            resins.add(item.resina);
-            printers.add(item.impressora);
-            paramsMap[`${item.resina}_${item.impressora}`] = item;
-        });
-
-        localResinList = Array.from(resins);
-        localPrinterList = Array.from(printers);
-        localParameters = paramsMap;
-
-    } catch (error) {
-        console.error("Erro ao carregar parametros_completos.json:", error);
-    }
-};
-
-// Chamada inicial para carregar os dados
-fetchParameters();
-
+// ===== MUDANÇA CRÍTICA: Corrigindo o caminho de importação =====
+// Isso deve forçar o Netlify a ler o arquivo de dados
+import { resinList, printerList, parameters } from '../data/parametersData.js'; 
 
 export default function ParametersSelector() {
   const [selectedResin, setSelectedResin] = useState('');
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [result, setResult] = useState(null);
   
-  // Força o componente a re-renderizar quando os dados são carregados
-  const [dataLoaded, setDataLoaded] = useState(false);
-  useEffect(() => {
-      // Simplesmente garante que o estado é atualizado depois que o fetchParameters termina
-      if (localResinList.length > 0 && !dataLoaded) {
-          setDataLoaded(true);
-      }
-  }, []);
-
   const handleSelectResin = (e) => {
     setSelectedResin(e.target.value);
-    setSelectedPrinter(''); // Reseta a impressora
-    setResult(null); // Limpa o resultado anterior
+    setSelectedPrinter('');
+    setResult(null); 
   };
   
   const handleSelectPrinter = (e) => {
     const printer = e.target.value;
     setSelectedPrinter(printer);
     
-    // Tenta encontrar os parâmetros no mapa carregado
     const key = `${selectedResin}_${printer}`;
-    const foundParams = localParameters[key];
+    const foundParams = parameters[key];
     
     if (foundParams) {
       setResult(foundParams);
@@ -110,7 +63,7 @@ export default function ParametersSelector() {
             className="w-full p-3 border border-gray-300 rounded-lg"
           >
             <option value="">Escolha uma resina...</option>
-            {localResinList.map(resin => (
+            {resinList.map(resin => (
               <option key={resin} value={resin}>{resin}</option>
             ))}
           </select>
@@ -129,7 +82,7 @@ export default function ParametersSelector() {
             disabled={!selectedResin} // Desabilitado até a resina ser escolhida
           >
             <option value="">{selectedResin ? 'Selecione uma impressora...' : 'Selecione uma resina primeiro'}</option>
-            {localPrinterList.map(printer => (
+            {printerList.map(printer => (
               <option key={printer} value={printer}>{printer}</option>
             ))}
           </select>
@@ -146,7 +99,7 @@ export default function ParametersSelector() {
           {result === 'not_found' ? (
             <Card className="p-8 text-center max-w-4xl mx-auto border-red-200 bg-red-50">
               <h3 className="text-xl font-bold text-red-700">Parâmetros Não Encontrados</h3>
-              <p class="text-red-600 mt-2">
+              <p className="text-red-600 mt-2">
                 Ainda não temos uma recomendação específica para esta combinação. 
                 Por favor, use os parâmetros gerais ou entre em contato com nosso suporte técnico.
               </p>
@@ -159,27 +112,27 @@ export default function ParametersSelector() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Altura de Camada</p>
-                  <p className="text-xl font-bold text-gray-900">{result.camada || 'N/A'}</p>
+                  <p className="text-xl font-bold text-gray-900">{result.camada}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Exposição</p>
-                  <p className="text-xl font-bold text-gray-900">{result.exposicao || 'N/A'}</p>
+                  <p className="text-xl font-bold text-gray-900">{result.exposicao}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Exposição Base</p>
-                  <p className="text-xl font-bold text-gray-900">{result.exposicaoBase || 'N/A'}</p>
+                  <p className="text-xl font-bold text-gray-900">{result.exposicaoBase}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Camadas de Base</p>
-                  <p className="text-xl font-bold text-gray-900">{result.camadasBase || 'N/A'}</p>
+                  <p className="text-xl font-bold text-gray-900">{result.camadasBase}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Lift Distance</p>
-                  <p className="text-xl font-bold text-gray-900">{result.liftDistance || 'N/A'}</p>
+                  <p className="text-xl font-bold text-gray-900">{result.liftDistance}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">Lift Speed</p>
-                  <p className="text-xl font-bold text-gray-900">{result.liftSpeed || 'N/A'}</p>
+                  <p className="text-xl font-bold text-gray-900">{result.liftSpeed}</p>
                 </div>
               </div>
             </Card>
