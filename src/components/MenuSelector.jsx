@@ -1,5 +1,5 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código CORRIGIDO. Removida a sintaxe que o Netlify não aceitava.)
+// (Este é o código CORRIGIDO. Removemos o erro de sintaxe que estava quebrando o build.)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,6 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
   // Mostra a mensagem "Estou aqui..." 3 segundos depois que a página carrega
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Só mostra o texto se o chat e o modal estiverem fechados
       if (!isChatOpen && !isModalOpen) {
         setShowText(true);
       }
