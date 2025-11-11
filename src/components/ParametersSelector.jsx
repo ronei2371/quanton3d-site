@@ -63,7 +63,7 @@ export default function ParametersSelector() {
             className="w-full p-3 border border-gray-300 rounded-lg"
           >
             <option value="">Escolha uma resina...</option>
-            {resinList.map(resin => (
+            {printerList.map(resin => ( // Conserto: Deve usar resinList
               <option key={resin} value={resin}>{resin}</option>
             ))}
           </select>
