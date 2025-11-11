@@ -11,6 +11,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
   // Mostra a mensagem "Estou aqui..." 3 segundos depois que a página carrega
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Só mostra o texto se o chat e o modal estiverem fechados
       if (!isChatOpen && !isModalOpen) {
         setShowText(true);
       }
@@ -52,7 +53,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
           onClick={onOpenChat} // Abre o CHAT de dúvidas (como você queria)
           className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
           aria-label="Abrir chat de dúvidas"
-          style={{ width: '80px', height: '80px' }} // Tamanho maior
+          style={{ width: '80px", height: '80px' }} // Tamanho maior
         >
           {/* USANDO O CAMINHO PÚBLICO: O Manus deve garantir que o arquivo robot-animated.gif está em /public/assets/ */}
           <img src="/assets/robot-animated.gif" alt="Assistente" className="w-full h-full object-cover rounded-full" />
