@@ -11,6 +11,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
   // Mostra a mensagem "Estou aqui..." 3 segundos depois que a página carrega
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Só mostra o texto se o chat e o modal estiverem fechados
       if (!isChatOpen && !isModalOpen) {
         setShowText(true);
       }
@@ -91,7 +92,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
                 <div className="p-8 md:p-12 text-center">
                   <h2 className="text-4xl font-bold text-white mb-4">
                     SELECIONE UMA OPÇÃO
-                  </h2>
+                  </h2// ... (continua o código do modal) ...
                   <p className="text-lg text-white/80 mb-10">
                     Como podemos ajudá-lo hoje?
                   </p>
