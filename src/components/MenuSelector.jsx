@@ -1,5 +1,5 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código CORRIGIDO. Removemos o erro de sintaxe que estava quebrando o build.)
+// (Este é o código CORRIGIDO. Removida a sintaxe que o Netlify não aceitava.)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,6 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
   // Mostra a mensagem "Estou aqui..." 3 segundos depois que a página carrega
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Só mostra o texto se o chat e o modal estiverem fechados
       if (!isChatOpen && !isModalOpen) {
         setShowText(true);
       }
@@ -123,6 +122,10 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
                     <button
                       onClick={() => handleSelect('atendente')}
                       className="p-6 bg-white/20 dark:bg-gray-800/50 rounded-lg text-white text-left transition-all hover:bg-white/30 hover:scale-105 border border-white/20"
+                    >
+                      <Phone size={32} className="mb-3 text-green-300" />
+                      <h3 className="text-xl font-semibold mb-1">Falar com Atendente</h3>
+                      <p className="text-sm opacity-80">Atendimento humano personalizado</p>
                     </button>
 
                   </div>
