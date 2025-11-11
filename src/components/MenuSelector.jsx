@@ -1,239 +1,141 @@
-// Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código ATUALIZADO para o "Botão Roxo")
+// Arquivo: quanton3d-site/src/components/MenuSelector.jsx
+// (Este é o código CORRIGIDO. Eu removi a linha que estava com erro de sintaxe.)
 
-import React from 'react'; 
-import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, BrainCircuit } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import robotIcon from '../assets/robot-icon.png';
+import { X, MessageSquare, ShoppingBag, Phone } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL;
+export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen, onOpenChat }) {
+  const [showText, setShowText] = useState(false);
 
-export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
-  const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestion, setShowSuggestion] = useState(false);
-  const [suggestionText, setSuggestionText] = useState('');
-  // O Manus tinha lógica para nome/telefone, mas o Ronei não quer. O session ID será o suficiente.
-  const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
-  
-  const endOfMessagesRef = useRef(null);
-
-  const toggleOpen = () => setIsOpen(!isOpen);
-
-  // Define a mensagem inicial com base no modo
+  // Mostra a mensagem "Estou aqui..." 3 segundos depois que a página carrega
   useEffect(() => {
-    let initialText = '';
-    if (mode === 'suporte') {
-      initialText = 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
-    } else if (mode === 'vendas') {
-      initialText = 'Olá! Você está no modo "Vendas e Produtos". Posso ajudar a encontrar a resina ideal ou falar sobre nossos produtos?';
-    } else {
-      initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
-    }
-    setMessages([{ id: 1, sender: 'bot', text: initialText }]);
-  }, [mode]);
+    const timer = setTimeout(() => {
+      // Só mostra o texto se o chat e o modal estiverem fechados
+      if (!isChatOpen && !isModalOpen) {
+        setShowText(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isChatOpen, isModalOpen]);
 
-
-  useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-    const userMessage = { id: Date.now(), sender: 'user', text: inputValue };
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/ask`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
-      });
-      if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
-      const data = await response.json();
-      const botMessage = { id: Date.now() + 1, sender: 'bot', text: data.reply || 'Não consegui processar sua resposta.', // Aqui precisamos adicionar a lógica do Manus para mostrar o nome/telefone se o bot pedir }
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Erro na API:', error);
-      const errorMessage = { id: Date.now() + 1, sender: 'bot', text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.' };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  const handleSuggestionSubmit = async () => {
-    if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/suggest-knowledge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestion: suggestionText, userName: "Usuário do Site" }),
-      });
-      if (!response.ok) { throw new Error('Não foi possível enviar sua sugestão.'); }
-      const data = await response.json();
-      alert(data.message || 'Obrigado! Sua sugestão foi enviada.');
-      setSuggestionText('');
-      setShowSuggestion(false);
-    } catch (error) {
-      console.error('Erro ao enviar sugestão:', error);
-      alert(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
-  if (!isOpen) {
-    if (isModalOpen) {
-      return null;
-    }
-    
-    // Este é o Botão Roxo, que abre o Modal de Opções
-    return (
-      <button
-        onClick={onOpenModal} 
-        className="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-        aria-label="Abrir menu de opções"
-        style={{ width: '80px', height: '80px' }}
-      >
-        <img src="/assets/robot-icon.png" alt="Bot" className="h-12 w-12" />
-      </button>
-    );
+  // Esconde o robô e a mensagem se o chat OU o modal estiverem abertos
+  if (isChatOpen || isModalOpen) {
+    return null;
   }
+  
+  const handleSelect = (option) => {
+    onSelect(option); // Envia o comando para o App.jsx ('suporte', 'vendas' ou 'atendente')
+  };
 
-  // Esta é a janela do chat
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
-    >
-      {/* Header */}
-      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <img src="/assets/robot-icon.png" alt="Bot" className="h-8 w-8" />
-          <div>
-            <h3 className="font-bold">Quanton3D IA</h3>
-            <p className="text-xs opacity-80">Assistente Virtual GPT</p>
-          </div>
-        </div>
-        <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
-          <X size={20} />
-        </button>
-      </div>
-
-      {/* Fundo de Circuito */}
-      <div 
-        className="flex-1 p-4 overflow-y-auto space-y-4 relative"
-        style={{ backgroundImage: "url('/chat-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
-      >
-        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
+    <>
+      {/* ===== ROBÔ MAIOR + MENSAGEM ("Estou aqui se precisar!") ===== */}
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
         
-        <div className="relative z-10 space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`p-3 rounded-lg max-w-[80%] shadow-md ${
-                  msg.sender === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
-                }`}
-              >
-                {msg.text}
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
-                <div className="flex gap-2 items-center">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={endOfMessagesRef} />
-        </div>
-      </div>
-
-      {/* Botão de Sugestão (o "💡") */}
-      <div className="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-        
+        {/* A Mensagem */}
         <AnimatePresence>
-          {showSuggestion && (
-             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+          {showText && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="absolute bottom-5 right-[100px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
             >
-              <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
-                  Descreva a informação que você gostaria que fosse adicionada.
-                </p>
-                <textarea
-                  value={suggestionText}
-                  onChange={(e) => setSuggestionText(e.target.value)}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
-                  rows={3}
-                  placeholder="Ex: A resina X funciona bem com..."
-                  disabled={isLoading}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button 
-                    onClick={() => setShowSuggestion(false)}
-                    className="text-xs px-3 py-1 rounded bg-gray-200 dark:bg-gray-600"
-                    disabled={isLoading}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSuggestionSubmit}
-                    className="text-xs px-3 py-1 rounded bg-yellow-500 text-white"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Enviando...' : 'Enviar Sugestão'}
-                  </button>
-                </div>
-              </div>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Estou aqui se precisar!</p>
+              <div className="absolute right-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        <button 
-          onClick={() => setShowSuggestion(!showSuggestion)}
-          className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-        >
-          <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
-        </button>
         
-        {/* Input de Chat */}
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="flex-1 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-            placeholder="Digite sua mensagem..."
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-            disabled={isLoading}
-          >
-            <Send size={20} />
-          </button>
-        </form>
+        {/* O Robô (Maior) - Usando caminho público */}
+        <button
+          onClick={onOpenChat} // Abre o CHAT de dúvidas (como você queria)
+          className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+          aria-label="Abrir chat de dúvidas"
+          style={{ width: '80px', height: '80px' }} // Tamanho maior
+        >
+          {/* USANDO O CAMINHO PÚBLICO: O Manus deve garantir que o arquivo robot-animated.gif está em /public/assets/ */}
+          <img src="/assets/robot-animated.gif" alt="Assistente" className="w-full h-full object-cover rounded-full" />
+        </button>
       </div>
-    </motion.div>
+      {/* ===== FIM DA MELHORIA ===== */}
+
+
+      {/* O Modal "SELECIONE UMA OPÇÃO" (Continua igual) */}
+      <AnimatePresence>
+        {/* O modal agora só aparece se o "interruptor" (isModalOpen) do App.jsx estiver ligado */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-xl shadow-xl overflow-hidden"
+              style={{ 
+                // Usando o fundo de circuito que o Manus subiu
+                backgroundImage: "url('/menu-bg.gif')",
+                backgroundSize: 'cover', 
+                backgroundPosition: 'center' 
+              }}
+            >
+              <div className="relative bg-white/10 dark:bg-gray-900/50 backdrop-blur-2xl">
+                
+                {/* Botão de Fechar */}
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="absolute top-4 right-4 text-white/70 hover:text-white/100"
+                >
+                  <X size={24} />
+                </button>
+
+                <div className="p-8 md:p-12 text-center">
+                  <h2 className="text-4xl font-bold text-white mb-4">
+                    SELECIONE UMA OPÇÃO
+                  </h2>
+                  <p className="text-lg text-white/80 mb-10">
+                    Como podemos ajudá-lo hoje?
+                  </p>
+
+                  <div className="grid md:grid-cols-3 gap-6">
+                    
+                    {/* Botão 1: Suporte Técnico */}
+                    <button
+                      onClick={() => handleSelect('suporte')}
+                      className="p-6 bg-white/20 dark:bg-gray-800/50 rounded-lg text-white text-left transition-all hover:bg-white/30 hover:scale-105 border border-white/20"
+                    >
+                      <MessageSquare size={32} className="mb-3 text-blue-300" />
+                      <h3 className="text-xl font-semibold mb-1">Suporte Técnico</h3>
+                      <p className="text-sm opacity-80">Assistência especializada em impressão 3D</p>
+                    </button>
+                    
+                    {/* Botão 2: Vendas e Produtos */}
+                    <button
+                      onClick={() => handleSelect('vendas')}
+                      className="p-6 bg-white/20 dark:bg-gray-800/50 rounded-lg text-white text-left transition-all hover:bg-white/30 hover:scale-105 border border-white/20"
+                    >
+                      <ShoppingBag size={32} className="mb-3 text-purple-300" />
+                      <h3 className="text-xl font-semibold mb-1">Vendas e Produtos</h3>
+                      <p className="text-sm opacity-80">Conheça nossas resinas UV SLA</p>
+                    </button>
+                    
+                    {/* Botão 3: Falar com Atendente (WhatsApp) */}
+                    <button
+                      onClick={() => handleSelect('atendente')}
+                      className="p-6 bg-white/20 dark:bg-gray-800/50 rounded-lg text-white text-left transition-all hover:bg-white/30 hover:scale-105 border border-white/20"
+                    >
+                      <Phone size={32} className="mb-3 text-green-300" />
+                      <h3 className="text-xl font-semibold mb-1">Falar com Atendente</h3>
+                      <p className="text-sm opacity-80">Atendimento humano personalizado</p>
+                    </button>
+
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
