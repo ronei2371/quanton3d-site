@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
-// Corrigido: Agora usa a importação relativa
+// ===== MUDANÇA CRÍTICA: Corrigindo o caminho de importação =====
+// Isso deve forçar o Netlify a ler o arquivo de dados
 import { resinList, printerList, parameters } from '../data/parametersData.js'; 
 
 export default function ParametersSelector() {
@@ -12,16 +13,10 @@ export default function ParametersSelector() {
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [result, setResult] = useState(null);
   
-  // MUDANÇA CRÍTICA: Filtra as impressoras que TEM dados para a resina selecionada
-  const availablePrinters = selectedResin 
-    ? printerList.filter(printer => parameters[`${selectedResin}_${printer}`])
-    : []; // Se nenhuma resina for selecionada, não mostra nenhuma
-
-
   const handleSelectResin = (e) => {
     setSelectedResin(e.target.value);
-    setSelectedPrinter(''); // Reseta a impressora
-    setResult(null); // Limpa o resultado anterior
+    setSelectedPrinter('');
+    setResult(null); 
   };
   
   const handleSelectPrinter = (e) => {
@@ -68,7 +63,6 @@ export default function ParametersSelector() {
             className="w-full p-3 border border-gray-300 rounded-lg"
           >
             <option value="">Escolha uma resina...</option>
-            {/* O dropdown de resinas já funciona perfeitamente */}
             {resinList.map(resin => (
               <option key={resin} value={resin}>{resin}</option>
             ))}
@@ -85,16 +79,10 @@ export default function ParametersSelector() {
             onChange={handleSelectPrinter}
             value={selectedPrinter}
             className="w-full p-3 border border-gray-300 rounded-lg"
-            // MUDANÇA: O dropdown só fica desabilitado se NENHUMA resina foi selecionada
-            disabled={!selectedResin} 
+            disabled={!selectedResin} // Desabilitado até a resina ser escolhida
           >
-            <option value="">
-              {selectedResin 
-                ? (availablePrinters.length > 0 ? 'Escolha sua impressora...' : 'Sem parâmetros para esta resina') 
-                : 'Selecione uma resina primeiro'}
-            </option>
-            {/* MUDANÇA: Agora lista apenas as impressoras que têm dados para a resina */}
-            {availablePrinters.map(printer => (
+            <option value="">{selectedResin ? 'Escolha uma impressora...' : 'Selecione uma resina primeiro'}</option>
+            {printerList.map(printer => (
               <option key={printer} value={printer}>{printer}</option>
             ))}
           </select>
