@@ -1,5 +1,5 @@
 // Arquivo: quanton3d-site/src/components/MenuSelector.jsx
-// (Este é o código FINAL sem erros de sintaxe, pronto para ir ao ar)
+// (Este é o código CORRIGIDO. Removemos o erro de sintaxe que estava quebrando o build.)
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
