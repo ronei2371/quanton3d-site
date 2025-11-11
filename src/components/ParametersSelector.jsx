@@ -12,17 +12,16 @@ export default function ParametersSelector() {
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [result, setResult] = useState(null);
   
-  // A lista de impressoras disponíveis depende da resina selecionada.
   // MUDANÇA CRÍTICA: Filtra as impressoras que TEM dados para a resina selecionada
   const availablePrinters = selectedResin 
     ? printerList.filter(printer => parameters[`${selectedResin}_${printer}`])
-    : printerList; // Se nenhuma resina for selecionada, mostra todas (opcional)
+    : []; // Se nenhuma resina for selecionada, não mostra nenhuma
 
 
   const handleSelectResin = (e) => {
     setSelectedResin(e.target.value);
-    setSelectedPrinter('');
-    setResult(null); 
+    setSelectedPrinter(''); // Reseta a impressora
+    setResult(null); // Limpa o resultado anterior
   };
   
   const handleSelectPrinter = (e) => {
@@ -69,6 +68,7 @@ export default function ParametersSelector() {
             className="w-full p-3 border border-gray-300 rounded-lg"
           >
             <option value="">Escolha uma resina...</option>
+            {/* O dropdown de resinas já funciona perfeitamente */}
             {resinList.map(resin => (
               <option key={resin} value={resin}>{resin}</option>
             ))}
@@ -85,9 +85,15 @@ export default function ParametersSelector() {
             onChange={handleSelectPrinter}
             value={selectedPrinter}
             className="w-full p-3 border border-gray-300 rounded-lg"
-            disabled={!selectedResin || availablePrinters.length === 0} 
+            // MUDANÇA: O dropdown só fica desabilitado se NENHUMA resina foi selecionada
+            disabled={!selectedResin} 
           >
-            <option value="">{selectedResin ? (availablePrinters.length > 0 ? 'Escolha uma impressora...' : 'Sem parâmetros para esta resina') : 'Selecione uma resina primeiro'}</option>
+            <option value="">
+              {selectedResin 
+                ? (availablePrinters.length > 0 ? 'Escolha sua impressora...' : 'Sem parâmetros para esta resina') 
+                : 'Selecione uma resina primeiro'}
+            </option>
+            {/* MUDANÇA: Agora lista apenas as impressoras que têm dados para a resina */}
             {availablePrinters.map(printer => (
               <option key={printer} value={printer}>{printer}</option>
             ))}
