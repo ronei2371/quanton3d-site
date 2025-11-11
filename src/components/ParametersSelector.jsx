@@ -4,8 +4,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
-// ===== MUDANÇA CRÍTICA: Corrigindo o caminho de importação =====
-// Isso deve forçar o Netlify a ler o arquivo de dados
+// Corrigido: Agora usa a importação relativa
 import { resinList, printerList, parameters } from '../data/parametersData.js'; 
 
 export default function ParametersSelector() {
@@ -13,6 +12,12 @@ export default function ParametersSelector() {
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [result, setResult] = useState(null);
   
+  // A lista de impressoras disponíveis depende da resina selecionada.
+  // Vamos buscar todas as impressoras que têm parâmetros na nossa base de dados.
+  const availablePrinters = selectedResin 
+    ? printerList.filter(printer => parameters[`${selectedResin}_${printer}`])
+    : printerList;
+
   const handleSelectResin = (e) => {
     setSelectedResin(e.target.value);
     setSelectedPrinter('');
@@ -79,10 +84,10 @@ export default function ParametersSelector() {
             onChange={handleSelectPrinter}
             value={selectedPrinter}
             className="w-full p-3 border border-gray-300 rounded-lg"
-            disabled={!selectedResin} // Desabilitado até a resina ser escolhida
+            disabled={!selectedResin || availablePrinters.length === 0} // Desabilita se não houver resina ou impressoras
           >
-            <option value="">{selectedResin ? 'Selecione uma impressora...' : 'Selecione uma resina primeiro'}</option>
-            {printerList.map(printer => (
+            <option value="">{selectedResin ? (availablePrinters.length > 0 ? 'Escolha uma impressora...' : 'Sem parâmetros para esta resina') : 'Selecione uma resina primeiro'}</option>
+            {availablePrinters.map(printer => (
               <option key={printer} value={printer}>{printer}</option>
             ))}
           </select>
