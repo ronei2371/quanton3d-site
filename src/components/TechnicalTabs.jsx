@@ -1,10 +1,10 @@
 // Arquivo: quanton3d-site/src/components/TechnicalTabs.jsx
-// Este é o componente com imports de ícones CORRIGIDOS.
+// Este é o componente que expande o conteúdo profissional dos 8 botões de suporte.
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card.jsx';
-// Imports Corrigidos para garantir que o build passe
+// Importa os ícones corrigidos para garantir que o build passe
 import { CheckCircle, XCircle, Phone, User, Settings, Droplet, Layers, Beaker } from 'lucide-react'; 
 
 // Conteúdo Completo (Baseado na sua lista de tarefas)
@@ -69,6 +69,7 @@ const supportTopics = [
             </div>
         `,
     },
+    // Adicionar placeholders para os outros 4 botões (para o Manus preencher depois com o conteúdo da sua lista de tarefas)
     { title: "Calibração de Resina", key: "calibracao", content: `<p>Conteúdo de Calibração será adicionado em breve.</p>` },
     { title: "Posicionamento de Suportes", key: "posicionamento", content: `<p>Conteúdo de Posicionamento de Suportes será adicionado em breve.</p>` },
     { title: "Otimização de Parâmetros", key: "otimizacao", content: `<p>Conteúdo de Otimização de Parâmetros será adicionado em breve.</p>` },
