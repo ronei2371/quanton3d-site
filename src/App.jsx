@@ -49,12 +49,12 @@ function App() {
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/assets/quanton-logo.png" alt="Quanton3D" className="h-14 w-auto" />
+            <img src="/assets/logo-quanton3d.png" alt="Quanton3D" className="h-20 w-auto" />
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Quanton3D
               </h1>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Resinas UV SLA de Alta Performance</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Resinas UV SLA de Alta Performance</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6">
@@ -118,7 +118,7 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                     <Cpu className="h-6 w-6 text-white" />
                   </div>
@@ -129,7 +129,7 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
