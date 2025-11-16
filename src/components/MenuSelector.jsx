@@ -30,7 +30,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
   return (
     <>
       {/* ===== ROBÔ MAIOR + MENSAGEM ("Estou aqui se precisar!") ===== */}
-      <div className="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-50">
+      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
         
         {/* A Mensagem */}
         <AnimatePresence>
@@ -39,10 +39,10 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="absolute bottom-5 left-[100px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
+              className="absolute bottom-5 right-[140px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
             >
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Estou aqui se precisar!</p>
-              <div className="absolute left-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
+              <div className="absolute right-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -52,10 +52,10 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
           onClick={onOpenChat} // Abre o CHAT de dúvidas (como você queria)
           className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
           aria-label="Abrir chat de dúvidas"
-          style={{ width: '80px', height: '80px' }} // Tamanho maior
+          style={{ width: '120px', height: '120px' }} // Tamanho MUITO maior (~10cm)
         >
           {/* USANDO O CAMINHO PÚBLICO: O Manus deve garantir que o arquivo robot-animated.gif está em /public/assets/ */}
-          <img src="/assets/robot-animated.gif" alt="Assistente" className="w-full h-full object-cover rounded-full" />
+          <img src="/assets/robot-salute.png" alt="Assistente" className="w-full h-full object-contain" />
         </button>
       </div>
       {/* ===== FIM DA MELHORIA ===== */}

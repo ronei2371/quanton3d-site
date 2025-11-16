@@ -2,7 +2,7 @@
 // (Este é o código CORRIGIDO. Eu consertei o caminho do robot-icon.png)
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit } from 'lucide-react';
+import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit, ImagePlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
@@ -14,6 +14,11 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [suggestionText, setSuggestionText] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const fileInputRef = useRef(null);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [userData, setUserData] = useState({ name: '', phone: '', email: '' });
+  const [userRegistered, setUserRegistered] = useState(false);
   const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   
   const endOfMessagesRef = useRef(null);
@@ -36,21 +41,53 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Mostrar formulário de cadastro após primeira mensagem do usuário
+    if (messages.length > 0 && !userRegistered && !showUserForm) {
+      const hasUserMessage = messages.some(msg => msg.sender === 'user');
+      if (hasUserMessage) {
+        setTimeout(() => setShowUserForm(true), 2000);
+      }
+    }
+  }, [messages, userRegistered, showUserForm]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-    const userMessage = { id: Date.now(), sender: 'user', text: inputValue };
+    if ((!inputValue.trim() && !selectedImage) || isLoading) return;
+    
+    const userMessage = { 
+      id: Date.now(), 
+      sender: 'user', 
+      text: inputValue || '📷 Imagem enviada',
+      image: selectedImage ? URL.createObjectURL(selectedImage) : null
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    
     try {
-      const response = await fetch(`${API_URL}/ask`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
-      });
+      let response;
+      
+      if (selectedImage) {
+        // Upload com imagem
+        const formData = new FormData();
+        formData.append('image', selectedImage);
+        formData.append('message', inputValue || 'Analise esta imagem');
+        formData.append('sessionId', sessionId);
+        
+        response = await fetch(`${API_URL}/ask-with-image`, {
+          method: 'POST',
+          body: formData,
+        });
+        setSelectedImage(null);
+      } else {
+        // Mensagem normal
+        response = await fetch(`${API_URL}/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
+        });
+      }
+      
       if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
       const data = await response.json();
       const botMessage = { id: Date.now() + 1, sender: 'bot', text: data.reply || 'Não consegui processar sua resposta.' };
@@ -63,6 +100,42 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       setIsLoading(false);
     }
   };
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+    }
+  };
+
+  const handleUserFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!userData.name || !userData.phone || !userData.email) {
+      alert('Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}/register-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...userData, sessionId }),
+      });
+      
+      if (response.ok) {
+        setUserRegistered(true);
+        setShowUserForm(false);
+        const botMessage = { 
+          id: Date.now(), 
+          sender: 'bot', 
+          text: `Obrigado, ${userData.name}! Agora posso te atender melhor. Como posso ajudar?` 
+        };
+        setMessages((prev) => [...prev, botMessage]);
+      }
+    } catch (error) {
+      console.error('Erro ao registrar usuário:', error);
+    }
+  };
+
   const handleSuggestionSubmit = async () => {
     if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
     setIsLoading(true);
@@ -109,7 +182,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-0 left-0 md:bottom-8 md:left-8 w-full h-full md:w-[440px] md:h-[75vh] md:max-h-[700px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
+      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md:max-h-[850px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
     >
       {/* Header */}
       <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
@@ -126,12 +199,79 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         </button>
       </div>
 
+      {/* Modal de Cadastro de Usuário */}
+      <AnimatePresence>
+        {showUserForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full"
+            >
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                👋 Olá! Vamos nos conhecer?
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Para te atender melhor, por favor preencha seus dados:
+              </p>
+              <form onSubmit={handleUserFormSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Seu nome"
+                  value={userData.name}
+                  onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+                <input
+                  type="tel"
+                  placeholder="Seu telefone (com DDD)"
+                  value={userData.phone}
+                  onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+                <input
+                  type="email"
+                  placeholder="Seu e-mail"
+                  value={userData.email}
+                  onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowUserForm(false)}
+                    className="flex-1 p-3 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400"
+                  >
+                    Agora não
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Enviar
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Fundo de Circuito */}
       <div 
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
-        style={{ backgroundImage: "url('/chat-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+        style={{ backgroundImage: "url('/circuit-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
       >
-        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"></div>
         
         <div className="relative z-10 space-y-4">
           {messages.map((msg) => (
@@ -143,6 +283,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                 }`}
               >
+                {msg.image && (
+                  <img src={msg.image} alt="Imagem enviada" className="w-full rounded-lg mb-2" />
+                )}
                 {msg.text}
               </div>
             </div>
@@ -213,8 +356,41 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           <Bulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
         
+        {/* Preview da imagem selecionada */}
+        {selectedImage && (
+          <div className="mb-2 relative inline-block">
+            <img 
+              src={URL.createObjectURL(selectedImage)} 
+              alt="Preview" 
+              className="w-20 h-20 object-cover rounded-lg border-2 border-blue-500"
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
         {/* Input de Chat */}
         <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            accept="image/*"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+            disabled={isLoading}
+            title="Enviar imagem"
+          >
+            <ImagePlus size={20} />
+          </button>
           <input
             type="text"
             value={inputValue}
