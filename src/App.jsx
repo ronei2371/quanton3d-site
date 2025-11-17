@@ -13,7 +13,8 @@ import { PrivacyModal } from '@/components/PrivacyModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
 import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
-import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
+import { AdminPanel } from '@/components/AdminPanel.jsx'
+import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './App.css'
 
@@ -21,6 +22,7 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false)
   const [chatMode, setChatMode] = useState('suporte')
   const [modalService, setModalService] = useState(null)
 
@@ -61,6 +63,14 @@ function App() {
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
             <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
             <a href="#contato" className="text-sm font-medium hover:text-blue-600 transition-colors">Contato</a>
+            <button 
+              onClick={() => setIsAdminPanelOpen(true)} 
+              className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
+              title="Painel Administrativo"
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </button>
           </nav>
         </div>
       </header>
@@ -224,6 +234,16 @@ function App() {
         onClose={() => setIsFormModalOpen(false)}
       />
       <PrivacyModal />
+
+      {/* Admin Panel Modal */}
+      {isAdminPanelOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setIsAdminPanelOpen(false)} />
+          <div className="relative h-full overflow-auto">
+            <AdminPanel onClose={() => setIsAdminPanelOpen(false)} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

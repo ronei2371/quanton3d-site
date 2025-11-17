@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { X, Check, Clock, User, Phone, Calendar } from 'lucide-react'
 
-export function AdminPanel() {
+export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -68,9 +68,16 @@ export function AdminPanel() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Sugestões de Conhecimento
           </h1>
-          <Button onClick={loadSuggestions} disabled={loading}>
-            {loading ? 'Carregando...' : 'Atualizar'}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button onClick={loadSuggestions} disabled={loading}>
+              {loading ? 'Carregando...' : 'Atualizar'}
+            </Button>
+            {onClose && (
+              <Button onClick={onClose} variant="outline">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {suggestions.length === 0 ? (
