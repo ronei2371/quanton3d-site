@@ -128,14 +128,14 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}>
+                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => { document.getElementById('fispqs')?.scrollIntoView({ behavior: 'smooth' }); }}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
                   <div>
                     <h3 className="font-bold text-lg mb-2">Alta Qualidade</h3>
                     <p className="text-gray-600 dark:text-gray-400">
-                      Matérias-primas premium e controle rigoroso de qualidade
+                      FISPQs, certificados e controle rigoroso de qualidade
                     </p>
                   </div>
                 </div>

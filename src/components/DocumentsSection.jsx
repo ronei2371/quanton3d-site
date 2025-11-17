@@ -50,7 +50,7 @@ export function DocumentsSection() {
       </motion.div>
 
       {/* FISPQs */}
-      <div className="mb-12">
+      <div id="fispqs" className="mb-12">
         <h3 className="text-2xl font-bold mb-6 text-center">
           <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             FISPQs das Resinas
