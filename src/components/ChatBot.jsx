@@ -2,7 +2,7 @@
 // (Este é o código CORRIGIDO. Eu consertei o caminho do robot-icon.png)
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Bulb, ChevronsUpDown, User, BrainCircuit, ImagePlus } from 'lucide-react';
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
@@ -353,7 +353,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           onClick={() => setShowSuggestion(!showSuggestion)}
           className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
         >
-          <Bulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
+          <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
         
         {/* Preview da imagem selecionada */}
