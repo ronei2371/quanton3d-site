@@ -15,7 +15,6 @@ import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-import logo from './assets/logo.png' 
 import './App.css'
 
 function App() {
