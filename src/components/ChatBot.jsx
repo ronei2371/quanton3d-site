@@ -36,23 +36,26 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
     }
     setMessages([{ id: 1, sender: 'bot', text: initialText }]);
-  }, [mode]);
+    // Mostrar formulário de cadastro imediatamente ao abrir o chat
+    if (!userRegistered) {
+      setTimeout(() => setShowUserForm(true), 500);
+    }
+  }, [mode, userRegistered]);
 
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-    // Mostrar formulário de cadastro após primeira mensagem do usuário
-    if (messages.length > 0 && !userRegistered && !showUserForm) {
-      const hasUserMessage = messages.some(msg => msg.sender === 'user');
-      if (hasUserMessage) {
-        setTimeout(() => setShowUserForm(true), 2000);
-      }
-    }
-  }, [messages, userRegistered, showUserForm]);
+  }, [messages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if ((!inputValue.trim() && !selectedImage) || isLoading) return;
+    
+    // Bloquear envio se usuário não estiver registrado
+    if (!userRegistered) {
+      setShowUserForm(true);
+      return;
+    }
     
     const userMessage = { 
       id: Date.now(), 
@@ -245,33 +248,29 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                   className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowUserForm(false)}
-                    className="flex-1 p-3 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400"
-                  >
-                    Agora não
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Enviar
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  className="w-full p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold"
+                >
+                  Enviar
+                </button>
               </form>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Fundo de Circuito */}
+      {/* Fundo de Circuito - SEMPRE VISÍVEL */}
       <div 
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
-        style={{ backgroundImage: "url('/circuit-bg.gif')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+        style={{ 
+          backgroundImage: "url('/circuit-bg.gif')", 
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center',
+          minHeight: '400px' // Garantir altura mínima
+        }}
       >
-        <div className="absolute inset-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
         
         <div className="relative z-10 space-y-4">
           {messages.map((msg) => (
