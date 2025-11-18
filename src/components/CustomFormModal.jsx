@@ -6,6 +6,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 export default function CustomFormModal({ isOpen, onClose }) {
     const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        email: '',
         caracteristica: '',
         cor: '',
         complementos: ''
@@ -21,8 +24,8 @@ export default function CustomFormModal({ isOpen, onClose }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!formData.caracteristica || !formData.cor) {
-            alert('Por favor, preencha as características e a cor.');
+        if (!formData.name || !formData.phone || !formData.email || !formData.caracteristica || !formData.cor) {
+            alert('Por favor, preencha todos os campos obrigatórios.');
             return;
         }
 
@@ -40,7 +43,7 @@ export default function CustomFormModal({ isOpen, onClose }) {
             }
 
             setStatus('success');
-            setFormData({ caracteristica: '', cor: '', complementos: '' });
+            setFormData({ name: '', phone: '', email: '', caracteristica: '', cor: '', complementos: '' });
 
         } catch (error) {
             console.error('Erro ao enviar formulação:', error);
@@ -94,6 +97,45 @@ export default function CustomFormModal({ isOpen, onClose }) {
                         ) : (
                             <motion.form key="form" onSubmit={handleSubmit} className="space-y-4">
                                 {/* Campos do Formulário */}
+                                <div>
+                                    <label htmlFor="name" className="block text-sm font-medium mb-1">Nome Completo *</label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        id="name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        placeholder="Seu nome completo"
+                                        className="w-full p-3 border rounded-lg focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="phone" className="block text-sm font-medium mb-1">Telefone *</label>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        id="phone"
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        placeholder="(00) 00000-0000"
+                                        className="w-full p-3 border rounded-lg focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="email" className="block text-sm font-medium mb-1">E-mail *</label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        id="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        placeholder="seu@email.com"
+                                        className="w-full p-3 border rounded-lg focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
                                 <div>
                                     <label htmlFor="caracteristica" className="block text-sm font-medium mb-1">Característica Desejada</label>
                                     <input

@@ -2,15 +2,19 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3 } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker } from 'lucide-react'
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions'
+  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom'
   const [metrics, setMetrics] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [knowledgeTitle, setKnowledgeTitle] = useState('')
+  const [knowledgeContent, setKnowledgeContent] = useState('')
+  const [addingKnowledge, setAddingKnowledge] = useState(false)
+  const [customRequests, setCustomRequests] = useState([])
 
   const ADMIN_PASSWORD = 'quanton3d2024'
 
@@ -19,6 +23,7 @@ export function AdminPanel({ onClose }) {
       setIsAuthenticated(true)
       loadMetrics()
       loadSuggestions()
+      loadCustomRequests()
     } else {
       alert('Senha incorreta!')
     }
@@ -44,6 +49,16 @@ export function AdminPanel({ onClose }) {
       setSuggestions(data.suggestions || [])
     } catch (error) {
       console.error('Erro ao carregar sugestões:', error)
+    }
+  }
+
+  const loadCustomRequests = async () => {
+    try {
+      const response = await fetch('https://quanton3d-bot-v2.onrender.com/custom-requests?auth=quanton3d_admin_secret')
+      const data = await response.json()
+      setCustomRequests(data.requests || [])
+    } catch (error) {
+      console.error('Erro ao carregar pedidos customizados:', error)
     }
   }
 
@@ -83,7 +98,7 @@ export function AdminPanel({ onClose }) {
             Painel Administrativo
           </h1>
           <div className="flex items-center gap-3">
-            <Button onClick={() => { loadMetrics(); loadSuggestions(); }} disabled={loading}>
+            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); }} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
             </Button>
             {onClose && (
@@ -111,6 +126,22 @@ export function AdminPanel({ onClose }) {
           >
             <MessageSquare className="h-4 w-4 mr-2" />
             Sugestões ({suggestions.length})
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('knowledge')}
+            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
+            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Gestão de Conhecimento
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('custom')}
+            variant={activeTab === 'custom' ? 'default' : 'outline'}
+            className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Beaker className="h-4 w-4 mr-2" />
+            Formulações ({customRequests.length})
           </Button>
         </div>
 
@@ -251,6 +282,153 @@ export function AdminPanel({ onClose }) {
                 </div>
               )}
             </Card>
+          </div>
+        )}
+
+        {activeTab === 'knowledge' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Adicionar Novo Conhecimento ao RAG
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Adicione manualmente novos conhecimentos que o bot deverá aprender. O conteúdo será salvo como arquivo .txt na base de conhecimento RAG.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Título do Conhecimento</label>
+                  <Input
+                    placeholder="Ex: Configurações de impressão para resina ABS-Like"
+                    value={knowledgeTitle}
+                    onChange={(e) => setKnowledgeTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Conteúdo</label>
+                  <textarea
+                    className="w-full min-h-[200px] p-3 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
+                    placeholder="Digite o conteúdo completo que o bot deverá aprender...\n\nEx:\nPara impressão com resina ABS-Like:\n- Temperatura: 25-30°C\n- Tempo de exposição: 2-3s\n- Lift speed: 60mm/min"
+                    value={knowledgeContent}
+                    onChange={(e) => setKnowledgeContent(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={async () => {
+                    if (!knowledgeTitle.trim() || !knowledgeContent.trim()) {
+                      alert('Preencha título e conteúdo!')
+                      return
+                    }
+                    setAddingKnowledge(true)
+                    try {
+                      const response = await fetch('https://quanton3d-bot-v2.onrender.com/add-knowledge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          auth: 'quanton3d_admin_secret',
+                          title: knowledgeTitle,
+                          content: knowledgeContent
+                        })
+                      })
+                      const data = await response.json()
+                      if (data.success) {
+                        alert('✅ Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
+                        setKnowledgeTitle('')
+                        setKnowledgeContent('')
+                      } else {
+                        alert('❌ Erro: ' + data.error)
+                      }
+                    } catch (error) {
+                      alert('❌ Erro ao adicionar conhecimento: ' + error.message)
+                    } finally {
+                      setAddingKnowledge(false)
+                    }
+                  }}
+                  disabled={addingKnowledge}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {addingKnowledge ? 'Adicionando...' : 'Adicionar ao Conhecimento'}
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">💡 Dicas de Uso</h3>
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                <li>• <strong>Seja específico:</strong> Quanto mais detalhado o conteúdo, melhor o bot responderá</li>
+                <li>• <strong>Use linguagem natural:</strong> Escreva como se estivesse explicando para um cliente</li>
+                <li>• <strong>Organize por tópicos:</strong> Use títulos claros que facilitem a busca semântica</li>
+                <li>• <strong>Inclua exemplos:</strong> Casos práticos ajudam o bot a contextualizar respostas</li>
+                <li>• <strong>Atualize regularmente:</strong> Adicione novos conhecimentos conforme surgem dúvidas frequentes</li>
+              </ul>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'custom' && (
+          <div className="space-y-4">
+            {customRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Beaker className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhum pedido de formulação customizada ainda
+                </p>
+              </Card>
+            ) : (
+              customRequests.map((request, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{request.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {request.phone}
+                          </span>
+                          <span className="truncate">{request.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(request.timestamp).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
+                      <p className="text-sm">{request.caracteristica}</p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
+                      <p className="text-sm">{request.cor}</p>
+                    </div>
+                    {request.complementos && (
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">COMPLEMENTOS</p>
+                        <p className="text-sm whitespace-pre-wrap">{request.complementos}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => window.open(`https://wa.me/55${request.phone.replace(/\D/g, '')}?text=Olá ${request.name}, sobre sua solicitação de formulação customizada...`, '_blank')}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contatar via WhatsApp
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         )}
 

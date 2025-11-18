@@ -10,6 +10,8 @@ import TechnicalTabs from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
+import { QualityModal } from '@/components/QualityModal.jsx'
+import { TechnicalSupportModal } from '@/components/TechnicalSupportModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
 import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
@@ -25,6 +27,8 @@ function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false)
   const [chatMode, setChatMode] = useState('suporte')
   const [modalService, setModalService] = useState(null)
+  const [isQualityModalOpen, setIsQualityModalOpen] = useState(false)
+  const [isTechSupportModalOpen, setIsTechSupportModalOpen] = useState(false)
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -45,6 +49,8 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950">
       
       <PrivacyModal />
+      <QualityModal isOpen={isQualityModalOpen} onClose={() => setIsQualityModalOpen(false)} />
+      <TechnicalSupportModal isOpen={isTechSupportModalOpen} onClose={() => setIsTechSupportModalOpen(false)} />
 
       {/* Header (RESTAURADO e Funcional) */}
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
@@ -127,7 +133,7 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}>
+                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => setIsTechSupportModalOpen(true)}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                     <Cpu className="h-6 w-6 text-white" />
                   </div>
@@ -138,7 +144,7 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => { document.getElementById('fispqs')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => setIsQualityModalOpen(true)}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
