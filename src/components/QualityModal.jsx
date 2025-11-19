@@ -159,17 +159,31 @@ export function QualityModal({ isOpen, onClose }) {
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
             {activeTab === 'resinas' && (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-6">
                 {resinas.map((resina, index) => (
-                  <Card key={index} className="p-4 hover:shadow-lg transition-shadow">
-                    <h3 className="text-lg font-bold mb-2 bg-gradient-to-r from-pink-600 to-red-600 bg-clip-text text-transparent">
+                  <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
+                    <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-pink-600 to-red-600 bg-clip-text text-transparent">
                       {resina.name}
                     </h3>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{resina.desc}</p>
-                    <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                      <p><strong>Cor:</strong> {resina.color}</p>
-                      <p><strong>Aplicações:</strong> {resina.applications}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">{resina.desc}</p>
+                    
+                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 mb-3">
+                      <p className="text-sm"><strong className="text-blue-700 dark:text-blue-400">🎯 Indicação:</strong> {resina.indicacao}</p>
                     </div>
+                    
+                    {resina.caracteristicas && resina.caracteristicas.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">✨ Características:</p>
+                        <ul className="space-y-1">
+                          {resina.caracteristicas.map((caract, idx) => (
+                            <li key={idx} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                              <span className="text-green-500 mt-0.5">✓</span>
+                              <span>{caract}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -233,6 +247,35 @@ export function QualityModal({ isOpen, onClose }) {
                     )
                   })}
                 </div>
+                <Card className="p-6 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-2 border-red-300 dark:border-red-700">
+                  <h4 className="font-bold text-lg mb-3 text-center text-red-700 dark:text-red-400">⚠️ ALERTA: Resinas Chinesas sem Registro</h4>
+                  <div className="space-y-3 text-sm">
+                    <p className="text-gray-700 dark:text-gray-300 font-semibold">
+                      🚨 Cuidado ao usar produtos químicos sem registro no Brasil!
+                    </p>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                      <p className="text-red-600 dark:text-red-400 font-semibold">❌ Riscos de resinas não registradas:</p>
+                      <ul className="space-y-1 ml-4">
+                        <li>• <strong>Saúde:</strong> Composição desconhecida pode causar alergias, irritações ou intoxicação</li>
+                        <li>• <strong>Legal:</strong> Uso de produtos não regulamentados pode gerar responsabilidade civil e criminal</li>
+                        <li>• <strong>Qualidade:</strong> Sem controle de qualidade, resultados imprevisíveis e inconsistências entre lotes</li>
+                        <li>• <strong>Meio Ambiente:</strong> Descarte inadequado de produtos não registrados pode contaminar solo e água</li>
+                        <li>• <strong>Segurança:</strong> Ausência de FISPQ e instruções adequadas de manuseio</li>
+                      </ul>
+                    </div>
+                    <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-4">
+                      <p className="text-green-700 dark:text-green-400 font-semibold">✅ Resinas Quanton3D:</p>
+                      <ul className="space-y-1 ml-4 text-gray-700 dark:text-gray-300">
+                        <li>• Registro completo e conformidade com legislação brasileira</li>
+                        <li>• FISPQ disponível para todas as resinas</li>
+                        <li>• Controle rigoroso de qualidade em cada lote</li>
+                        <li>• Suporte técnico especializado</li>
+                        <li>• Garantia de origem e rastreabilidade</li>
+                      </ul>
+                    </div>
+                  </div>
+                </Card>
+                
                 <Card className="p-6 bg-gradient-to-br from-pink-50 to-red-50 dark:from-pink-950/20 dark:to-red-950/20 border-2 border-pink-200 dark:border-pink-800">
                   <h4 className="font-bold text-lg mb-3 text-center">📋 Processo de Controle</h4>
                   <ul className="space-y-2 text-sm">

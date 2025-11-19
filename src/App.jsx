@@ -161,8 +161,8 @@ function App() {
         </div>
       </section>
 
-      {/* Resin Cards Section (TAREFA 1) */}
-      <ResinCards />
+      {/* Resin Cards Section (TAREFA 1) - REMOVIDO: Duplicidade com modal Alta Qualidade */}
+      {/* <ResinCards /> */}
 
       {/* Technical Tabs Section (TAREFA 2) */}
       <TechnicalTabs /> 

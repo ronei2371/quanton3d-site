@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3 } from 'lucide-react'
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -15,6 +15,8 @@ export function AdminPanel({ onClose }) {
   const [knowledgeContent, setKnowledgeContent] = useState('')
   const [addingKnowledge, setAddingKnowledge] = useState(false)
   const [customRequests, setCustomRequests] = useState([])
+  const [editingSuggestion, setEditingSuggestion] = useState(null)
+  const [editedText, setEditedText] = useState('')
 
   const ADMIN_PASSWORD = 'quanton3d2024'
 
@@ -479,25 +481,75 @@ export function AdminPanel({ onClose }) {
                   </div>
 
                   {suggestion.status === 'pending' && (
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => alert('Sugestão aprovada! (Implementar lógica de aprovação)')}
-                      >
-                        <Check className="h-4 w-4 mr-2" />
-                        Aprovar
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => alert('Sugestão rejeitada! (Implementar lógica de rejeição)')}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Rejeitar
-                      </Button>
-                    </div>
+                    <>
+                      {editingSuggestion === suggestion.id ? (
+                        <div className="space-y-3">
+                          <textarea
+                            className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 min-h-[120px]"
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            placeholder="Edite ou complemente a sugestão..."
+                          />
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              onClick={() => {
+                                alert(`Sugestão melhorada aprovada: ${editedText}`)
+                                setEditingSuggestion(null)
+                                setEditedText('')
+                              }}
+                            >
+                              <Check className="h-4 w-4 mr-2" />
+                              Aprovar Editado
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => {
+                                setEditingSuggestion(null)
+                                setEditedText('')
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => alert('Sugestão aprovada! (Implementar lógica de aprovação)')}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Aprovar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              setEditingSuggestion(suggestion.id)
+                              setEditedText(suggestion.suggestion)
+                            }}
+                          >
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            Melhorar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => alert('Sugestão rejeitada! (Implementar lógica de rejeição)')}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Rejeitar
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </Card>
               ))
