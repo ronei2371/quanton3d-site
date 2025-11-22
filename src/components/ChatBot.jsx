@@ -215,15 +215,15 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
               className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-lg w-full text-center"
             >
               <motion.img
-                src="/robot-thinking.png"
-                alt="Robô QuantonBot3D"
-                className="w-48 h-48 mx-auto mb-6"
+                src="/robot-welcome-quanton.png"
+                alt="Quanton3D 24/7 com você"
+                className="w-full max-w-md mx-auto mb-6 rounded-lg shadow-lg"
                 animate={{ 
-                  y: [0, -10, 0],
-                  rotate: [0, 5, -5, 0]
+                  scale: [1, 1.02, 1],
+                  opacity: [0.95, 1, 0.95]
                 }}
                 transition={{ 
-                  duration: 3,
+                  duration: 4,
                   repeat: Infinity,
                   ease: 'easeInOut'
                 }}

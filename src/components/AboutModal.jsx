@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Heart, Sparkles, Bot, Award, Users, Target } from 'lucide-react'
 import { Card } from '@/components/ui/card.jsx'
@@ -6,12 +6,24 @@ import { Button } from '@/components/ui/button.jsx'
 
 export function AboutModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('empresa') // 'empresa' | 'ronei' | 'bot'
+  const [isReady, setIsReady] = useState(false)
+
+  // Garantir que modal só renderiza quando estiver pronto
+  useEffect(() => {
+    if (isOpen) {
+      // Pequeno delay para garantir que DOM está pronto
+      const timer = setTimeout(() => setIsReady(true), 50)
+      return () => clearTimeout(timer)
+    } else {
+      setIsReady(false)
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
   return (
     <AnimatePresence mode="wait">
-      {isOpen && (
+      {isOpen && isReady && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -23,7 +35,7 @@ export function AboutModal({ isOpen, onClose }) {
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
