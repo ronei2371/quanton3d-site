@@ -17,6 +17,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
   const [showUserForm, setShowUserForm] = useState(false);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
   const [userData, setUserData] = useState({ name: '', phone: '', email: '' });
   const [userRegistered, setUserRegistered] = useState(false);
   const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
@@ -127,12 +128,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       if (response.ok) {
         setUserRegistered(true);
         setShowUserForm(false);
-        const botMessage = { 
-          id: Date.now(), 
-          sender: 'bot', 
-          text: `Obrigado, ${userData.name}! Agora posso te atender melhor. Como posso ajudar?` 
-        };
-        setMessages((prev) => [...prev, botMessage]);
+        setShowWelcomeScreen(true); // Mostrar tela de boas-vindas
       }
     } catch (error) {
       console.error('Erro ao registrar usuário:', error);
@@ -201,6 +197,69 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           <X size={20} />
         </button>
       </div>
+
+      {/* Tela de Boas-Vindas */}
+      <AnimatePresence>
+        {showWelcomeScreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 50 }}
+              transition={{ type: 'spring', bounce: 0.4 }}
+              className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-lg w-full text-center"
+            >
+              <motion.img
+                src="/robot-welcome.png"
+                alt="Robô QuantonBot3D"
+                className="w-48 h-48 mx-auto mb-6"
+                animate={{ 
+                  y: [0, -10, 0],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut'
+                }}
+              />
+              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Bem-vindo(a), {userData.name}! 🎉
+              </h2>
+              <p className="text-lg text-gray-700 dark:text-gray-300 mb-6">
+                Obrigado por escolher a <span className="font-bold text-purple-600">Quanton3D</span>! 
+                Estou aqui para te ajudar com tudo sobre impressão 3D e resinas UV.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  💡 <strong>Dica:</strong> Pergunte sobre resinas, troubleshooting, parâmetros de impressão ou qualquer dúvida técnica!
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowWelcomeScreen(false);
+                  const botMessage = { 
+                    id: Date.now(), 
+                    sender: 'bot', 
+                    text: `Olá ${userData.name}! Estou pronto para te ajudar. Como posso te auxiliar hoje?` 
+                  };
+                  setMessages((prev) => [...prev, botMessage]);
+                }}
+                className="w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 font-bold text-lg shadow-lg"
+              >
+                🚀 Começar Agora!
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal de Cadastro de Usuário */}
       <AnimatePresence>
@@ -330,17 +389,17 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                 <div className="flex justify-end gap-2 mt-2">
                   <button 
                     onClick={() => setShowSuggestion(false)}
-                    className="text-xs px-3 py-1 rounded bg-gray-200 dark:bg-gray-600"
+                    className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-gray-400 to-gray-500 text-white hover:from-gray-500 hover:to-gray-600 font-semibold shadow-md transition-all"
                     disabled={isLoading}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSuggestionSubmit}
-                    className="text-xs px-3 py-1 rounded bg-yellow-500 text-white"
+                    className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 font-semibold shadow-md transition-all"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Enviando...' : 'Enviar Sugestão'}
+                    {isLoading ? 'Enviando...' : '✨ Enviar Sugestão'}
                   </button>
                 </div>
               </div>
@@ -350,7 +409,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
 
         <button 
           onClick={() => setShowSuggestion(!showSuggestion)}
-          className={`flex items-center gap-1.5 text-xs mb-2 ${showSuggestion ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+          className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg transition-all ${showSuggestion ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
         >
           <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
@@ -365,7 +424,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
             />
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+              className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow-lg hover:scale-110 transition-transform"
             >
               ×
             </button>
@@ -384,11 +443,11 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+            className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:bg-gray-400 shadow-md transition-all hover:scale-105"
             disabled={isLoading}
-            title="Enviar imagem"
           >
             <ImagePlus size={20} />
+          </button>s size={20} />
           </button>
           <input
             type="text"
@@ -400,7 +459,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           />
           <button
             type="submit"
-            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-400 shadow-md transition-all hover:scale-105"
             disabled={isLoading}
           >
             <Send size={20} />
