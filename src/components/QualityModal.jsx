@@ -19,58 +19,77 @@ export function QualityModal({ isOpen, onClose }) {
 
   const resinas = [
     {
-      name: 'Pyroblast+',
-      desc: 'Resina de alta resistência térmica até 238°C (HDT)',
-      color: 'Cinza escuro',
-      applications: 'Moldes de injeção, peças expostas a calor'
+      name: 'Alchemist',
+      desc: 'Linha especialmente criada para efeitos especiais em colecionáveis e itens de decoração',
+      indicacao: 'Reprodução de efeitos especiais em colecionáveis e itens de decoração',
+      caracteristicas: ['Precisão e Rapidez', 'Durabilidade', 'Cores Vibrantes e Translúcidas']
+    },
+    {
+      name: 'FlexForm',
+      desc: 'Projetada para protótipos e peças que exigem alta flexibilidade e resistência',
+      indicacao: 'Protótipos e peças que exigem resistência e alto nível de flexibilidade',
+      caracteristicas: ['Alta Flexibilidade', 'Durabilidade Robusta', 'Precisão Dimensional']
+    },
+    {
+      name: 'Athom Dental',
+      desc: 'Ideal para criar modelos de estudo, troquéis e protótipos de peças dentárias',
+      indicacao: 'Modelos de estudo odontológicos, troquéis e protótipos',
+      caracteristicas: ['Aplicações Odontológicas Específicas', 'Alta Precisão e Qualidade', 'Facilita Estudos e Prototipagem'],
+      importante: 'Destinada apenas para uso externo, NÃO é biocompatível'
+    },
+    {
+      name: 'Iron',
+      desc: 'Adequada para projetos que exigem flexibilidade e resistência a impactos',
+      indicacao: 'Projetos que requerem flexibilidade e resistência a impactos',
+      caracteristicas: ['Alta Resistência ao Impacto', 'Dureza Intermediária', 'Flexibilidade'],
+      limitacoes: 'Não recomendada para peças inclinadas. Baixa resistência a água'
     },
     {
       name: 'Iron 7030',
-      desc: 'Resina rígida de alta resistência mecânica',
-      color: 'Cinza',
-      applications: 'Peças funcionais, protótipos mecânicos'
+      desc: 'Combinação equilibrada de flexibilidade e resistência',
+      indicacao: 'Impressões que exigem maior resistência e elevado nível de detalhes',
+      caracteristicas: ['Flexibilidade e Resistência', 'Detalhes Precisos', 'Acabamento de Qualidade'],
+      limitacoes: 'Não recomendada para peças com estruturas finas e suspensas'
     },
     {
-      name: 'Spin+',
-      desc: 'Resina para fundição (castable) - queima limpa',
-      color: 'Azul translúcido',
-      applications: 'Joalheria, odontologia (fundição por cera perdida)'
+      name: 'Poseidon',
+      desc: 'Dispensa álcool para limpeza (lavável em água)',
+      indicacao: 'Impressões que requerem alto grau de detalhamento',
+      caracteristicas: ['Detalhamento Impecável', 'Lavável com Água', 'Baixo Odor'],
+      importante: 'Embora lavável em água, ainda apresenta toxicidade. Não é biocompatível'
+    },
+    {
+      name: 'Spin',
+      desc: 'Oferece maior rigidez e leve flexibilidade com alto nível de detalhes',
+      indicacao: 'Peças de grande formato com alto nível de detalhes sem deformação',
+      caracteristicas: ['Resistência e Flexibilidade', 'Cores Opacas', 'Alta Precisão']
+    },
+    {
+      name: 'Athom Alinhadores',
+      desc: 'Alta resolução e precisão para visualização detalhada de modelos complexos',
+      indicacao: 'Produção de modelos para alinhadores e processos com plastificadoras a vácuo',
+      caracteristicas: ['Alta resolução e precisão', 'Baixa contração', 'Boa resistência à temperatura'],
+      importante: 'Destinada apenas para uso externo, NÃO é biocompatível'
+    },
+    {
+      name: 'Pyroblast+',
+      desc: 'Resina de alta resistência térmica até 238°C (HDT)',
+      indicacao: 'Moldes de injeção, peças expostas a calor',
+      caracteristicas: ['Resistência térmica até 238°C', 'Alta rigidez', 'Excelente estabilidade dimensional'],
+      cor: 'Cinza escuro'
     },
     {
       name: 'Spark',
       desc: 'Resina de alta precisão e detalhamento',
-      color: 'Diversas cores',
-      applications: 'Miniaturas, joias, modelos dentários'
-    },
-    {
-      name: 'FlexForm',
-      desc: 'Resina flexível tipo borracha',
-      color: 'Preto/Transparente',
-      applications: 'Vedações, juntas, peças flexíveis'
-    },
-    {
-      name: 'Alchemist',
-      desc: 'Resina de uso geral balanceada',
-      color: 'Cinza claro',
-      applications: 'Prototipagem geral, modelos conceituais'
-    },
-    {
-      name: 'Poseidon',
-      desc: 'Resina lavável em água (sem IPA)',
-      color: 'Diversas cores',
-      applications: 'Prototipagem geral, modelos conceituais'
+      indicacao: 'Miniaturas, joias, modelos dentários',
+      caracteristicas: ['Alta precisão e detalhamento', 'Diversas cores disponíveis']
     },
     {
       name: 'LowSmell',
-      desc: 'Resina com baixo odor',
-      color: 'Bege/Branco',
-      applications: 'Ambientes fechados, escritórios'
-    },
-    {
-      name: 'Castable',
-      desc: 'Resina para fundição profissional',
-      color: 'Azul',
-      applications: 'Joalheria de precisão, odontologia'
+      desc: 'Resina com baixo odor, ideal para ambientes fechados',
+      indicacao: 'Ambientes fechados, uso doméstico, escritórios',
+      caracteristicas: ['Baixo odor', 'Boa precisão', 'Fácil pós-processamento'],
+      cor: 'Bege/Branco'
     }
   ]
 
