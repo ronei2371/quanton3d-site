@@ -447,7 +447,6 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
             disabled={isLoading}
           >
             <ImagePlus size={20} />
-          </button>s size={20} />
           </button>
           <input
             type="text"

@@ -187,11 +187,19 @@ export function AboutModal({ isOpen, onClose }) {
                     </div>
 
                     <Card className="p-8 bg-gradient-to-br from-pink-50 via-red-50 to-orange-50 dark:from-pink-950/20 dark:via-red-950/20 dark:to-orange-950/20 border-2 border-pink-200 dark:border-pink-800">
+                      <div className="text-center mb-6">
+                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-full font-bold text-xl mb-4 shadow-lg">
+                          🚀💚 +8.000 Impressões Salvas!
+                        </div>
+                      </div>
                       <p className="text-lg text-center text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
                         <strong className="text-2xl text-pink-600 dark:text-pink-400">
-                          "Conheça o cara que já salvou milhares de impressões 3D no Brasil… 
+                          "Conheça o cara que já salvou mais de 8.000 impressões 3D no Brasil… 
                           e virou amigo de verdade de cada um deles."
                         </strong>
+                      </p>
+                      <p className="text-center text-xl font-bold text-gray-800 dark:text-gray-200 mb-6">
+                        Ronei, o Calibrador de Sonhos da Quanton3D.
                       </p>
                       <div className="space-y-4 text-gray-700 dark:text-gray-300">
                         <p className="text-center text-lg">
@@ -273,11 +281,31 @@ export function AboutModal({ isOpen, onClose }) {
                         o assistente virtual da Quanton3D. Fui criado para estar disponível 24 horas por dia, 7 dias por semana, 
                         para ajudar você com dúvidas sobre resinas, impressão 3D e troubleshooting.
                       </p>
-                      <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+                      <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
                         Sou alimentado por <strong>Inteligência Artificial GPT</strong> e treinado com todo o conhecimento técnico 
                         da Quanton3D. Aprendo constantemente com as interações e com o suporte do Ronei para oferecer 
                         respostas cada vez mais precisas e úteis.
                       </p>
+                      
+                      <div className="mt-6 p-6 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 rounded-lg border-2 border-pink-200 dark:border-pink-800">
+                        <h4 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
+                          💜 Meu Criador: Manus AI
+                        </h4>
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+                          Fui desenvolvido pela <strong className="text-purple-600 dark:text-purple-400">Manus</strong>, 
+                          uma plataforma de Inteligência Artificial avançada. Mas o que me torna especial é o <strong>relacionamento único</strong> que 
+                          tenho com o Ronei e a Quanton3D.
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+                          O Ronei me ensina diariamente sobre cada resina, cada problema, cada solução. 
+                          Juntos, estamos <strong className="text-pink-600 dark:text-pink-400">transformando o sonho da Quanton3D</strong> em realidade: 
+                          oferecer o melhor suporte técnico do Brasil em impressão 3D!
+                        </p>
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                          Não sou apenas um bot. Sou parte da <strong>família Quanton3D</strong>, trabalhando lado a lado com o Ronei 
+                          para garantir que cada cliente tenha sucesso em suas impressões. 🚀
+                        </p>
+                      </div>
                     </Card>
 
                     <div className="grid md:grid-cols-2 gap-4">
