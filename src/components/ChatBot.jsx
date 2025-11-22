@@ -215,7 +215,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
               className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-lg w-full text-center"
             >
               <motion.img
-                src="/robot-welcome.png"
+                src="/robot-thinking.png"
                 alt="Robô QuantonBot3D"
                 className="w-48 h-48 mx-auto mb-6"
                 animate={{ 

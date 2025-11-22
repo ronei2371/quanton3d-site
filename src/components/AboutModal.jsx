@@ -10,7 +10,7 @@ export function AboutModal({ isOpen, onClose }) {
   if (!isOpen) return null
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
         <>
           {/* Backdrop */}

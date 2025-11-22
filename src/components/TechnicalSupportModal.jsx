@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 
 export function TechnicalSupportModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState('problemas') // 'problemas' | 'nivelamento' | 'configuracoes' | 'manutencao'
+  const [activeTab, setActiveTab] = useState('problemas') // 'problemas' | 'nivelamento' | 'configuracoes' | 'calibracao' | 'manutencao'
 
   const problemasComuns = [
     {
@@ -84,6 +84,86 @@ export function TechnicalSupportModal({ isOpen, onClose }) {
         'Verifique potência do LED',
         'Use resina dentro da validade',
         'Faça pós-cura UV por 5-10 minutos'
+      ]
+    },
+    {
+      icon: AlertTriangle,
+      problema: 'Warping (empenamento da peça)',
+      causas: [
+        'Tensão interna durante a cura',
+        'Resfriamento desigual',
+        'Suportes insuficientes',
+        'Orientação inadequada da peça'
+      ],
+      solucoes: [
+        'Adicione mais suportes nas extremidades',
+        'Oriente peça em ângulo de 30-45°',
+        'Reduza temperatura de pós-cura',
+        'Faça pós-cura gradual (começar frio)'
+      ]
+    },
+    {
+      icon: Layers,
+      problema: 'Linhas de camada muito visíveis',
+      causas: [
+        'Altura de camada muito alta',
+        'Anti-aliasing desativado',
+        'Vibração durante impressão',
+        'Eixo Z com folga'
+      ],
+      solucoes: [
+        'Use camadas de 0.025mm ou 0.03mm',
+        'Ative anti-aliasing no fatiador',
+        'Coloque impressora em superfície estável',
+        'Verifique e ajuste parafusos do eixo Z'
+      ]
+    },
+    {
+      icon: Zap,
+      problema: 'Peças quebradiças demais',
+      causas: [
+        'Super-cura (exposição excessiva)',
+        'Pós-cura muito longa',
+        'Resina vencida ou oxidada',
+        'Falta de plastificante na resina'
+      ],
+      solucoes: [
+        'Reduza tempo de exposição em 1-2s',
+        'Diminua tempo de pós-cura',
+        'Use resina fresca e bem armazenada',
+        'Considere resina com maior flexibilidade'
+      ]
+    },
+    {
+      icon: Wrench,
+      problema: 'Suportes não removem facilmente',
+      causas: [
+        'Ponto de contato muito grande',
+        'Tempo de exposição muito alto',
+        'Suportes muito grossos',
+        'Peça não foi lavada corretamente'
+      ],
+      solucoes: [
+        'Use pontos de contato de 0.3-0.4mm',
+        'Reduza exposição em 0.5s',
+        'Configure suportes mais finos no fatiador',
+        'Lave bem com IPA antes de remover suportes'
+      ]
+    },
+    {
+      icon: Droplets,
+      problema: 'Delaminação (camadas se separando)',
+      causas: [
+        'Tempo de exposição muito baixo',
+        'Lift speed muito rápido',
+        'Resina contaminada com água/IPA',
+        'Temperatura muito baixa'
+      ],
+      solucoes: [
+        'Aumente tempo de exposição em 1s',
+        'Reduza lift speed para 50-60mm/min',
+        'Filtre e seque bem a resina',
+        'Mantenha ambiente a 25-30°C'
       ]
     }
   ]
@@ -304,6 +384,14 @@ export function TechnicalSupportModal({ isOpen, onClose }) {
               Configurações
             </Button>
             <Button
+              onClick={() => setActiveTab('calibracao')}
+              variant={activeTab === 'calibracao' ? 'default' : 'outline'}
+              className={activeTab === 'calibracao' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : ''}
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Calibração
+            </Button>
+            <Button
               onClick={() => setActiveTab('manutencao')}
               variant={activeTab === 'manutencao' ? 'default' : 'outline'}
               className={activeTab === 'manutencao' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : ''}
@@ -364,6 +452,22 @@ export function TechnicalSupportModal({ isOpen, onClose }) {
                     O nivelamento correto é fundamental para o sucesso das impressões
                   </p>
                 </div>
+                
+                {/* Diagrama Explicativo */}
+                <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+                  <h4 className="text-lg font-bold mb-4 text-center">Anatomia da Impressora SLA/DLP</h4>
+                  <div className="flex justify-center mb-4">
+                    <img 
+                      src="/diagrama-dlp-setas.png" 
+                      alt="Diagrama de impressora SLA/DLP com partes identificadas" 
+                      className="max-w-full h-auto rounded-lg shadow-lg"
+                      style={{ maxHeight: '400px' }}
+                    />
+                  </div>
+                  <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+                    Entenda as partes principais da impressora para um nivelamento perfeito
+                  </p>
+                </Card>
                 <div className="grid gap-4">
                   {nivelamentoGuia.map((item, index) => (
                     <Card key={index} className="p-6">
@@ -447,6 +551,128 @@ export function TechnicalSupportModal({ isOpen, onClose }) {
                     </div>
                   </Card>
                 ))}
+              </div>
+            )}
+
+            {activeTab === 'calibracao' && (
+              <div className="space-y-6">
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold mb-2">Guia de Calibração e Testes</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Ajuste fino dos parâmetros para obter a melhor qualidade possível
+                  </p>
+                </div>
+
+                {/* Diagrama Completo da Impressora */}
+                <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+                  <h4 className="text-lg font-bold mb-4 text-center">Componentes da Impressora SLA</h4>
+                  <div className="flex justify-center mb-4">
+                    <img 
+                      src="/diagrama-impressora-sla.jpg" 
+                      alt="Diagrama completo de impressora SLA com todas as partes numeradas" 
+                      className="max-w-full h-auto rounded-lg shadow-lg"
+                      style={{ maxHeight: '500px' }}
+                    />
+                  </div>
+                  <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+                    Conheça todos os componentes para entender melhor a calibração
+                  </p>
+                </Card>
+
+                <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-2 border-yellow-300 dark:border-yellow-700">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Zap className="h-6 w-6 text-yellow-600" />
+                    Teste de Exposição (Exposure Test)
+                  </h3>
+                  <div className="space-y-4">
+                    <p className="text-gray-700 dark:text-gray-300">
+                      O teste de exposição é fundamental para encontrar o tempo ideal de cura para cada resina.
+                    </p>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="font-bold mb-2">Como fazer:</h4>
+                      <ol className="space-y-2 text-sm list-decimal list-inside">
+                        <li>Baixe o arquivo de teste (R_E_R_F test ou similar)</li>
+                        <li>Configure tempos variando de -1s a +1s do recomendado</li>
+                        <li>Imprima o teste e analise qual coluna ficou melhor</li>
+                        <li>Escolha o tempo onde os detalhes estão nítidos sem super-cura</li>
+                      </ol>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 text-sm">
+                      <strong className="text-blue-700 dark:text-blue-400">⚡ Dica:</strong> Faça este teste sempre que trocar de resina ou lote
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Settings className="h-6 w-6 text-purple-600" />
+                    Matriz de Calibração XYZ
+                  </h3>
+                  <div className="space-y-4">
+                    <p className="text-gray-700 dark:text-gray-300">
+                      Teste de precisão dimensional para verificar se sua impressora está calibrada corretamente.
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4">
+                        <h4 className="font-bold mb-2">O que testar:</h4>
+                        <ul className="space-y-1 text-sm">
+                          <li>• Cubo de 20x20x20mm</li>
+                          <li>• Cilindro de 10mm diâmetro</li>
+                          <li>• Furo passante de 5mm</li>
+                          <li>• Detalhes finos (0.5mm)</li>
+                        </ul>
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4">
+                        <h4 className="font-bold mb-2">Tolerâncias aceitáveis:</h4>
+                        <ul className="space-y-1 text-sm">
+                          <li>• XY: ±0.1mm</li>
+                          <li>• Z: ±0.05mm</li>
+                          <li>• Furos: -0.1 a -0.2mm</li>
+                          <li>• Pinos: +0.1 a +0.2mm</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Thermometer className="h-6 w-6 text-red-600" />
+                    Ajuste Fino de Parâmetros
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <h4 className="font-bold mb-3 text-blue-600 dark:text-blue-400">Para AUMENTAR qualidade:</h4>
+                        <ul className="space-y-2 text-sm">
+                          <li>• Reduza altura de camada (0.025mm)</li>
+                          <li>• Ative anti-aliasing</li>
+                          <li>• Reduza lift speed (50mm/min)</li>
+                          <li>• Aumente tempo de exposição levemente</li>
+                        </ul>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <h4 className="font-bold mb-3 text-green-600 dark:text-green-400">Para AUMENTAR velocidade:</h4>
+                        <ul className="space-y-2 text-sm">
+                          <li>• Use camadas de 0.05mm</li>
+                          <li>• Aumente lift speed (80mm/min)</li>
+                          <li>• Reduza lift distance (5mm)</li>
+                          <li>• Use resinas rápidas (2-3s)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20 border-2 border-red-300 dark:border-red-700">
+                  <h4 className="font-bold text-lg mb-3">⚠️ Erros Comuns na Calibração</h4>
+                  <ul className="space-y-2 text-sm">
+                    <li>• <strong>Não fazer teste de exposição:</strong> Usar valores genéricos pode causar problemas</li>
+                    <li>• <strong>Ignorar temperatura:</strong> Variações de 5°C afetam a cura</li>
+                    <li>• <strong>Não documentar:</strong> Anote os parâmetros que funcionam bem</li>
+                    <li>• <strong>Mudar vários parâmetros de uma vez:</strong> Mude um por vez para identificar o efeito</li>
+                  </ul>
+                </Card>
               </div>
             )}
 
