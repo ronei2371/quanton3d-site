@@ -12,6 +12,7 @@ import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
 import { QualityModal } from '@/components/QualityModal.jsx'
 import { TechnicalSupportModal } from '@/components/TechnicalSupportModal.jsx'
+import { AboutModal } from '@/components/AboutModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
 import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
@@ -29,6 +30,7 @@ function App() {
   const [modalService, setModalService] = useState(null)
   const [isQualityModalOpen, setIsQualityModalOpen] = useState(false)
   const [isTechSupportModalOpen, setIsTechSupportModalOpen] = useState(false)
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -51,6 +53,7 @@ function App() {
       <PrivacyModal />
       <QualityModal isOpen={isQualityModalOpen} onClose={() => setIsQualityModalOpen(false)} />
       <TechnicalSupportModal isOpen={isTechSupportModalOpen} onClose={() => setIsTechSupportModalOpen(false)} />
+      <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
 
       {/* Header (RESTAURADO e Funcional) */}
       <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
@@ -107,7 +110,11 @@ function App() {
                 Fale Conosco
                 <ChevronRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button variant="outline" className="px-8 py-6 text-lg">
+              <Button 
+                variant="outline" 
+                className="px-8 py-6 text-lg"
+                onClick={() => setIsAboutModalOpen(true)}
+              >
                 Saiba Mais
               </Button>
             </div>
