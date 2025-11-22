@@ -135,6 +135,29 @@ export function AboutModal({ isOpen, onClose }) {
                       </Card>
                     </div>
 
+                    <Card className="p-6 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border-2 border-green-200 dark:border-green-800 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
+                          <FileText className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-lg mb-2">Conheça Nossa História Completa</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            Baixe nosso documento institucional e saiba mais sobre a Quanton3D
+                          </p>
+                        </div>
+                        <a
+                          href="/docs/QUANTON3DQUEMSOMOS.pdf"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg hover:from-green-600 hover:to-blue-600 transition-all hover:scale-105 shadow-md"
+                        >
+                          <Download className="h-5 w-5" />
+                          Baixar PDF - Quem Somos
+                        </a>
+                      </div>
+                    </Card>
+
                     <div className="bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg p-6">
                       <h4 className="font-bold text-lg mb-3">Por Que Escolher a Quanton3D?</h4>
                       <ul className="space-y-2">
