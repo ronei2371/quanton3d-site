@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Heart, Sparkles, Bot, Award, Users, Target } from 'lucide-react'
+import { X, Heart, Sparkles, Bot, Award, Users, Target, FileText, Download } from 'lucide-react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 
