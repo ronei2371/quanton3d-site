@@ -10,12 +10,14 @@ import TechnicalTabs from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
+import { WelcomeModal } from '@/components/WelcomeModal.jsx'
 import { QualityModal } from '@/components/QualityModal.jsx'
 import { TechnicalSupportModal } from '@/components/TechnicalSupportModal.jsx'
 import { AboutModal } from '@/components/AboutModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
 import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
+import ContactModal from '@/components/ContactModal.jsx'
 import { AdminPanel } from '@/components/AdminPanel.jsx'
 import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -31,6 +33,7 @@ function App() {
   const [isQualityModalOpen, setIsQualityModalOpen] = useState(false)
   const [isTechSupportModalOpen, setIsTechSupportModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -47,10 +50,15 @@ function App() {
     setIsFormModalOpen(true);
   }
 
+  const handleOpenContact = () => {
+    setIsContactModalOpen(true);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-950 dark:to-purple-950">
       
       <PrivacyModal />
+      <WelcomeModal />
       <QualityModal isOpen={isQualityModalOpen} onClose={() => setIsQualityModalOpen(false)} />
       <TechnicalSupportModal isOpen={isTechSupportModalOpen} onClose={() => setIsTechSupportModalOpen(false)} />
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
@@ -105,7 +113,7 @@ function App() {
             <div className="flex gap-4">
               <Button 
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
-                onClick={handleOpenCustomForm} 
+                onClick={handleOpenContact} 
               >
                 Fale Conosco
                 <ChevronRight className="ml-2 h-5 w-5" />
@@ -246,7 +254,10 @@ function App() {
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
       />
-      <PrivacyModal />
+      <ContactModal 
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+      />
 
       {/* Admin Panel Modal */}
       {isAdminPanelOpen && (
