@@ -276,7 +276,7 @@ export function AdminPanel({ onClose }) {
                           <p className="text-sm"><strong>Pergunta:</strong> {conv.message}</p>
                         </div>
                         <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded">
-                          <p className="text-sm"><strong>Resposta:</strong> {conv.reply.substring(0, 200)}...</p>
+                          <p className="text-sm whitespace-pre-wrap"><strong>Resposta:</strong> {conv.reply}</p>
                         </div>
                       </div>
                     </div>
