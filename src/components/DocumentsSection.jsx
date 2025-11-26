@@ -1,18 +1,8 @@
 import { Card } from '@/components/ui/card.jsx'
-import { FileText, Download, Shield, Info, Truck } from 'lucide-react'
+import { Download, Shield, Info, Truck } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export function DocumentsSection() {
-  const fispqs = [
-    { name: 'Iron 7030', file: 'FISPQ001QUANTON3DIRON7030RESINAPARAIMPRESSÃO3DGREY.pdf' },
-    { name: 'Spin+', file: 'FISPQ002QUANTON3DSPINRESINAPARAIMPRESSÃO3D.pdf' },
-    { name: 'Iron Skin', file: 'FISPQ003QUANTON3DIRONSKINRESINAPARAIMPRESSÃO3D.pdf' },
-    { name: 'LowSmell', file: 'FISPQ004QUANTON3DLOWSMELLRESINAPARAIMPRESSÃO3D.pdf' },
-    { name: 'Poseidon', file: 'FISPQ006QUANTON3DPOSEIDON.pdf' },
-    { name: 'Pyroblast+', file: 'FISPQ007QUANTON3DPYRO.pdf' },
-    { name: 'Spark', file: 'FISPQ008QUANTON3DSPARKRESINAPARAIMPRESSÃO3DSPARKCLEAN.pdf' }
-  ]
-
   const documents = [
     { 
       name: 'Política de Privacidade', 
@@ -43,53 +33,13 @@ export function DocumentsSection() {
         transition={{ duration: 0.6 }}
         className="text-center mb-12"
       >
-        <h2 className="text-4xl font-bold mb-4">Documentos e FISPQs</h2>
+        <h2 className="text-4xl font-bold mb-4">Documentos</h2>
         <p className="text-xl text-gray-600 dark:text-gray-300">
-          Fichas de segurança e documentos importantes
+          Documentos institucionais importantes
         </p>
       </motion.div>
 
-      {/* FISPQs */}
-      <div id="fispqs" className="mb-12">
-        <h3 className="text-2xl font-bold mb-6 text-center">
-          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            FISPQs das Resinas
-          </span>
-        </h3>
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {fispqs.map((fispq, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
-            >
-              <a 
-                href={`/docs/${fispq.file}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Card className="p-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 hover:border-blue-400 dark:hover:border-blue-600 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center flex-shrink-0">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{fispq.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">FISPQ</p>
-                    </div>
-                    <Download className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  </div>
-                </Card>
-              </a>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Outros Documentos */}
+      {/* Documentos Institucionais */}
       <div>
         <h3 className="text-2xl font-bold mb-6 text-center">
           <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
