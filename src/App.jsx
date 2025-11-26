@@ -11,7 +11,7 @@ import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
 import { WelcomeModal } from '@/components/WelcomeModal.jsx'
-// QualityModal removido - funcionalidade movida para scroll direto para #fispqs
+import { QualityModal } from '@/components/QualityModal.jsx'
 import { TechnicalSupportModal } from '@/components/TechnicalSupportModal.jsx'
 import { AboutModal } from '@/components/AboutModal.jsx'
 import ResinCards from '@/components/ResinCards.jsx'
@@ -30,7 +30,7 @@ function App() {
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false)
   const [chatMode, setChatMode] = useState('suporte')
   const [modalService, setModalService] = useState(null)
-  // QualityModal removido - agora "Alta Qualidade" rola para a seção de FISPQs
+  const [isQualityModalOpen, setIsQualityModalOpen] = useState(false)
   const [isTechSupportModalOpen, setIsTechSupportModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
@@ -59,7 +59,7 @@ function App() {
       
       <PrivacyModal />
       <WelcomeModal />
-      {/* QualityModal removido - "Alta Qualidade" agora rola para #fispqs */}
+      <QualityModal isOpen={isQualityModalOpen} onClose={() => setIsQualityModalOpen(false)} />
       <TechnicalSupportModal isOpen={isTechSupportModalOpen} onClose={() => setIsTechSupportModalOpen(false)} />
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
 
@@ -159,10 +159,7 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => {
-                  const el = document.getElementById('fispqs');
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}>
+                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => setIsQualityModalOpen(true)}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
