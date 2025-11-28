@@ -20,6 +20,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
   const [userData, setUserData] = useState({ name: '', phone: '', email: '' });
   const [userRegistered, setUserRegistered] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   
   const endOfMessagesRef = useRef(null);
@@ -117,6 +118,14 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       alert('Por favor, preencha todos os campos.');
       return;
     }
+    
+    // Validacao de telefone: apenas digitos, minimo 10 caracteres (DDD + numero)
+    const phoneDigits = userData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      setPhoneError('Telefone invalido. Informe um numero com DDD (minimo 10 digitos).');
+      return;
+    }
+    setPhoneError(''); // Limpar erro se validacao passar
     
     try {
       const response = await fetch(`${API_URL}/register-user`, {
@@ -291,14 +300,22 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                   className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 />
-                <input
-                  type="tel"
-                  placeholder="Seu telefone (com DDD)"
-                  value={userData.phone}
-                  onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
-                />
+                <div>
+                  <input
+                    type="tel"
+                    placeholder="Seu telefone (com DDD)"
+                    value={userData.phone}
+                    onChange={(e) => {
+                      setUserData({ ...userData, phone: e.target.value });
+                      setPhoneError(''); // Limpar erro ao digitar
+                    }}
+                    className={`w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white ${phoneError ? 'border-red-500 border-2' : ''}`}
+                    required
+                  />
+                  {phoneError && (
+                    <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+                  )}
+                </div>
                 <input
                   type="email"
                   placeholder="Seu e-mail"
@@ -329,7 +346,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           minHeight: '400px' // Garantir altura mínima
         }}
       >
-        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-white/30 dark:bg-gray-800/30"></div>
         
         <div className="relative z-10 space-y-4">
           {messages.map((msg) => (
