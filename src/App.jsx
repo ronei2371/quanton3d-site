@@ -19,7 +19,7 @@ import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
 import ContactModal from '@/components/ContactModal.jsx'
 import { AdminPanel } from '@/components/AdminPanel.jsx'
-import { Beaker, Cpu, Sparkles, Phone, Mail, MapPin, ChevronRight, Shield } from 'lucide-react'
+import { Beaker, Cpu, Sparkles, ChevronRight, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './App.css'
 
@@ -79,8 +79,7 @@ function App() {
             <a href="#produtos" className="text-sm font-medium hover:text-blue-600 transition-colors">Produtos</a>
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
             <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
-            <a href="#contato" className="text-sm font-medium hover:text-blue-600 transition-colors">Contato</a>
-            <button 
+            <button
               onClick={() => setIsAdminPanelOpen(true)} 
               className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
               title="Painel Administrativo"
@@ -187,48 +186,6 @@ function App() {
 
       {/* Documents Section */}
       <DocumentsSection />
-
-      {/* Contato Section */}
-      <section id="contato" className="container mx-auto px-4 py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-4xl font-bold mb-4">Entre em Contato</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            Estamos prontos para atendê-lo
-          </p>
-        </motion.div>
-
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <Card className="p-6 text-center hover:shadow-xl transition-all duration-300">
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
-              <Phone className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="font-bold mb-2">Telefone</h3>
-            <p className="text-gray-600 dark:text-gray-400">(31) 3271-6935</p>
-          </Card>
-
-          <Card className="p-6 text-center hover:shadow-xl transition-all duration-300">
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-4">
-              <Mail className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="font-bold mb-2">Email</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">atendimento@quanton3d.com.br</p>
-          </Card>
-
-          <Card className="p-6 text-center hover:shadow-xl transition-all duration-300">
-            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center mx-auto mb-4">
-              <MapPin className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="font-bold mb-2">Horário</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Seg-Sex: 8h às 18h</p>
-          </Card>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-blue-900 to-purple-900 text-white py-8">
