@@ -191,6 +191,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md:max-h-[850px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
+      style={{ backgroundColor: '#ffffff' }}
     >
       {/* Header */}
       <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
@@ -336,10 +337,10 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         )}
       </AnimatePresence>
 
-      {/* Area de Mensagens - Fundo Solido para Legibilidade */}
+      {/* Area de Mensagens - Fundo Branco Solido para Legibilidade */}
       <div 
-        className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#f0f2f5] dark:bg-gray-900"
-        style={{ minHeight: '400px' }}
+        className="flex-1 p-4 overflow-y-auto space-y-4 bg-white dark:bg-gray-900"
+        style={{ minHeight: '400px', backgroundColor: '#ffffff' }}
       >
         <div className="space-y-4">
           {messages.map((msg) => (
