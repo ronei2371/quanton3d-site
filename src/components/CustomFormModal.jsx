@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// URL do backend - usa variavel de ambiente ou fallback para producao
+const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
 
 export default function CustomFormModal({ isOpen, onClose }) {
     const [formData, setFormData] = useState({
