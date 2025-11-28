@@ -19,7 +19,8 @@ import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
 import ContactModal from '@/components/ContactModal.jsx'
 import { AdminPanel } from '@/components/AdminPanel.jsx'
-import { Beaker, Cpu, Sparkles, ChevronRight, Shield } from 'lucide-react'
+import { GalleryModal } from '@/components/GalleryModal.jsx'
+import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './App.css'
 
@@ -32,8 +33,9 @@ function App() {
   const [modalService, setModalService] = useState(null)
   const [isQualityModalOpen, setIsQualityModalOpen] = useState(false)
   const [isTechSupportModalOpen, setIsTechSupportModalOpen] = useState(false)
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+    const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
+    const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+    const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false)
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -78,15 +80,23 @@ function App() {
           <nav className="hidden md:flex items-center gap-6">
             <a href="#produtos" className="text-sm font-medium hover:text-blue-600 transition-colors">Produtos</a>
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
-            <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
-            <button
-              onClick={() => setIsAdminPanelOpen(true)} 
-              className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
-              title="Painel Administrativo"
-            >
-              <Shield className="h-4 w-4" />
-              Admin
-            </button>
+                        <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
+                        <button
+                          onClick={() => setIsGalleryModalOpen(true)} 
+                          className="flex items-center gap-1 text-sm font-medium hover:text-blue-600 transition-colors"
+                          title="Galeria de Fotos"
+                        >
+                          <Camera className="h-4 w-4" />
+                          Galeria
+                        </button>
+                        <button
+                          onClick={() => setIsAdminPanelOpen(true)} 
+                          className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Painel Administrativo"
+                        >
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </button>
           </nav>
         </div>
       </header>
@@ -211,12 +221,16 @@ function App() {
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
       />
-      <ContactModal 
-        isOpen={isContactModalOpen}
-        onClose={() => setIsContactModalOpen(false)}
-      />
+            <ContactModal 
+              isOpen={isContactModalOpen}
+              onClose={() => setIsContactModalOpen(false)}
+            />
+            <GalleryModal 
+              isOpen={isGalleryModalOpen}
+              onClose={() => setIsGalleryModalOpen(false)}
+            />
 
-      {/* Admin Panel Modal */}
+            {/* Admin Panel Modal */}
       {isAdminPanelOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
           <div className="absolute inset-0" onClick={() => setIsAdminPanelOpen(false)} />

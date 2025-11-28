@@ -2,36 +2,39 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2 } from 'lucide-react'
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages'
-  const [metrics, setMetrics] = useState(null)
-  const [suggestions, setSuggestions] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [knowledgeTitle, setKnowledgeTitle] = useState('')
-  const [knowledgeContent, setKnowledgeContent] = useState('')
-  const [addingKnowledge, setAddingKnowledge] = useState(false)
-  const [customRequests, setCustomRequests] = useState([])
-  const [editingSuggestion, setEditingSuggestion] = useState(null)
-  const [editedText, setEditedText] = useState('')
-  const [contactMessages, setContactMessages] = useState([])
+    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery'
+    const [metrics, setMetrics] = useState(null)
+    const [suggestions, setSuggestions] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [knowledgeTitle, setKnowledgeTitle] = useState('')
+    const [knowledgeContent, setKnowledgeContent] = useState('')
+    const [addingKnowledge, setAddingKnowledge] = useState(false)
+    const [customRequests, setCustomRequests] = useState([])
+    const [editingSuggestion, setEditingSuggestion] = useState(null)
+    const [editedText, setEditedText] = useState('')
+    const [contactMessages, setContactMessages] = useState([])
+    const [galleryEntries, setGalleryEntries] = useState([])
+    const [galleryLoading, setGalleryLoading] = useState(false)
 
   const ADMIN_PASSWORD = 'quanton3d2024'
 
-  const handleLogin = () => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      loadMetrics()
-      loadSuggestions()
-      loadCustomRequests()
-      loadContactMessages()
-    } else {
-      alert('Senha incorreta!')
+    const handleLogin = () => {
+      if (password === ADMIN_PASSWORD) {
+        setIsAuthenticated(true)
+        loadMetrics()
+        loadSuggestions()
+        loadCustomRequests()
+        loadContactMessages()
+        loadGalleryEntries()
+      } else {
+        alert('Senha incorreta!')
+      }
     }
-  }
 
   const loadMetrics = async () => {
     setLoading(true)
@@ -66,15 +69,63 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadContactMessages = async () => {
-    try {
-      const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
-      const data = await response.json()
-      setContactMessages(data.messages || [])
-    } catch (error) {
-      console.error('Erro ao carregar mensagens de contato:', error)
+    const loadContactMessages = async () => {
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setContactMessages(data.messages || [])
+      } catch (error) {
+        console.error('Erro ao carregar mensagens de contato:', error)
+      }
     }
-  }
+
+    const loadGalleryEntries = async () => {
+      setGalleryLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/gallery/all?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setGalleryEntries(data.entries || [])
+      } catch (error) {
+        console.error('Erro ao carregar galeria:', error)
+      } finally {
+        setGalleryLoading(false)
+      }
+    }
+
+    const approveGalleryEntry = async (id) => {
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/approve?auth=quanton3d_admin_secret`, {
+          method: 'PUT'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadGalleryEntries()
+        } else {
+          alert('Erro ao aprovar: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao aprovar:', error)
+        alert('Erro ao aprovar foto')
+      }
+    }
+
+    const rejectGalleryEntry = async (id) => {
+      if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/reject?auth=quanton3d_admin_secret`, {
+          method: 'PUT'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadGalleryEntries()
+        } else {
+          alert('Erro ao rejeitar: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao rejeitar:', error)
+        alert('Erro ao rejeitar foto')
+      }
+    }
 
   if (!isAuthenticated) {
     return (
@@ -112,7 +163,7 @@ export function AdminPanel({ onClose }) {
             Painel Administrativo
           </h1>
           <div className="flex items-center gap-3">
-            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); }} disabled={loading}>
+            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); }} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
             </Button>
             {onClose && (
@@ -157,15 +208,23 @@ export function AdminPanel({ onClose }) {
             <Beaker className="h-4 w-4 mr-2" />
             Formulações ({customRequests.length})
           </Button>
-          <Button 
-            onClick={() => setActiveTab('messages')}
-            variant={activeTab === 'messages' ? 'default' : 'outline'}
-            className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Mensagens ({contactMessages.length})
-          </Button>
-        </div>
+                  <Button 
+                    onClick={() => setActiveTab('messages')}
+                    variant={activeTab === 'messages' ? 'default' : 'outline'}
+                    className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Mensagens ({contactMessages.length})
+                  </Button>
+                  <Button 
+                    onClick={() => setActiveTab('gallery')}
+                    variant={activeTab === 'gallery' ? 'default' : 'outline'}
+                    className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Galeria ({galleryEntries.filter(e => e.status === 'pending').length})
+                  </Button>
+                </div>
 
         {/* Content */}
         {activeTab === 'metrics' && metrics && (
@@ -652,6 +711,112 @@ export function AdminPanel({ onClose }) {
                   )}
                 </Card>
               ))
+            )}
+          </div>
+        )}
+
+        {/* Gallery Tab */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Galeria de Fotos - Aprovacao
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Aprove ou rejeite as fotos enviadas pelos clientes antes de aparecerem na galeria publica.
+              </p>
+            </Card>
+
+            {galleryLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : galleryEntries.length === 0 ? (
+              <Card className="p-8 text-center">
+                <Image className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                <p className="text-gray-500">Nenhuma foto na galeria ainda.</p>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {galleryEntries.map((entry) => (
+                  <Card key={entry._id} className="p-4">
+                    <div className="flex gap-4">
+                      {/* Images */}
+                      <div className="flex gap-2 flex-shrink-0">
+                        {entry.images && entry.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img.url}
+                            alt={`Foto ${idx + 1}`}
+                            className="w-24 h-24 object-cover rounded-lg border"
+                          />
+                        ))}
+                      </div>
+                      
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold">{entry.name || 'Anonimo'}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(entry.createdAt).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            entry.status === 'pending' 
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : entry.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {entry.status === 'pending' ? 'Pendente' : entry.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                          <div>
+                            <span className="text-gray-500">Resina:</span>
+                            <span className="ml-1 font-medium">{entry.resin}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Impressora:</span>
+                            <span className="ml-1 font-medium">{entry.printer}</span>
+                          </div>
+                        </div>
+                        
+                        {entry.comment && (
+                          <p className="text-sm text-gray-600 bg-gray-50 dark:bg-gray-800 p-2 rounded mb-3">
+                            {entry.comment}
+                          </p>
+                        )}
+                        
+                        {entry.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => approveGalleryEntry(entry._id)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Aprovar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                              onClick={() => rejectGalleryEntry(entry._id)}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Rejeitar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
             )}
           </div>
         )}
