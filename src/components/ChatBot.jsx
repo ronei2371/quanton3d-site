@@ -6,7 +6,8 @@ import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, Image
 import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
-const API_URL = import.meta.env.VITE_API_URL;
+// URL do backend - usa variavel de ambiente ou fallback para producao
+const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
 
 export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
   const [messages, setMessages] = useState([]);
@@ -337,12 +338,19 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         )}
       </AnimatePresence>
 
-      {/* Area de Mensagens - Fundo Branco Solido para Legibilidade */}
+      {/* Area de Mensagens - Fundo com Circuitos e Overlay para Legibilidade */}
       <div 
-        className="flex-1 p-4 overflow-y-auto space-y-4 bg-white dark:bg-gray-900"
-        style={{ minHeight: '400px', backgroundColor: '#ffffff' }}
+        className="flex-1 p-4 overflow-y-auto space-y-4 relative"
+        style={{ 
+          minHeight: '400px',
+          backgroundImage: 'url(/assets/circuit-bg.gif)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
       >
-        <div className="space-y-4">
+        {/* Overlay semi-transparente para legibilidade */}
+        <div className="absolute inset-0 bg-white/85 dark:bg-gray-900/90 pointer-events-none"></div>
+        <div className="space-y-4 relative z-10">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
