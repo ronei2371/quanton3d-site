@@ -343,13 +343,13 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
         style={{ 
           minHeight: '400px',
-          backgroundImage: 'url(/assets/circuit-bg.gif)',
+          backgroundImage: 'url(/circuit-bg.gif)',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
       >
-        {/* Overlay semi-transparente para legibilidade */}
-        <div className="absolute inset-0 bg-white/85 dark:bg-gray-900/90 pointer-events-none"></div>
+        {/* Overlay semi-transparente para legibilidade - opacidade reduzida para mostrar circuitos */}
+        <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/80 pointer-events-none"></div>
         <div className="space-y-4 relative z-10">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
