@@ -346,7 +346,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           minHeight: '400px' // Garantir altura mínima
         }}
       >
-        <div className="absolute inset-0 bg-white/30 dark:bg-gray-800/30"></div>
+        <div className="absolute inset-0 bg-[#0a192f]/90"></div>
         
         <div className="relative z-10 space-y-4">
           {messages.map((msg) => (
