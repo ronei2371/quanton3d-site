@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3 } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail } from 'lucide-react'
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom'
+  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages'
   const [metrics, setMetrics] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
@@ -17,6 +17,7 @@ export function AdminPanel({ onClose }) {
   const [customRequests, setCustomRequests] = useState([])
   const [editingSuggestion, setEditingSuggestion] = useState(null)
   const [editedText, setEditedText] = useState('')
+  const [contactMessages, setContactMessages] = useState([])
 
   const ADMIN_PASSWORD = 'quanton3d2024'
 
@@ -26,6 +27,7 @@ export function AdminPanel({ onClose }) {
       loadMetrics()
       loadSuggestions()
       loadCustomRequests()
+      loadContactMessages()
     } else {
       alert('Senha incorreta!')
     }
@@ -61,6 +63,16 @@ export function AdminPanel({ onClose }) {
       setCustomRequests(data.requests || [])
     } catch (error) {
       console.error('Erro ao carregar pedidos customizados:', error)
+    }
+  }
+
+  const loadContactMessages = async () => {
+    try {
+      const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
+      const data = await response.json()
+      setContactMessages(data.messages || [])
+    } catch (error) {
+      console.error('Erro ao carregar mensagens de contato:', error)
     }
   }
 
@@ -100,7 +112,7 @@ export function AdminPanel({ onClose }) {
             Painel Administrativo
           </h1>
           <div className="flex items-center gap-3">
-            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); }} disabled={loading}>
+            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); }} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
             </Button>
             {onClose && (
@@ -144,6 +156,14 @@ export function AdminPanel({ onClose }) {
           >
             <Beaker className="h-4 w-4 mr-2" />
             Formulações ({customRequests.length})
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('messages')}
+            variant={activeTab === 'messages' ? 'default' : 'outline'}
+            className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Mensagens ({contactMessages.length})
           </Button>
         </div>
 
@@ -427,6 +447,85 @@ export function AdminPanel({ onClose }) {
                       <Phone className="h-4 w-4 mr-2" />
                       Contatar via WhatsApp
                     </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div className="space-y-4">
+            {contactMessages.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Mail className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhuma mensagem de contato ainda
+                </p>
+              </Card>
+            ) : (
+              contactMessages.map((message, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
+                        <Mail className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{message.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          {message.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {message.phone}
+                            </span>
+                          )}
+                          {message.email && (
+                            <span className="truncate">{message.email}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        message.status === 'new' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                      }`}>
+                        {message.status === 'new' ? 'Nova' : message.status}
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(message.createdAt).toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                    <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {message.phone && (
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        onClick={() => window.open(`https://wa.me/55${message.phone.replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
+                      >
+                        <Phone className="h-4 w-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                    )}
+                    {message.email && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => window.open(`mailto:${message.email}?subject=Re: Contato Quanton3D&body=Olá ${message.name},%0A%0ARecebemos sua mensagem...`, '_blank')}
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
+                      </Button>
+                    )}
                   </div>
                 </Card>
               ))
