@@ -336,19 +336,12 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         )}
       </AnimatePresence>
 
-      {/* Fundo de Circuito - SEMPRE VISÍVEL */}
+      {/* Area de Mensagens - Fundo Solido para Legibilidade */}
       <div 
-        className="flex-1 p-4 overflow-y-auto space-y-4 relative"
-        style={{ 
-          backgroundImage: "url('/circuit-bg.gif')", 
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center',
-          minHeight: '400px' // Garantir altura mínima
-        }}
+        className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#f0f2f5] dark:bg-gray-900"
+        style={{ minHeight: '400px' }}
       >
-        <div className="absolute inset-0 bg-[#0a192f]/90"></div>
-        
-        <div className="relative z-10 space-y-4">
+        <div className="space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
