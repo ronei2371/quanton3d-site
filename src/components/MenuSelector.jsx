@@ -47,16 +47,26 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
           )}
         </AnimatePresence>
         
-        {/* O Robô (Maior) - Usando caminho público */}
-        <button
-          onClick={onOpenChat} // Abre o CHAT de dúvidas (como você queria)
-          className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+        {/* O Robô (MUITO Maior com Animação) */}
+        <motion.button
+          onClick={onOpenChat}
+          className="bg-transparent border-none p-0 rounded-full shadow-lg flex items-center justify-center"
           aria-label="Abrir chat de dúvidas"
-          style={{ width: '120px', height: '120px' }} // Tamanho MUITO maior (~10cm)
+          style={{ width: '160px', height: '160px' }}
+          animate={{ 
+            y: [0, -10, 0],
+            rotate: [0, 3, -3, 0]
+          }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.95 }}
         >
-          {/* USANDO O CAMINHO PÚBLICO: O Manus deve garantir que o arquivo robot-animated.gif está em /public/assets/ */}
-          <img src="/assets/robot-salute.png" alt="Assistente" className="w-full h-full object-contain" />
-        </button>
+          <img src="/assets/robot-salute.png" alt="Assistente" className="w-full h-full object-contain drop-shadow-2xl" />
+        </motion.button>
       </div>
       {/* ===== FIM DA MELHORIA ===== */}
 
