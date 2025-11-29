@@ -23,7 +23,24 @@ export function GalleryModal({ isOpen, onClose }) {
     name: '',
     resin: '',
     printer: '',
-    comment: ''
+    comment: '',
+    // Campos de configuracao de impressao
+    layerHeight: '',
+    baseLayers: '',
+    exposureTime: '',
+    baseExposureTime: '',
+    transitionLayers: '',
+    uvOffDelay: '',
+    lowerLiftDistance1: '',
+    lowerLiftDistance2: '',
+    liftDistance1: '',
+    liftDistance2: '',
+    liftSpeed1: '',
+    liftSpeed2: '',
+    lowerRetractSpeed1: '',
+    lowerRetractSpeed2: '',
+    retractSpeed1: '',
+    retractSpeed2: ''
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
@@ -109,6 +126,24 @@ export function GalleryModal({ isOpen, onClose }) {
       formDataToSend.append('printer', formData.printer);
       formDataToSend.append('comment', formData.comment);
       
+      // Campos de configuracao de impressao
+      formDataToSend.append('layerHeight', formData.layerHeight);
+      formDataToSend.append('baseLayers', formData.baseLayers);
+      formDataToSend.append('exposureTime', formData.exposureTime);
+      formDataToSend.append('baseExposureTime', formData.baseExposureTime);
+      formDataToSend.append('transitionLayers', formData.transitionLayers);
+      formDataToSend.append('uvOffDelay', formData.uvOffDelay);
+      formDataToSend.append('lowerLiftDistance1', formData.lowerLiftDistance1);
+      formDataToSend.append('lowerLiftDistance2', formData.lowerLiftDistance2);
+      formDataToSend.append('liftDistance1', formData.liftDistance1);
+      formDataToSend.append('liftDistance2', formData.liftDistance2);
+      formDataToSend.append('liftSpeed1', formData.liftSpeed1);
+      formDataToSend.append('liftSpeed2', formData.liftSpeed2);
+      formDataToSend.append('lowerRetractSpeed1', formData.lowerRetractSpeed1);
+      formDataToSend.append('lowerRetractSpeed2', formData.lowerRetractSpeed2);
+      formDataToSend.append('retractSpeed1', formData.retractSpeed1);
+      formDataToSend.append('retractSpeed2', formData.retractSpeed2);
+      
       selectedFiles.forEach(file => {
         formDataToSend.append('images', file);
       });
@@ -123,10 +158,19 @@ export function GalleryModal({ isOpen, onClose }) {
       if (data.success) {
         setMessage({ type: 'success', text: 'Fotos enviadas com sucesso! Aguarde aprovacao do administrador.' });
         // Reset form
-        setFormData({ name: '', resin: '', printer: '', comment: '' });
+        setFormData({ 
+          name: '', resin: '', printer: '', comment: '',
+          layerHeight: '', baseLayers: '', exposureTime: '', baseExposureTime: '',
+          transitionLayers: '', uvOffDelay: '',
+          lowerLiftDistance1: '', lowerLiftDistance2: '',
+          liftDistance1: '', liftDistance2: '',
+          liftSpeed1: '', liftSpeed2: '',
+          lowerRetractSpeed1: '', lowerRetractSpeed2: '',
+          retractSpeed1: '', retractSpeed2: ''
+        });
         setSelectedFiles([]);
         setPreviewUrls([]);
-      } else {
+      }else {
         setMessage({ type: 'error', text: data.error || 'Erro ao enviar fotos.' });
       }
     } catch (err) {
@@ -336,6 +380,188 @@ export function GalleryModal({ isOpen, onClose }) {
                 </select>
               </div>
 
+              {/* Secao de Configuracoes de Impressao */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-blue-600 mb-3">Configuracoes de Impressao</h4>
+                
+                {/* Campos simples */}
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Altura da Camada (mm)</label>
+                    <input
+                      type="text"
+                      value={formData.layerHeight}
+                      onChange={(e) => setFormData({ ...formData, layerHeight: e.target.value })}
+                      placeholder="0.05"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Camadas Base</label>
+                    <input
+                      type="text"
+                      value={formData.baseLayers}
+                      onChange={(e) => setFormData({ ...formData, baseLayers: e.target.value })}
+                      placeholder="6"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Tempo Exposicao Camada (s)</label>
+                    <input
+                      type="text"
+                      value={formData.exposureTime}
+                      onChange={(e) => setFormData({ ...formData, exposureTime: e.target.value })}
+                      placeholder="2.5"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Tempo Exposicao Base (s)</label>
+                    <input
+                      type="text"
+                      value={formData.baseExposureTime}
+                      onChange={(e) => setFormData({ ...formData, baseExposureTime: e.target.value })}
+                      placeholder="30"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Camadas Transicao</label>
+                    <input
+                      type="text"
+                      value={formData.transitionLayers}
+                      onChange={(e) => setFormData({ ...formData, transitionLayers: e.target.value })}
+                      placeholder="5"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Atraso Desligar UV (s)</label>
+                    <input
+                      type="text"
+                      value={formData.uvOffDelay}
+                      onChange={(e) => setFormData({ ...formData, uvOffDelay: e.target.value })}
+                      placeholder="0.5"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Campos duplos - Distancias */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Distancias de Elevacao (mm)</p>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-24">Inferior:</span>
+                      <input
+                        type="text"
+                        value={formData.lowerLiftDistance1}
+                        onChange={(e) => setFormData({ ...formData, lowerLiftDistance1: e.target.value })}
+                        placeholder="Valor 1"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={formData.lowerLiftDistance2}
+                        onChange={(e) => setFormData({ ...formData, lowerLiftDistance2: e.target.value })}
+                        placeholder="Valor 2"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-24">Normal:</span>
+                      <input
+                        type="text"
+                        value={formData.liftDistance1}
+                        onChange={(e) => setFormData({ ...formData, liftDistance1: e.target.value })}
+                        placeholder="Valor 1"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={formData.liftDistance2}
+                        onChange={(e) => setFormData({ ...formData, liftDistance2: e.target.value })}
+                        placeholder="Valor 2"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campos duplos - Velocidades de Elevacao */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Velocidades de Elevacao (mm/s)</p>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 w-24">Elevacao:</span>
+                    <input
+                      type="text"
+                      value={formData.liftSpeed1}
+                      onChange={(e) => setFormData({ ...formData, liftSpeed1: e.target.value })}
+                      placeholder="Valor 1"
+                      className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      value={formData.liftSpeed2}
+                      onChange={(e) => setFormData({ ...formData, liftSpeed2: e.target.value })}
+                      placeholder="Valor 2"
+                      className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Campos duplos - Velocidades de Retracao */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Velocidades de Retracao (mm/s)</p>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-24">Inferior:</span>
+                      <input
+                        type="text"
+                        value={formData.lowerRetractSpeed1}
+                        onChange={(e) => setFormData({ ...formData, lowerRetractSpeed1: e.target.value })}
+                        placeholder="Valor 1"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={formData.lowerRetractSpeed2}
+                        onChange={(e) => setFormData({ ...formData, lowerRetractSpeed2: e.target.value })}
+                        placeholder="Valor 2"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-24">Normal:</span>
+                      <input
+                        type="text"
+                        value={formData.retractSpeed1}
+                        onChange={(e) => setFormData({ ...formData, retractSpeed1: e.target.value })}
+                        placeholder="Valor 1"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={formData.retractSpeed2}
+                        onChange={(e) => setFormData({ ...formData, retractSpeed2: e.target.value })}
+                        placeholder="Valor 2"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Comentario (opcional)</label>
                 <textarea
@@ -493,16 +719,92 @@ export function GalleryModal({ isOpen, onClose }) {
                         {new Date(selectedEntry.createdAt).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
+                    
+                    {/* Parametros de Configuracao */}
+                    {selectedEntry.params && (
+                      <div className="border-t pt-3 mt-3">
+                        <p className="text-sm font-semibold text-blue-600 mb-2">Configuracoes de Impressao</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {selectedEntry.params.layerHeight && (
+                            <div>
+                              <span className="text-gray-500">Altura Camada:</span>
+                              <span className="ml-1 font-medium">{selectedEntry.params.layerHeight}mm</span>
+                            </div>
+                          )}
+                          {selectedEntry.params.baseLayers && (
+                            <div>
+                              <span className="text-gray-500">Camadas Base:</span>
+                              <span className="ml-1 font-medium">{selectedEntry.params.baseLayers}</span>
+                            </div>
+                          )}
+                          {selectedEntry.params.exposureTime && (
+                            <div>
+                              <span className="text-gray-500">Exposicao:</span>
+                              <span className="ml-1 font-medium">{selectedEntry.params.exposureTime}s</span>
+                            </div>
+                          )}
+                          {selectedEntry.params.baseExposureTime && (
+                            <div>
+                              <span className="text-gray-500">Exposicao Base:</span>
+                              <span className="ml-1 font-medium">{selectedEntry.params.baseExposureTime}s</span>
+                            </div>
+                          )}
+                          {selectedEntry.params.transitionLayers && (
+                            <div>
+                              <span className="text-gray-500">Transicao:</span>
+                              <span className="ml-1 font-medium">{selectedEntry.params.transitionLayers}</span>
+                            </div>
+                          )}
+                          {selectedEntry.params.uvOffDelay && (
+                            <div>
+                              <span className="text-gray-500">UV Off Delay:</span>
+                              <span className="ml-1 font-medium">{selectedEntry.params.uvOffDelay}s</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Distancias e Velocidades */}
+                        {(selectedEntry.params.lowerLiftDistance?.value1 || selectedEntry.params.liftDistance?.value1) && (
+                          <div className="mt-2 pt-2 border-t border-dashed">
+                            <p className="text-xs text-gray-500 mb-1">Distancias (mm):</p>
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                              {selectedEntry.params.lowerLiftDistance?.value1 && (
+                                <div>Inferior: {selectedEntry.params.lowerLiftDistance.value1} / {selectedEntry.params.lowerLiftDistance.value2}</div>
+                              )}
+                              {selectedEntry.params.liftDistance?.value1 && (
+                                <div>Normal: {selectedEntry.params.liftDistance.value1} / {selectedEntry.params.liftDistance.value2}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {(selectedEntry.params.liftSpeed?.value1 || selectedEntry.params.lowerRetractSpeed?.value1 || selectedEntry.params.retractSpeed?.value1) && (
+                          <div className="mt-2 pt-2 border-t border-dashed">
+                            <p className="text-xs text-gray-500 mb-1">Velocidades (mm/s):</p>
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                              {selectedEntry.params.liftSpeed?.value1 && (
+                                <div>Elevacao: {selectedEntry.params.liftSpeed.value1} / {selectedEntry.params.liftSpeed.value2}</div>
+                              )}
+                              {selectedEntry.params.lowerRetractSpeed?.value1 && (
+                                <div>Ret. Inf: {selectedEntry.params.lowerRetractSpeed.value1} / {selectedEntry.params.lowerRetractSpeed.value2}</div>
+                              )}
+                              {selectedEntry.params.retractSpeed?.value1 && (
+                                <div>Retracao: {selectedEntry.params.retractSpeed.value1} / {selectedEntry.params.retractSpeed.value2}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   <Button
                     onClick={() => {
                       setSelectedEntry(null);
-                      // Could navigate to parameters with this config
                     }}
                     className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600"
                   >
-                    Ver Parametros desta Configuracao
+                    Fechar
                   </Button>
                 </div>
               </div>

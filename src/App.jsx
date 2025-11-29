@@ -82,14 +82,6 @@ function App() {
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
                         <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
                         <button
-                          onClick={() => setIsGalleryModalOpen(true)} 
-                          className="flex items-center gap-1 text-sm font-medium hover:text-blue-600 transition-colors"
-                          title="Galeria de Fotos"
-                        >
-                          <Camera className="h-4 w-4" />
-                          Galeria
-                        </button>
-                        <button
                           onClick={() => setIsAdminPanelOpen(true)} 
                           className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
                           title="Painel Administrativo"
@@ -193,6 +185,22 @@ function App() {
 
       {/* Parameters Selector Section (TAREFA 3) */}
       <ParametersSelector />
+
+      {/* Galeria de Fotos - Abaixo dos Parametros */}
+      <section className="container mx-auto px-4 py-8">
+        <div className="flex flex-col items-center gap-3">
+          <Button 
+            onClick={() => setIsGalleryModalOpen(true)}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg flex items-center gap-2"
+          >
+            <Camera className="h-5 w-5" />
+            Galeria de Fotos
+          </Button>
+          <p className="text-sm text-gray-600 dark:text-gray-300 text-center max-w-xl">
+            Veja as impressoes de outros clientes e compartilhe sua peca com os parametros que voce utilizou.
+          </p>
+        </div>
+      </section>
 
       {/* Documents Section */}
       <DocumentsSection />
