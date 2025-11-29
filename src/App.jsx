@@ -57,7 +57,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0000FF' }}>
+    <div className="min-h-screen" style={{ backgroundImage: 'url(/assets/background-molecules.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       
       <PrivacyModal />
       <WelcomeModal />
