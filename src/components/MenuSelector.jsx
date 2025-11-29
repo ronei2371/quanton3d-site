@@ -39,7 +39,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="absolute bottom-5 right-[140px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
+              className="absolute bottom-10 right-[180px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
             >
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Estou aqui se precisar!</p>
               <div className="absolute right-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
@@ -47,16 +47,26 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
           )}
         </AnimatePresence>
         
-        {/* O Robô (Maior) - Usando caminho público */}
-        <button
-          onClick={onOpenChat} // Abre o CHAT de dúvidas (como você queria)
-          className="bg-transparent border-none p-0 rounded-full shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
+        {/* O Robô (MUITO Maior com Animação) */}
+        <motion.button
+          onClick={onOpenChat}
+          className="bg-transparent border-none p-0 rounded-full shadow-lg flex items-center justify-center"
           aria-label="Abrir chat de dúvidas"
-          style={{ width: '120px', height: '120px' }} // Tamanho MUITO maior (~10cm)
+          style={{ width: '160px', height: '160px' }}
+          animate={{ 
+            y: [0, -10, 0],
+            rotate: [0, 3, -3, 0]
+          }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.95 }}
         >
-          {/* USANDO O CAMINHO PÚBLICO: O Manus deve garantir que o arquivo robot-animated.gif está em /public/assets/ */}
-          <img src="/assets/robot-salute.png" alt="Assistente" className="w-full h-full object-contain" />
-        </button>
+          <img src="/assets/robot-salute.png" alt="Assistente" className="w-full h-full object-contain drop-shadow-2xl" />
+        </motion.button>
       </div>
       {/* ===== FIM DA MELHORIA ===== */}
 

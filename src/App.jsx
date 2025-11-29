@@ -101,13 +101,13 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-5xl font-bold mb-6 leading-tight">
+            <h2 className="text-5xl font-bold mb-6 leading-tight text-gray-900">
               Resinas UV SLA de
-              <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="block text-gray-900">
                 Alta Performance
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+            <p className="text-xl text-gray-900 mb-8">
               Fabricação especializada de resinas UV para impressão 3D SLA/DLP. 
               Soluções customizadas para odontologia, medicina, indústria e muito mais.
             </p>
@@ -136,7 +136,7 @@ function App() {
             className="relative"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-3xl opacity-20"></div>
-            <Card className="relative p-8 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border-2 border-blue-200 dark:border-blue-900">
+            <Card className="relative p-8 backdrop-blur-xl border-2 border-blue-200 dark:border-blue-900" style={{ backgroundImage: 'url(/assets/background-molecules.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
               <div className="space-y-6">
                 <div className="flex items-start gap-4 cursor-pointer" onClick={handleOpenCustomForm}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">

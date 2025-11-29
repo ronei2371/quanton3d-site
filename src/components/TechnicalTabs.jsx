@@ -102,10 +102,10 @@ export default function TechnicalTabs() {
             </div>
 
             {/* Conteúdo */}
-            <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl">
+            <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl" style={{ backgroundImage: 'url(/assets/background-molecules.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
                 <div 
                     dangerouslySetInnerHTML={{ __html: activeContent }} 
-                    className="prose dark:prose-invert max-w-none" 
+                    className="prose dark:prose-invert max-w-none bg-white/90 p-4 rounded-lg" 
                 />
             </Card>
         </section>
