@@ -169,21 +169,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
 
 
   if (!isOpen) {
-    if (isModalOpen) {
-      return null;
-    }
-    
-    return (
-      <button
-        onClick={onOpenModal} // <-- Abre o MODAL
-        className="fixed bottom-6 left-6 md:bottom-8 md:left-8 z-50 bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full text-white shadow-lg hover:scale-110 transition-transform flex items-center justify-center"
-        aria-label="Abrir menu de opções"
-        style={{ width: '80px', height: '80px' }} // Botão grande
-      >
-        {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
-        <img src="/assets/robot-icon.png" alt="Bot" className="h-12 w-12" />
-      </button>
-    );
+    return null;
   }
 
   return (

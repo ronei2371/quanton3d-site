@@ -156,7 +156,7 @@ export function GalleryModal({ isOpen, onClose }) {
       const data = await response.json();
       
       if (data.success) {
-        setMessage({ type: 'success', text: 'Fotos enviadas com sucesso! Aguarde aprovacao do administrador.' });
+        setMessage({ type: 'success', text: 'SUCESSO! Suas fotos e configuracoes foram enviadas para o administrador aprovar. Assim que aprovadas, aparecerao na galeria publica.' });
         // Reset form
         setFormData({ 
           name: '', resin: '', printer: '', comment: '',
@@ -191,8 +191,8 @@ export function GalleryModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2">
+      <div className="relative w-full max-w-7xl h-[95vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white">
           <div className="flex items-center gap-3">
@@ -234,7 +234,7 @@ export function GalleryModal({ isOpen, onClose }) {
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="p-4 overflow-y-auto flex-1">
           {activeTab === 'gallery' ? (
             <>
               {/* Filters */}
@@ -656,8 +656,8 @@ export function GalleryModal({ isOpen, onClose }) {
 
         {/* Entry Detail Modal */}
         {selectedEntry && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4">
-            <div className="relative max-w-3xl w-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden">
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-2">
+            <div className="relative max-w-6xl w-full max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-auto">
               <button
                 onClick={() => setSelectedEntry(null)}
                 className="absolute top-4 right-4 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white"
