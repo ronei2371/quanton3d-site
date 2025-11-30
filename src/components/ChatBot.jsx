@@ -23,6 +23,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const [userRegistered, setUserRegistered] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+  // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
+  const [lastUserMessage, setLastUserMessage] = useState('');
+  const [lastBotReply, setLastBotReply] = useState('');
   
   const endOfMessagesRef = useRef(null);
 
@@ -96,8 +99,13 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       
       if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
       const data = await response.json();
-      const botMessage = { id: Date.now() + 1, sender: 'bot', text: data.reply || 'Não consegui processar sua resposta.' };
+      const botText = data.reply || 'Não consegui processar sua resposta.';
+      const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
       setMessages((prev) => [...prev, botMessage]);
+      
+      // Armazenar ultima pergunta e resposta para uso nas sugestoes
+      setLastUserMessage(userMessage.text);
+      setLastBotReply(botText);
     } catch (error) {
       console.error('Erro na API:', error);
       const errorMessage = { id: Date.now() + 1, sender: 'bot', text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.' };
@@ -147,12 +155,29 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
 
   const handleSuggestionSubmit = async () => {
     if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
+    
+    // Verificar se ha contexto de conversa
+    if (!lastUserMessage && !lastBotReply) {
+      alert('Por favor, faca uma pergunta primeiro antes de enviar uma sugestao de correcao.');
+      return;
+    }
+    
     setIsLoading(true);
     try {
+      // Enviar sugestao com contexto completo (pergunta + resposta + dados do usuario)
+      const payload = {
+        suggestion: suggestionText,
+        userName: userData?.name || 'Usuario do Site',
+        userPhone: userData?.phone || null,
+        sessionId,
+        lastUserMessage,
+        lastBotReply
+      };
+      
       const response = await fetch(`${API_URL}/suggest-knowledge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestion: suggestionText, userName: "Usuário do Site" }),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) { throw new Error('Não foi possível enviar sua sugestão.'); }
       const data = await response.json();
