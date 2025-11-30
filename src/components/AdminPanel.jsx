@@ -634,7 +634,21 @@ export function AdminPanel({ onClose }) {
                     </span>
                   </div>
 
+                  {/* Pergunta Original do Cliente */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3">
+                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">PERGUNTA DO CLIENTE</p>
+                    <p className="text-sm whitespace-pre-wrap">{suggestion.lastUserMessage || 'Pergunta não disponível'}</p>
+                  </div>
+
+                  {/* Resposta Original do Bot */}
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3">
+                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">RESPOSTA DO BOT</p>
+                    <p className="text-sm whitespace-pre-wrap">{suggestion.lastBotReply || 'Resposta não disponível'}</p>
+                  </div>
+
+                  {/* Sugestão do Cliente */}
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">SUGESTÃO DO CLIENTE</p>
                     <p className="text-sm whitespace-pre-wrap">{suggestion.suggestion}</p>
                   </div>
 
@@ -642,24 +656,44 @@ export function AdminPanel({ onClose }) {
                     <>
                       {editingSuggestion === suggestion.id ? (
                         <div className="space-y-3">
-                          <textarea
-                            className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 min-h-[120px]"
-                            value={editedText}
-                            onChange={(e) => setEditedText(e.target.value)}
-                            placeholder="Edite ou complemente a sugestão..."
-                          />
+                          <div>
+                            <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1 block">RESPOSTA CORRIGIDA (será salva no RAG)</label>
+                            <textarea
+                              className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 min-h-[120px]"
+                              value={editedText}
+                              onChange={(e) => setEditedText(e.target.value)}
+                              placeholder="Escreva a resposta técnica correta que o bot deveria ter dado..."
+                            />
+                          </div>
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
                               className="flex-1 bg-green-600 hover:bg-green-700"
-                              onClick={() => {
-                                alert(`Sugestão melhorada aprovada: ${editedText}`)
-                                setEditingSuggestion(null)
-                                setEditedText('')
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      auth: 'quanton3d_admin_secret',
+                                      editedAnswer: editedText
+                                    })
+                                  })
+                                  const data = await response.json()
+                                  if (data.success) {
+                                    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                    setEditingSuggestion(null)
+                                    setEditedText('')
+                                  } else {
+                                    alert('Erro: ' + data.message)
+                                  }
+                                } catch (error) {
+                                  alert('Erro ao aprovar: ' + error.message)
+                                }
                               }}
                             >
                               <Check className="h-4 w-4 mr-2" />
-                              Aprovar Editado
+                              Aprovar com Correção
                             </Button>
                             <Button 
                               size="sm" 
@@ -680,7 +714,23 @@ export function AdminPanel({ onClose }) {
                           <Button 
                             size="sm" 
                             className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={() => alert('Sugestão aprovada! (Implementar lógica de aprovação)')}
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                })
+                                const data = await response.json()
+                                if (data.success) {
+                                  setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                } else {
+                                  alert('Erro: ' + data.message)
+                                }
+                              } catch (error) {
+                                alert('Erro ao aprovar: ' + error.message)
+                              }
+                            }}
                           >
                             <Check className="h-4 w-4 mr-2" />
                             Aprovar
@@ -690,17 +740,33 @@ export function AdminPanel({ onClose }) {
                             className="flex-1 bg-blue-600 hover:bg-blue-700"
                             onClick={() => {
                               setEditingSuggestion(suggestion.id)
-                              setEditedText(suggestion.suggestion)
+                              setEditedText(suggestion.lastBotReply || '')
                             }}
                           >
                             <Edit3 className="h-4 w-4 mr-2" />
-                            Melhorar
+                            Editar Resposta
                           </Button>
                           <Button 
                             size="sm" 
                             variant="outline"
                             className="flex-1"
-                            onClick={() => alert('Sugestão rejeitada! (Implementar lógica de rejeição)')}
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                })
+                                const data = await response.json()
+                                if (data.success) {
+                                  setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                } else {
+                                  alert('Erro: ' + data.message)
+                                }
+                              } catch (error) {
+                                alert('Erro ao rejeitar: ' + error.message)
+                              }
+                            }}
                           >
                             <X className="h-4 w-4 mr-2" />
                             Rejeitar
