@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle } from 'lucide-react'
 
-function PendingVisualItemForm({ item, onApprove, onDelete }) {
+function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
   const [solution, setSolution] = useState('')
@@ -58,15 +58,17 @@ function PendingVisualItemForm({ item, onApprove, onDelete }) {
               <Check className="h-4 w-4 mr-1" />
               Aprovar e Treinar
             </Button>
-            <Button 
-              size="sm"
-              variant="outline"
-              onClick={() => onDelete(item._id)}
-              className="text-red-600 border-red-300 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Descartar
-            </Button>
+            {canDelete && (
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => onDelete(item._id)}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Descartar
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -76,6 +78,7 @@ function PendingVisualItemForm({ item, onApprove, onDelete }) {
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [accessLevel, setAccessLevel] = useState(null) // 'admin' | 'support' | null
   const [password, setPassword] = useState('')
     const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual'
     const [metrics, setMetrics] = useState(null)
@@ -102,21 +105,33 @@ export function AdminPanel({ onClose }) {
     const [visualSolution, setVisualSolution] = useState('')
     const [addingVisual, setAddingVisual] = useState(false)
 
+  // Senhas de acesso - Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
   const ADMIN_PASSWORD = 'quanton3d2024'
+  const TEAM_SECRET = 'suporte_quanton_2025'
+  
+  // Helpers para verificar nivel de acesso
+  const isAdmin = accessLevel === 'admin'
+  const isSupport = accessLevel === 'support'
 
     const handleLogin = () => {
       if (password === ADMIN_PASSWORD) {
+        setAccessLevel('admin')
         setIsAuthenticated(true)
-        loadMetrics()
-        loadSuggestions()
-        loadCustomRequests()
-        loadContactMessages()
-        loadGalleryEntries()
-        loadVisualKnowledge()
-        loadPendingVisualPhotos()
+      } else if (password === TEAM_SECRET) {
+        setAccessLevel('support')
+        setIsAuthenticated(true)
       } else {
         alert('Senha incorreta!')
+        return
       }
+      // Carregar dados para ambos os niveis
+      loadMetrics()
+      loadSuggestions()
+      loadCustomRequests()
+      loadContactMessages()
+      loadGalleryEntries()
+      loadVisualKnowledge()
+      loadPendingVisualPhotos()
     }
 
   const loadMetrics = async () => {
@@ -228,6 +243,10 @@ export function AdminPanel({ onClose }) {
     }
 
     const deletePendingVisual = async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
       if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
       try {
         const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
@@ -285,6 +304,10 @@ export function AdminPanel({ onClose }) {
     }
 
     const deleteVisualKnowledgeEntry= async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
       if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
       
       try {
@@ -322,6 +345,10 @@ export function AdminPanel({ onClose }) {
     }
 
     const rejectGalleryEntry = async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite rejeitar/excluir dados.')
+        return
+      }
       if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
       try {
         const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/reject?auth=quanton3d_admin_secret`, {
@@ -352,7 +379,7 @@ export function AdminPanel({ onClose }) {
           <div className="space-y-4">
             <Input
               type="password"
-              placeholder="Senha de administrador"
+              placeholder="Senha do painel (admin ou equipe)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
@@ -371,9 +398,18 @@ export function AdminPanel({ onClose }) {
       <div className="container mx-auto max-w-7xl py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Painel Administrativo
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Painel Administrativo
+            </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              isAdmin 
+                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {isAdmin ? 'Admin' : 'Equipe'}
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); loadVisualKnowledge(); }} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
@@ -966,31 +1002,33 @@ export function AdminPanel({ onClose }) {
                             <Edit3 className="h-4 w-4 mr-2" />
                             Editar Resposta
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="flex-1"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}`, {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
-                                })
-                                const data = await response.json()
-                                if (data.success) {
-                                  setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
-                                } else {
-                                  alert('Erro: ' + data.message)
+                          {isAdmin && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                  })
+                                  const data = await response.json()
+                                  if (data.success) {
+                                    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                  } else {
+                                    alert('Erro: ' + data.message)
+                                  }
+                                } catch (error) {
+                                  alert('Erro ao rejeitar: ' + error.message)
                                 }
-                              } catch (error) {
-                                alert('Erro ao rejeitar: ' + error.message)
-                              }
-                            }}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Rejeitar
-                          </Button>
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Rejeitar
+                            </Button>
+                          )}
                         </div>
                       )}
                     </>
@@ -1087,15 +1125,17 @@ export function AdminPanel({ onClose }) {
                               <Check className="h-4 w-4 mr-1" />
                               Aprovar
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-red-600 border-red-300 hover:bg-red-50"
-                              onClick={() => rejectGalleryEntry(entry._id)}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Rejeitar
-                            </Button>
+                            {isAdmin && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                onClick={() => rejectGalleryEntry(entry._id)}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Rejeitar
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1136,6 +1176,7 @@ export function AdminPanel({ onClose }) {
                         item={item} 
                         onApprove={approvePendingVisual}
                         onDelete={deletePendingVisual}
+                        canDelete={isAdmin}
                       />
                     ))}
                   </div>
@@ -1297,15 +1338,17 @@ export function AdminPanel({ onClose }) {
                           </div>
                         </div>
                         
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="mt-3 text-red-600 border-red-300 hover:bg-red-50"
-                          onClick={() => deleteVisualKnowledgeEntry(item._id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Deletar
-                        </Button>
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="mt-3 text-red-600 border-red-300 hover:bg-red-50"
+                            onClick={() => deleteVisualKnowledgeEntry(item._id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Deletar
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
