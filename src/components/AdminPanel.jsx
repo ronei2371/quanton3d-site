@@ -2,7 +2,77 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle } from 'lucide-react'
+
+function PendingVisualItemForm({ item, onApprove, onDelete }) {
+  const [defectType, setDefectType] = useState('')
+  const [diagnosis, setDiagnosis] = useState('')
+  const [solution, setSolution] = useState('')
+
+  return (
+    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border">
+      <div className="flex gap-4">
+        <img 
+          src={item.imageUrl} 
+          alt="Foto pendente" 
+          className="w-40 h-40 object-cover rounded-lg border flex-shrink-0"
+        />
+        <div className="flex-1 space-y-3">
+          <div className="text-xs text-gray-500">
+            Enviada em: {new Date(item.createdAt).toLocaleString('pt-BR')}
+            {item.userName && <span className="ml-2">| Cliente: {item.userName}</span>}
+          </div>
+          <select
+            value={defectType}
+            onChange={(e) => setDefectType(e.target.value)}
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600"
+          >
+            <option value="">Selecione o tipo de defeito...</option>
+            <option value="descolamento da base">Descolamento da base</option>
+            <option value="falha de suportes">Falha de suportes</option>
+            <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
+            <option value="falha de adesao entre camadas / delaminacao">Delaminacao</option>
+            <option value="deformacao/warping">Deformacao/warping</option>
+            <option value="problema de superficie/acabamento">Problema de superficie</option>
+            <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+            <option value="outro">Outro</option>
+          </select>
+          <textarea
+            value={diagnosis}
+            onChange={(e) => setDiagnosis(e.target.value)}
+            placeholder="Diagnostico tecnico..."
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
+          />
+          <textarea
+            value={solution}
+            onChange={(e) => setSolution(e.target.value)}
+            placeholder="Solucao recomendada..."
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
+          />
+          <div className="flex gap-2">
+            <Button 
+              size="sm"
+              onClick={() => onApprove(item._id, defectType, diagnosis, solution)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Check className="h-4 w-4 mr-1" />
+              Aprovar e Treinar
+            </Button>
+            <Button 
+              size="sm"
+              variant="outline"
+              onClick={() => onDelete(item._id)}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Descartar
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -24,6 +94,9 @@ export function AdminPanel({ onClose }) {
     const [visualKnowledge, setVisualKnowledge] = useState([])
     const [visualLoading, setVisualLoading] = useState(false)
     const [visualImage, setVisualImage] = useState(null)
+    const [visualImagePreview, setVisualImagePreview] = useState(null)
+    const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
+    const [pendingVisualLoading, setPendingVisualLoading] = useState(false)
     const [visualDefectType, setVisualDefectType] = useState('')
     const [visualDiagnosis, setVisualDiagnosis] = useState('')
     const [visualSolution, setVisualSolution] = useState('')
@@ -40,6 +113,7 @@ export function AdminPanel({ onClose }) {
         loadContactMessages()
         loadGalleryEntries()
         loadVisualKnowledge()
+        loadPendingVisualPhotos()
       } else {
         alert('Senha incorreta!')
       }
@@ -115,6 +189,62 @@ export function AdminPanel({ onClose }) {
       }
     }
 
+    const loadPendingVisualPhotos = async () => {
+      setPendingVisualLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/pending?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setPendingVisualPhotos(data.documents || [])
+      } catch (error) {
+        console.error('Erro ao carregar fotos pendentes:', error)
+      } finally {
+        setPendingVisualLoading(false)
+      }
+    }
+
+    const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+      if (!defectType || !diagnosis || !solution) {
+        alert('Preencha todos os campos antes de aprovar')
+        return
+      }
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}/approve?auth=quanton3d_admin_secret`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ defectType, diagnosis, solution })
+        })
+        const data = await response.json()
+        if (data.success) {
+          alert('Conhecimento visual aprovado com sucesso!')
+          loadPendingVisualPhotos()
+          loadVisualKnowledge()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao aprovar conhecimento visual:', error)
+        alert('Erro ao aprovar conhecimento visual')
+      }
+    }
+
+    const deletePendingVisual = async (id) => {
+      if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadPendingVisualPhotos()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar foto pendente:', error)
+        alert('Erro ao deletar foto pendente')
+      }
+    }
+
     const addVisualKnowledgeEntry = async () => {
       if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
         alert('Preencha todos os campos e selecione uma imagem')
@@ -138,6 +268,7 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           alert('Conhecimento visual adicionado com sucesso!')
           setVisualImage(null)
+          setVisualImagePreview(null)
           setVisualDefectType('')
           setVisualDiagnosis('')
           setVisualSolution('')
@@ -153,7 +284,7 @@ export function AdminPanel({ onClose }) {
       }
     }
 
-    const deleteVisualKnowledgeEntry = async (id) => {
+    const deleteVisualKnowledgeEntry= async (id) => {
       if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
       
       try {
@@ -988,6 +1119,29 @@ export function AdminPanel({ onClose }) {
                 Adicione fotos de problemas com diagnostico e solucao. Quando um cliente enviar uma foto similar, o bot usara sua resposta treinada.
               </p>
 
+              {/* Secao de fotos pendentes - enviadas automaticamente pelo bot */}
+              {pendingVisualPhotos.length > 0 && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                  <h4 className="font-semibold flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-3">
+                    <AlertCircle className="h-5 w-5" />
+                    Fotos Pendentes para Treinamento ({pendingVisualPhotos.length})
+                  </h4>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                    Estas fotos foram enviadas por clientes e o bot nao conseguiu identificar o problema. Adicione o conhecimento para treinar o bot.
+                  </p>
+                  <div className="space-y-4">
+                    {pendingVisualPhotos.map((item) => (
+                      <PendingVisualItemForm 
+                        key={item._id} 
+                        item={item} 
+                        onApprove={approvePendingVisual}
+                        onDelete={deletePendingVisual}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Form para adicionar novo conhecimento visual */}
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-4">
                 <h4 className="font-semibold flex items-center gap-2">
@@ -1000,11 +1154,40 @@ export function AdminPanel({ onClose }) {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setVisualImage(e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      setVisualImage(file)
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setVisualImagePreview(reader.result)
+                        }
+                        reader.readAsDataURL(file)
+                      } else {
+                        setVisualImagePreview(null)
+                      }
+                    }}
                     className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
                   />
-                  {visualImage && (
-                    <p className="text-sm text-green-600 mt-1">Imagem selecionada: {visualImage.name}</p>
+                  {visualImagePreview && (
+                    <div className="mt-3 relative">
+                      <p className="text-sm text-green-600 mb-2">Preview da imagem:</p>
+                      <img 
+                        src={visualImagePreview} 
+                        alt="Preview" 
+                        className="max-w-xs max-h-48 object-contain rounded-lg border shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVisualImage(null)
+                          setVisualImagePreview(null)
+                        }}
+                        className="absolute top-8 left-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transform -translate-x-1/2 -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
