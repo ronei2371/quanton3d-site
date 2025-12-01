@@ -82,7 +82,7 @@ export default function TechnicalTabs() {
 
     return (
         <section id="suporte-tecnico" className="container mx-auto px-4 py-20">
-            <h2 className="text-3xl font-bold text-center mb-10">Suporte Técnico Especializado</h2>
+            <h2 className="text-3xl font-bold text-center mb-10 text-black">Suporte Técnico Especializado</h2>
             
             {/* Abas/Botões */}
             <div className="flex flex-wrap justify-center gap-3 mb-8">
@@ -101,11 +101,11 @@ export default function TechnicalTabs() {
                 ))}
             </div>
 
-            {/* Conteúdo */}
-            <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl" style={{ backgroundImage: 'url(/assets/background-molecules.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            {/* Conteúdo - Fundo transparente com moleculas visiveis */}
+            <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl bg-white/70 backdrop-blur-sm border border-blue-200">
                 <div 
                     dangerouslySetInnerHTML={{ __html: activeContent }} 
-                    className="prose dark:prose-invert max-w-none bg-white/90 p-4 rounded-lg" 
+                    className="prose max-w-none [&_*]:text-black [&_h4]:text-black [&_p]:text-black [&_li]:text-black [&_strong]:text-black" 
                 />
             </Card>
         </section>
