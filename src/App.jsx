@@ -187,17 +187,20 @@ function App() {
       <ParametersSelector />
 
       {/* Galeria de Fotos - Abaixo dos Parametros */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center gap-3">
+      <section className="container mx-auto px-4 py-12">
+        <div className="flex flex-col items-center gap-4">
+          <h3 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Colabore com sua experiência de configurações
+          </h3>
           <Button 
             onClick={() => setIsGalleryModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg flex items-center gap-2"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-xl font-bold flex items-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
           >
-            <Camera className="h-5 w-5" />
+            <Camera className="h-7 w-7" />
             Galeria de Fotos
           </Button>
-          <p className="text-sm text-gray-600 dark:text-gray-300 text-center max-w-xl">
-            Veja as impressoes de outros clientes e compartilhe sua peca com os parametros que voce utilizou.
+          <p className="text-base text-gray-600 dark:text-gray-300 text-center max-w-xl">
+            Veja as impressões de outros clientes e compartilhe sua peça com os parâmetros que você utilizou.
           </p>
         </div>
       </section>
