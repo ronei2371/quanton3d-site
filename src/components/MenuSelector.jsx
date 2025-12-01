@@ -30,7 +30,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
   return (
     <>
       {/* ===== ROBÔ MAIOR + MENSAGEM ("Estou aqui se precisar!") ===== */}
-      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
+      <div className="fixed bottom-24 right-6 md:bottom-28 md:right-8 z-50">
         
         {/* A Mensagem */}
         <AnimatePresence>
