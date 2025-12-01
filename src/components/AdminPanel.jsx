@@ -24,6 +24,7 @@ export function AdminPanel({ onClose }) {
     const [visualKnowledge, setVisualKnowledge] = useState([])
     const [visualLoading, setVisualLoading] = useState(false)
     const [visualImage, setVisualImage] = useState(null)
+    const [visualImagePreview, setVisualImagePreview] = useState(null)
     const [visualDefectType, setVisualDefectType] = useState('')
     const [visualDiagnosis, setVisualDiagnosis] = useState('')
     const [visualSolution, setVisualSolution] = useState('')
@@ -138,11 +139,12 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           alert('Conhecimento visual adicionado com sucesso!')
           setVisualImage(null)
+          setVisualImagePreview(null)
           setVisualDefectType('')
           setVisualDiagnosis('')
           setVisualSolution('')
           loadVisualKnowledge()
-        } else {
+        }else {
           alert('Erro: ' + data.error)
         }
       } catch (error) {
@@ -1000,11 +1002,40 @@ export function AdminPanel({ onClose }) {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setVisualImage(e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      setVisualImage(file)
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setVisualImagePreview(reader.result)
+                        }
+                        reader.readAsDataURL(file)
+                      } else {
+                        setVisualImagePreview(null)
+                      }
+                    }}
                     className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
                   />
-                  {visualImage && (
-                    <p className="text-sm text-green-600 mt-1">Imagem selecionada: {visualImage.name}</p>
+                  {visualImagePreview && (
+                    <div className="mt-3 relative">
+                      <p className="text-sm text-green-600 mb-2">Preview da imagem:</p>
+                      <img 
+                        src={visualImagePreview} 
+                        alt="Preview" 
+                        className="max-w-xs max-h-48 object-contain rounded-lg border shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVisualImage(null)
+                          setVisualImagePreview(null)
+                        }}
+                        className="absolute top-8 left-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transform -translate-x-1/2 -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
 
