@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2 } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload } from 'lucide-react'
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
-    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery'
+    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual'
     const [metrics, setMetrics] = useState(null)
     const [suggestions, setSuggestions] = useState([])
     const [loading, setLoading] = useState(false)
@@ -20,6 +20,14 @@ export function AdminPanel({ onClose }) {
     const [contactMessages, setContactMessages] = useState([])
     const [galleryEntries, setGalleryEntries] = useState([])
     const [galleryLoading, setGalleryLoading] = useState(false)
+    // Visual RAG states
+    const [visualKnowledge, setVisualKnowledge] = useState([])
+    const [visualLoading, setVisualLoading] = useState(false)
+    const [visualImage, setVisualImage] = useState(null)
+    const [visualDefectType, setVisualDefectType] = useState('')
+    const [visualDiagnosis, setVisualDiagnosis] = useState('')
+    const [visualSolution, setVisualSolution] = useState('')
+    const [addingVisual, setAddingVisual] = useState(false)
 
   const ADMIN_PASSWORD = 'quanton3d2024'
 
@@ -31,6 +39,7 @@ export function AdminPanel({ onClose }) {
         loadCustomRequests()
         loadContactMessages()
         loadGalleryEntries()
+        loadVisualKnowledge()
       } else {
         alert('Senha incorreta!')
       }
@@ -89,6 +98,78 @@ export function AdminPanel({ onClose }) {
         console.error('Erro ao carregar galeria:', error)
       } finally {
         setGalleryLoading(false)
+      }
+    }
+
+    // Visual RAG functions
+    const loadVisualKnowledge = async () => {
+      setVisualLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setVisualKnowledge(data.documents || [])
+      } catch (error) {
+        console.error('Erro ao carregar conhecimento visual:', error)
+      } finally {
+        setVisualLoading(false)
+      }
+    }
+
+    const addVisualKnowledgeEntry = async () => {
+      if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
+        alert('Preencha todos os campos e selecione uma imagem')
+        return
+      }
+
+      setAddingVisual(true)
+      try {
+        const formData = new FormData()
+        formData.append('image', visualImage)
+        formData.append('defectType', visualDefectType)
+        formData.append('diagnosis', visualDiagnosis)
+        formData.append('solution', visualSolution)
+
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge?auth=quanton3d_admin_secret', {
+          method: 'POST',
+          body: formData
+        })
+        const data = await response.json()
+        
+        if (data.success) {
+          alert('Conhecimento visual adicionado com sucesso!')
+          setVisualImage(null)
+          setVisualDefectType('')
+          setVisualDiagnosis('')
+          setVisualSolution('')
+          loadVisualKnowledge()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao adicionar conhecimento visual:', error)
+        alert('Erro ao adicionar conhecimento visual')
+      } finally {
+        setAddingVisual(false)
+      }
+    }
+
+    const deleteVisualKnowledgeEntry = async (id) => {
+      if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
+      
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        
+        if (data.success) {
+          loadVisualKnowledge()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar conhecimento visual:', error)
+        alert('Erro ao deletar conhecimento visual')
       }
     }
 
@@ -163,7 +244,7 @@ export function AdminPanel({ onClose }) {
             Painel Administrativo
           </h1>
           <div className="flex items-center gap-3">
-            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); }} disabled={loading}>
+            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); loadVisualKnowledge(); }} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
             </Button>
             {onClose && (
@@ -223,6 +304,14 @@ export function AdminPanel({ onClose }) {
                   >
                     <Camera className="h-4 w-4 mr-2" />
                     Galeria ({galleryEntries.filter(e => e.status === 'pending').length})
+                  </Button>
+                  <Button 
+                    onClick={() => setActiveTab('visual')}
+                    variant={activeTab === 'visual' ? 'default' : 'outline'}
+                    className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Treinamento Visual ({visualKnowledge.length})
                   </Button>
                 </div>
 
@@ -884,6 +973,162 @@ export function AdminPanel({ onClose }) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Visual RAG Tab - Treinamento Visual */}
+        {activeTab === 'visual' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Treinamento Visual - Banco de Conhecimento Visual
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Adicione fotos de problemas com diagnostico e solucao. Quando um cliente enviar uma foto similar, o bot usara sua resposta treinada.
+              </p>
+
+              {/* Form para adicionar novo conhecimento visual */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Adicionar Novo Exemplo Visual
+                </h4>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Foto do Problema</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setVisualImage(e.target.files[0])}
+                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
+                  />
+                  {visualImage && (
+                    <p className="text-sm text-green-600 mt-1">Imagem selecionada: {visualImage.name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tipo de Defeito</label>
+                  <select
+                    value={visualDefectType}
+                    onChange={(e) => setVisualDefectType(e.target.value)}
+                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
+                  >
+                    <option value="">Selecione o tipo de defeito...</option>
+                    <option value="descolamento da base">Descolamento da base</option>
+                    <option value="falha de suportes">Falha de suportes</option>
+                    <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
+                    <option value="falha de adesao entre camadas / delaminacao">Delaminacao</option>
+                    <option value="deformacao/warping">Deformacao/warping</option>
+                    <option value="problema de superficie/acabamento">Problema de superficie</option>
+                    <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Diagnostico Tecnico</label>
+                  <textarea
+                    value={visualDiagnosis}
+                    onChange={(e) => setVisualDiagnosis(e.target.value)}
+                    placeholder="Descreva o diagnostico tecnico do problema..."
+                    className="w-full p-3 border rounded-lg bg-white dark:bg-gray-700 min-h-[80px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Solucao Recomendada</label>
+                  <textarea
+                    value={visualSolution}
+                    onChange={(e) => setVisualSolution(e.target.value)}
+                    placeholder="Descreva a solucao passo a passo..."
+                    className="w-full p-3 border rounded-lg bg-white dark:bg-gray-700 min-h-[80px]"
+                  />
+                </div>
+
+                <Button 
+                  onClick={addVisualKnowledgeEntry}
+                  disabled={addingVisual}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                >
+                  {addingVisual ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar ao Banco Visual
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Lista de conhecimentos visuais existentes */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">Exemplos Visuais Cadastrados ({visualKnowledge.length})</h3>
+              
+              {visualLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+              ) : visualKnowledge.length === 0 ? (
+                <div className="text-center py-8">
+                  <Eye className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                  <p className="text-gray-500">Nenhum exemplo visual cadastrado ainda.</p>
+                  <p className="text-sm text-gray-400 mt-2">Adicione fotos de problemas para treinar o bot.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {visualKnowledge.map((item) => (
+                    <div key={item._id} className="flex gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      {/* Imagem */}
+                      <img
+                        src={item.imageUrl}
+                        alt={item.defectType}
+                        className="w-32 h-32 object-cover rounded-lg border flex-shrink-0"
+                      />
+                      
+                      {/* Detalhes */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm font-semibold">
+                            {item.defectType}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-semibold text-blue-600">Diagnostico:</span>
+                            <p className="text-gray-700 dark:text-gray-300">{item.diagnosis}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-green-600">Solucao:</span>
+                            <p className="text-gray-700 dark:text-gray-300">{item.solution}</p>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="mt-3 text-red-600 border-red-300 hover:bg-red-50"
+                          onClick={() => deleteVisualKnowledgeEntry(item._id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Deletar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
           </div>
         )}
       </div>
