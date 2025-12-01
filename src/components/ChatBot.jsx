@@ -202,8 +202,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md:max-h-[850px] bg-white dark:bg-gray-800 shadow-2xl rounded-lg flex flex-col z-50"
-      style={{ backgroundColor: '#ffffff' }}
+      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md:max-h-[850px] shadow-2xl rounded-lg flex flex-col z-50 overflow-hidden"
     >
       {/* Header */}
       <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
@@ -349,18 +348,18 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         )}
       </AnimatePresence>
 
-      {/* Area de Mensagens - Fundo com Circuitos e Overlay para Legibilidade */}
+      {/* Area de Mensagens - Fundo com Circuitos (sem overlay para mostrar circuitos) */}
       <div 
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
         style={{ 
           minHeight: '400px',
           backgroundImage: 'url(/circuit-bg.gif)',
           backgroundSize: 'cover',
-          backgroundPosition: 'center'
+          backgroundPosition: 'center',
+          backgroundAttachment: 'local'
         }}
       >
-        {/* Overlay semi-transparente para legibilidade - opacidade reduzida para mostrar circuitos */}
-        <div className="absolute inset-0 bg-white/70 dark:bg-gray-900/80 pointer-events-none"></div>
+        {/* Sem overlay - circuitos sempre visiveis */}
         <div className="space-y-4 relative z-10">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -482,7 +481,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="flex-1 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+            className="flex-1 p-3 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
             placeholder="Digite sua mensagem..."
             disabled={isLoading}
           />
