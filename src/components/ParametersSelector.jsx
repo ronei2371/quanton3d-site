@@ -44,8 +44,8 @@ export default function ParametersSelector() {
         transition={{ duration: 0.6 }}
         className="text-center mb-12"
       >
-        <h2 className="text-4xl font-bold mb-4">Parâmetros de Impressão</h2>
-        <p className="text-xl text-gray-600 dark:text-gray-300">
+        <h2 className="text-4xl font-bold mb-4 text-black">Parâmetros de Impressão</h2>
+        <p className="text-xl text-black">
           Selecione a resina e impressora para ver os parâmetros recomendados
         </p>
       </motion.div>

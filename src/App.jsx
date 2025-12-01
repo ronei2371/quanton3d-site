@@ -101,13 +101,13 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-5xl font-bold mb-6 leading-tight">
+            <h2 className="text-5xl font-bold mb-6 leading-tight text-black">
               Resinas UV SLA de
               <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Alta Performance
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+            <p className="text-xl text-black mb-8">
               Fabricação especializada de resinas UV para impressão 3D SLA/DLP. 
               Soluções customizadas para odontologia, medicina, indústria e muito mais.
             </p>
@@ -143,8 +143,8 @@ function App() {
                     <Beaker className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg mb-2">Formulação Customizada</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <h3 className="font-bold text-lg mb-2 text-black">Formulação Customizada</h3>
+                    <p className="text-black">
                       Desenvolvemos resinas específicas para sua aplicação
                     </p>
                   </div>
@@ -154,8 +154,8 @@ function App() {
                     <Cpu className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg mb-2">Suporte Técnico Completo</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <h3 className="font-bold text-lg mb-2 text-black">Suporte Técnico Completo</h3>
+                    <p className="text-black">
                       Assistência especializada em impressão 3D SLA/DLP
                     </p>
                   </div>
@@ -165,8 +165,8 @@ function App() {
                     <Sparkles className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg mb-2">Alta Qualidade</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <h3 className="font-bold text-lg mb-2 text-black">Alta Qualidade</h3>
+                    <p className="text-black">
                       FISPQs, certificados e controle rigoroso de qualidade
                     </p>
                   </div>
@@ -199,7 +199,7 @@ function App() {
             <Camera className="h-7 w-7" />
             Galeria de Fotos
           </Button>
-          <p className="text-base text-gray-600 dark:text-gray-300 text-center max-w-xl">
+          <p className="text-base text-black text-center max-w-xl">
             Veja as impressões de outros clientes e compartilhe sua peça com os parâmetros que você utilizou.
           </p>
         </div>
