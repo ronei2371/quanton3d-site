@@ -84,16 +84,16 @@ export default function TechnicalTabs() {
         <section id="suporte-tecnico" className="container mx-auto px-4 py-20">
             <h2 className="text-3xl font-bold text-center mb-10 text-black">Suporte Técnico Especializado</h2>
             
-            {/* Abas/Botões */}
-            <div className="flex flex-wrap justify-center gap-3 mb-8">
+            {/* Abas/Botões - Estilo Neon Cyberpunk */}
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
                 {supportTopics.map(topic => (
                     <button
                         key={topic.key}
                         onClick={() => setActiveTab(topic.key)}
-                        className={`px-4 py-2 rounded-full font-semibold transition ${
+                        className={`neon-button px-5 py-3 text-sm ${
                             activeTab === topic.key 
-                                ? 'bg-blue-600 text-white shadow-lg' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                ? 'neon-button-active' 
+                                : ''
                         }`}
                     >
                         {topic.title}

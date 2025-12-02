@@ -238,3 +238,19 @@
     inset 0 0 20px rgba(0, 243, 255, 0.4);
   transform: translateY(-3px) scale(1.02);
 }
+
+/* Estado ativo do botao neon (selecionado) */
+.neon-button-active,
+.neon-button.neon-button-active {
+  background: rgba(0, 40, 80, 0.9) !important;
+  border-color: #00ffff !important;
+  text-shadow: 
+    0 0 15px #00f3ff,
+    0 0 30px #00f3ff,
+    0 0 45px #00f3ff;
+  box-shadow:
+    0 0 20px #00f3ff,
+    0 0 40px rgba(0, 243, 255, 0.7),
+    0 0 60px rgba(0, 243, 255, 0.5),
+    inset 0 0 15px rgba(0, 243, 255, 0.4);
+}
