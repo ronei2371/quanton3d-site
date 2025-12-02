@@ -111,7 +111,7 @@ function App() {
               Fabricação especializada de resinas UV para impressão 3D SLA/DLP. 
               Soluções customizadas para odontologia, medicina, indústria e muito mais.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <Button 
                 className="neon-button text-lg flex items-center gap-2"
                 onClick={handleOpenContact} 
@@ -124,6 +124,13 @@ function App() {
                 onClick={() => setIsAboutModalOpen(true)}
               >
                 Saiba Mais
+              </Button>
+              <Button 
+                className="neon-button text-lg flex items-center gap-2"
+                onClick={() => document.getElementById('informacoes-tecnicas')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Parâmetros
+                <Cpu className="ml-1 h-5 w-5" />
               </Button>
             </div>
           </motion.div>
