@@ -119,27 +119,33 @@
   }
 }
 
-/* Neon Button - Estilo Sci-Fi/Cyberpunk */
+/* Neon Button - Estilo Sci-Fi/Cyberpunk HUD */
 .neon-button {
   position: relative;
   padding: 1rem 2.5rem;
-  background: rgba(0, 20, 40, 0.85);
-  border: 2px solid rgba(0, 255, 255, 0.7);
-  color: #e3f9ff;
-  font-weight: 600;
-  text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+  background: rgba(0, 10, 20, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid #00f3ff;
+  color: #ffffff;
+  font-weight: 700;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  letter-spacing: 0.5px;
+  text-shadow: 
+    0 0 10px rgba(0, 243, 255, 0.9),
+    0 0 20px rgba(0, 243, 255, 0.5);
   clip-path: polygon(
-    15px 0,
+    12px 0,
     100% 0,
-    100% calc(100% - 15px),
-    calc(100% - 15px) 100%,
+    100% calc(100% - 12px),
+    calc(100% - 12px) 100%,
     0 100%,
-    0 15px
+    0 12px
   );
   box-shadow:
-    0 0 10px rgba(0, 255, 255, 0.6),
-    0 0 20px rgba(0, 140, 255, 0.5),
-    inset 0 0 15px rgba(0, 255, 255, 0.1);
+    0 0 15px rgba(0, 243, 255, 0.5),
+    0 0 30px rgba(0, 243, 255, 0.3),
+    inset 0 0 10px rgba(0, 243, 255, 0.2);
   transition:
     box-shadow 0.3s ease,
     transform 0.2s ease,
@@ -147,44 +153,47 @@
     border-color 0.3s ease,
     text-shadow 0.3s ease;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .neon-button::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(
-    135deg,
-    rgba(0, 255, 255, 0.1) 0%,
-    transparent 50%,
-    rgba(0, 140, 255, 0.1) 100%
+    90deg,
+    transparent,
+    rgba(0, 243, 255, 0.3),
+    transparent
   );
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: left 0.5s ease;
 }
 
 .neon-button:hover {
-  background: rgba(0, 40, 80, 0.95);
-  border-color: rgba(0, 255, 255, 1);
-  text-shadow: 0 0 12px rgba(0, 255, 255, 1);
+  background: rgba(0, 20, 40, 0.8);
+  border-color: #00f3ff;
+  text-shadow: 
+    0 0 15px rgba(0, 243, 255, 1),
+    0 0 30px rgba(0, 243, 255, 0.8),
+    0 0 45px rgba(0, 243, 255, 0.5);
   box-shadow:
-    0 0 15px rgba(0, 255, 255, 0.9),
-    0 0 35px rgba(0, 160, 255, 0.8),
-    0 0 50px rgba(0, 200, 255, 0.4),
-    inset 0 0 20px rgba(0, 255, 255, 0.2);
-  transform: translateY(-2px) scale(1.02);
+    0 0 20px rgba(0, 243, 255, 0.8),
+    0 0 40px rgba(0, 243, 255, 0.6),
+    0 0 60px rgba(0, 243, 255, 0.4),
+    inset 0 0 15px rgba(0, 243, 255, 0.3);
+  transform: translateY(-3px) scale(1.03);
 }
 
 .neon-button:hover::before {
-  opacity: 1;
+  left: 100%;
 }
 
 .neon-button:active {
   transform: translateY(0) scale(0.98);
   box-shadow:
-    0 0 8px rgba(0, 255, 255, 0.7),
-    0 0 15px rgba(0, 140, 255, 0.6);
+    0 0 10px rgba(0, 243, 255, 0.6),
+    0 0 20px rgba(0, 243, 255, 0.4);
 }
