@@ -8,6 +8,22 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
   const [solution, setSolution] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleApproveClick = async () => {
+    setIsSubmitting(true)
+    try {
+      const success = await onApprove(item._id, defectType, diagnosis, solution)
+      if (success) {
+        // Limpar campos apos aprovacao bem-sucedida
+        setDefectType('')
+        setDiagnosis('')
+        setSolution('')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border">
@@ -52,11 +68,12 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
           <div className="flex gap-2">
             <Button 
               size="sm"
-              onClick={() => onApprove(item._id, defectType, diagnosis, solution)}
+              onClick={handleApproveClick}
+              disabled={isSubmitting}
               className="bg-green-600 hover:bg-green-700"
             >
               <Check className="h-4 w-4 mr-1" />
-              Aprovar e Treinar
+              {isSubmitting ? 'Aprovando...' : 'Aprovar e Treinar'}
             </Button>
             {canDelete && (
               <Button 
@@ -220,7 +237,7 @@ export function AdminPanel({ onClose }) {
     const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
       if (!defectType || !diagnosis || !solution) {
         alert('Preencha todos os campos antes de aprovar')
-        return
+        return false
       }
       try {
         const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}/approve?auth=quanton3d_admin_secret`, {
@@ -233,12 +250,15 @@ export function AdminPanel({ onClose }) {
           alert('Conhecimento visual aprovado com sucesso!')
           loadPendingVisualPhotos()
           loadVisualKnowledge()
+          return true
         } else {
           alert('Erro: ' + data.error)
+          return false
         }
       } catch (error) {
         console.error('Erro ao aprovar conhecimento visual:', error)
         alert('Erro ao aprovar conhecimento visual')
+        return false
       }
     }
 

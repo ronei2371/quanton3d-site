@@ -113,11 +113,11 @@ function App() {
             </p>
             <div className="flex gap-4">
               <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
+                className="neon-button text-lg flex items-center gap-2"
                 onClick={handleOpenContact} 
               >
                 Fale Conosco
-                <ChevronRight className="ml-2 h-5 w-5" />
+                <ChevronRight className="ml-1 h-5 w-5" />
               </Button>
               <Button 
                 variant="outline" 
@@ -194,7 +194,7 @@ function App() {
           </h3>
           <Button 
             onClick={() => setIsGalleryModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-xl font-bold flex items-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+            className="neon-button text-xl font-bold flex items-center gap-3"
           >
             <Camera className="h-7 w-7" />
             Galeria de Fotos
