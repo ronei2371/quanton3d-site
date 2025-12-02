@@ -669,9 +669,10 @@ export function AdminPanel({ onClose }) {
                       })
                       const data = await response.json()
                       if (data.success) {
-                        alert('✅ Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
+                        // Limpar campos ANTES do alert para garantir que o React atualize
                         setKnowledgeTitle('')
                         setKnowledgeContent('')
+                        alert('✅ Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
                       } else {
                         alert('❌ Erro: ' + data.error)
                       }
