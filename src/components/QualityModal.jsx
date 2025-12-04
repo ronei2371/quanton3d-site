@@ -20,75 +20,127 @@ export function QualityModal({ isOpen, onClose }) {
   const resinas = [
     {
       name: 'Alchemist',
-      desc: 'Linha especialmente criada para efeitos especiais em colecionáveis e itens de decoração',
+      desc: 'Linha especialmente criada para efeitos especiais em colecionáveis e itens de decoração. Alta qualidade, rápida polimerização e durabilidade. Cores translúcidas e vibrantes garantem acabamento fosco após limpeza com álcool isopropílico.',
       indicacao: 'Reprodução de efeitos especiais em colecionáveis e itens de decoração',
-      caracteristicas: ['Precisão e Rapidez', 'Durabilidade', 'Cores Vibrantes e Translúcidas']
+      caracteristicas: [
+        'Precisão e Rapidez: Impressões com alta definição e polimerização rápida',
+        'Durabilidade: Peças robustas e resistentes, minimizando quebras e deformações',
+        'Cores Vibrantes e Translúcidas: Efeito translúcido e cores vibrantes (exclusividade Quanton3D)'
+      ]
     },
     {
       name: 'FlexForm',
-      desc: 'Projetada para protótipos e peças que exigem alta flexibilidade e resistência',
+      desc: 'Projetada para protótipos e peças que exigem alta flexibilidade e resistência. Destinada a aplicações industriais e projetos especiais, combina flexibilidade e durabilidade, adaptando-se a diversas formas sem comprometer integridade estrutural.',
       indicacao: 'Protótipos e peças que exigem resistência e alto nível de flexibilidade',
-      caracteristicas: ['Alta Flexibilidade', 'Durabilidade Robusta', 'Precisão Dimensional']
+      caracteristicas: [
+        'Alta Flexibilidade: Adaptação a diversas formas sem comprometer integridade estrutural',
+        'Durabilidade Robusta: Resistência a desgastes, impactos e outros danos mecânicos',
+        'Precisão Dimensional: Criação de peças com detalhes finos e complexos'
+      ]
     },
     {
       name: 'Athom Dental',
-      desc: 'Ideal para criar modelos de estudo, troquéis e protótipos de peças dentárias',
+      desc: 'Ideal para criar modelos de estudo, troquéis e protótipos de peças dentárias. Alta precisão e qualidade de impressão, facilita estudos detalhados e prototipagem eficiente na área odontológica.',
       indicacao: 'Modelos de estudo odontológicos, troquéis e protótipos',
-      caracteristicas: ['Aplicações Odontológicas Específicas', 'Alta Precisão e Qualidade', 'Facilita Estudos e Prototipagem'],
-      importante: 'Destinada apenas para uso externo, NÃO é biocompatível'
+      caracteristicas: [
+        'Aplicações Odontológicas Específicas: Ideal para modelos de estudo, troquéis e protótipos dentários',
+        'Alta Precisão e Qualidade: Desenvolvida especificamente para uso odontológico',
+        'Facilita Estudos e Prototipagem: Permite estudos detalhados com eficiência'
+      ],
+      importante: 'Destinada apenas para uso externo, NÃO é biocompatível. Requer uso de EPIs.',
+      dica: 'Para modelos com encaixe, prefira resina Spin - possui leve flexibilidade que não compromete precisão'
     },
     {
       name: 'Iron',
-      desc: 'Adequada para projetos que exigem flexibilidade e resistência a impactos',
+      desc: 'Adequada para projetos que exigem flexibilidade e resistência a impactos em peças acima de 2mm (abaixo pode gerar flexibilidade). Alta resistência ao impacto, dureza intermediária e flexibilidade.',
       indicacao: 'Projetos que requerem flexibilidade e resistência a impactos',
-      caracteristicas: ['Alta Resistência ao Impacto', 'Dureza Intermediária', 'Flexibilidade'],
-      limitacoes: 'Não recomendada para peças inclinadas. Baixa resistência a água'
+      caracteristicas: [
+        'Alta Resistência ao Impacto: Ideal para peças que enfrentam condições adversas',
+        'Dureza Intermediária: Versatilidade para diversas aplicações industriais',
+        'Flexibilidade: Permite maior liberdade no design e funcionalidade'
+      ],
+      limitacoes: 'Não recomendada para peças inclinadas. Tem baixa resistência a água.',
+      aplicacoes: 'Aplicações industriais, prototipagem funcional, peças finais, ferramentas, aplicações médicas e artísticas'
     },
     {
       name: 'Iron 7030',
-      desc: 'Combinação equilibrada de flexibilidade e resistência',
+      desc: 'Combinação equilibrada de flexibilidade e resistência, proporcionando detalhes precisos e acabamento de qualidade superior. Ideal para protótipos e peças que exigem durabilidade.',
       indicacao: 'Impressões que exigem maior resistência e elevado nível de detalhes',
-      caracteristicas: ['Flexibilidade e Resistência', 'Detalhes Precisos', 'Acabamento de Qualidade'],
-      limitacoes: 'Não recomendada para peças com estruturas finas e suspensas'
+      caracteristicas: [
+        'Odor: Médio',
+        'Viscosidade: Média',
+        'pH: 6,0',
+        'Densidade: 1,017 g/cm³',
+        'Temperatura Específica: Não expor acima de 40°C'
+      ],
+      limitacoes: 'Não recomendada para peças com estruturas finas e suspensas (como asas de dragões)'
     },
     {
       name: 'Poseidon',
-      desc: 'Dispensa álcool para limpeza (lavável em água)',
+      desc: 'Dispensa álcool para limpeza (lavável em água). Rígida com leve flexibilidade, oferecendo detalhamento preciso, baixo odor e versatilidade.',
       indicacao: 'Impressões que requerem alto grau de detalhamento',
-      caracteristicas: ['Detalhamento Impecável', 'Lavável com Água', 'Baixo Odor'],
-      importante: 'Embora lavável em água, ainda apresenta toxicidade. Não é biocompatível'
+      caracteristicas: [
+        'Detalhamento Impecável: Impressões com superfícies lisas e precisas',
+        'Lavável com Água: Elimina uso de álcool, simplificando processo e economizando dinheiro',
+        'Baixo Odor: Cheiro praticamente imperceptível'
+      ],
+      importante: 'Embora lavável em água, ainda apresenta toxicidade. Não é biocompatível. Requer uso de EPIs.',
+      aplicacoes: 'Protótipos, miniaturas, peças funcionais e decoração'
     },
     {
       name: 'Spin',
-      desc: 'Oferece maior rigidez e leve flexibilidade com alto nível de detalhes',
+      desc: 'Oferece maior rigidez e leve flexibilidade com alto nível de detalhes. Cores opacas e precisão, resistindo a deformações sob tensões.',
       indicacao: 'Peças de grande formato com alto nível de detalhes sem deformação',
-      caracteristicas: ['Resistência e Flexibilidade', 'Cores Opacas', 'Alta Precisão']
+      caracteristicas: [
+        'Resistência e Flexibilidade: Combina rigidez com leve flexibilidade, suportando tensões sem deformar',
+        'Cores Opacas: Disponível em diversas cores opacas para acabamento profissional',
+        'Alta Precisão: Perfeita para protótipos funcionais e peças de uso final'
+      ],
+      aplicacoes: 'Protótipos funcionais, peças de uso final, modelos detalhados, objetos decorativos'
     },
     {
       name: 'Athom Alinhadores',
-      desc: 'Alta resolução e precisão para visualização detalhada de modelos complexos',
+      desc: 'Alta resolução e precisão para visualização detalhada de modelos complexos. Baixa contração e boa resistência à temperatura.',
       indicacao: 'Produção de modelos para alinhadores e processos com plastificadoras a vácuo',
-      caracteristicas: ['Alta resolução e precisão', 'Baixa contração', 'Boa resistência à temperatura'],
-      importante: 'Destinada apenas para uso externo, NÃO é biocompatível'
+      caracteristicas: [
+        'Alta resolução e precisão: Permite visualização detalhada de modelos complexos',
+        'Baixa contração: Minimiza distorções, garantindo modelos precisos',
+        'Boa resistência à temperatura: Suporta calor das plastificadoras a vácuo sem deformar'
+      ],
+      importante: 'Destinada apenas para uso externo, NÃO é biocompatível. Requer uso de EPIs.'
     },
     {
       name: 'Pyroblast+',
-      desc: 'Resina de alta resistência térmica até 238°C (HDT)',
+      desc: 'Resina de alta resistência térmica até 238°C (HDT). Alta rigidez e resistência mecânica.',
       indicacao: 'Moldes de injeção, peças expostas a calor',
-      caracteristicas: ['Resistência térmica até 238°C', 'Alta rigidez', 'Excelente estabilidade dimensional'],
-      cor: 'Cinza escuro'
+      caracteristicas: [
+        'Resistência térmica até 50°C (HDT)',
+        'Alta rigidez e resistência mecânica',
+        'Excelente estabilidade dimensional',
+        'Ideal para moldes de fundição',
+        'Baixa contração pós-cura'
+      ],
+      cor: 'Cinza escuro',
+      observacoes: 'Resina viscosa, agite bem antes de usar. Pós-cura obrigatória em 60°C por 30min'
     },
     {
       name: 'Spark',
       desc: 'Resina de alta precisão e detalhamento',
       indicacao: 'Miniaturas, joias, modelos dentários',
-      caracteristicas: ['Alta precisão e detalhamento', 'Diversas cores disponíveis']
+      caracteristicas: [
+        'Alta precisão e detalhamento',
+        'Diversas cores disponíveis'
+      ]
     },
     {
       name: 'LowSmell',
       desc: 'Resina com baixo odor, ideal para ambientes fechados',
       indicacao: 'Ambientes fechados, uso doméstico, escritórios',
-      caracteristicas: ['Baixo odor', 'Boa precisão', 'Fácil pós-processamento'],
+      caracteristicas: [
+        'Baixo odor',
+        'Boa precisão',
+        'Fácil pós-processamento'
+      ],
       cor: 'Bege/Branco'
     }
   ]
@@ -191,7 +243,7 @@ export function QualityModal({ isOpen, onClose }) {
                     </div>
                     
                     {resina.caracteristicas && resina.caracteristicas.length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 mb-3">
                         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">✨ Características:</p>
                         <ul className="space-y-1">
                           {resina.caracteristicas.map((caract, idx) => (
@@ -201,6 +253,42 @@ export function QualityModal({ isOpen, onClose }) {
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+
+                    {resina.importante && (
+                      <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-red-700 dark:text-red-400"><strong>⚠️ IMPORTANTE:</strong> {resina.importante}</p>
+                      </div>
+                    )}
+
+                    {resina.limitacoes && (
+                      <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-yellow-700 dark:text-yellow-400"><strong>⚡ LIMITAÇÕES:</strong> {resina.limitacoes}</p>
+                      </div>
+                    )}
+
+                    {resina.dica && (
+                      <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-green-700 dark:text-green-400"><strong>💡 DICA:</strong> {resina.dica}</p>
+                      </div>
+                    )}
+
+                    {resina.aplicacoes && (
+                      <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-purple-700 dark:text-purple-400"><strong>🔧 Aplicações:</strong> {resina.aplicacoes}</p>
+                      </div>
+                    )}
+
+                    {resina.cor && (
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-400"><strong>🎨 Cor:</strong> {resina.cor}</p>
+                      </div>
+                    )}
+
+                    {resina.observacoes && (
+                      <div className="bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 mt-2">
+                        <p className="text-xs text-orange-700 dark:text-orange-400"><strong>📋 Observações:</strong> {resina.observacoes}</p>
                       </div>
                     )}
                   </Card>
@@ -254,11 +342,11 @@ export function QualityModal({ isOpen, onClose }) {
                     return (
                       <Card key={index} className="p-6">
                         <div className="flex items-start gap-4">
-                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
+                          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
                             <Icon className="h-6 w-6 text-white" />
                           </div>
                           <div>
-                            <h4 className="font-bold text-lg mb-2">{feature.title}</h4>
+                            <h4 className="font-bold mb-2">{feature.title}</h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{feature.desc}</p>
                           </div>
                         </div>
@@ -266,46 +354,6 @@ export function QualityModal({ isOpen, onClose }) {
                     )
                   })}
                 </div>
-                <Card className="p-6 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-2 border-red-300 dark:border-red-700">
-                  <h4 className="font-bold text-lg mb-3 text-center text-red-700 dark:text-red-400">⚠️ ALERTA: Resinas Chinesas sem Registro</h4>
-                  <div className="space-y-3 text-sm">
-                    <p className="text-gray-700 dark:text-gray-300 font-semibold">
-                      🚨 Cuidado ao usar produtos químicos sem registro no Brasil!
-                    </p>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 space-y-2">
-                      <p className="text-red-600 dark:text-red-400 font-semibold">❌ Riscos de resinas não registradas:</p>
-                      <ul className="space-y-1 ml-4">
-                        <li>• <strong>Saúde:</strong> Composição desconhecida pode causar alergias, irritações ou intoxicação</li>
-                        <li>• <strong>Legal:</strong> Uso de produtos não regulamentados pode gerar responsabilidade civil e criminal</li>
-                        <li>• <strong>Qualidade:</strong> Sem controle de qualidade, resultados imprevisíveis e inconsistências entre lotes</li>
-                        <li>• <strong>Meio Ambiente:</strong> Descarte inadequado de produtos não registrados pode contaminar solo e água</li>
-                        <li>• <strong>Segurança:</strong> Ausência de FISPQ e instruções adequadas de manuseio</li>
-                      </ul>
-                    </div>
-                    <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-4">
-                      <p className="text-green-700 dark:text-green-400 font-semibold">✅ Resinas Quanton3D:</p>
-                      <ul className="space-y-1 ml-4 text-gray-700 dark:text-gray-300">
-                        <li>• Registro completo e conformidade com legislação brasileira</li>
-                        <li>• FISPQ disponível para todas as resinas</li>
-                        <li>• Controle rigoroso de qualidade em cada lote</li>
-                        <li>• Suporte técnico especializado</li>
-                        <li>• Garantia de origem e rastreabilidade</li>
-                      </ul>
-                    </div>
-                  </div>
-                </Card>
-                
-                <Card className="p-6 bg-gradient-to-br from-pink-50 to-red-50 dark:from-pink-950/20 dark:to-red-950/20 border-2 border-pink-200 dark:border-pink-800">
-                  <h4 className="font-bold text-lg mb-3 text-center">📋 Processo de Controle</h4>
-                  <ul className="space-y-2 text-sm">
-                    <li>✓ Análise de matéria-prima antes da produção</li>
-                    <li>✓ Testes de viscosidade e tempo de cura em cada lote</li>
-                    <li>✓ Verificação de resistência mecânica pós-cura</li>
-                    <li>✓ Análise de cor e transparência</li>
-                    <li>✓ Testes de compatibilidade com diferentes impressoras</li>
-                    <li>✓ Documentação completa e rastreabilidade de lotes</li>
-                  </ul>
-                </Card>
               </div>
             )}
           </div>
