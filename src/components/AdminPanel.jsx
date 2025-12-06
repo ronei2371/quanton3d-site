@@ -51,6 +51,7 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
             <option value="deformacao/warping">Deformacao/warping</option>
             <option value="problema de superficie/acabamento">Problema de superficie</option>
             <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+            <option value="problema de LCD">Problema de LCD</option>
             <option value="outro">Outro</option>
           </select>
           <textarea
@@ -1158,6 +1159,31 @@ export function AdminPanel({ onClose }) {
                             )}
                           </div>
                         )}
+                        
+                        {entry.status === 'approved' && isAdmin && (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              onClick={() => {
+                                alert('Funcionalidade de edição em desenvolvimento. Por enquanto, rejeite e adicione novamente.');
+                              }}
+                            >
+                              <Edit3 className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                              onClick={() => rejectGalleryEntry(entry._id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Apagar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Card>
@@ -1267,6 +1293,7 @@ export function AdminPanel({ onClose }) {
                     <option value="deformacao/warping">Deformacao/warping</option>
                     <option value="problema de superficie/acabamento">Problema de superficie</option>
                     <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+                    <option value="problema de LCD">Problema de LCD</option>
                     <option value="outro">Outro</option>
                   </select>
                 </div>
