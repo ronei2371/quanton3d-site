@@ -120,8 +120,7 @@ function App() {
                 <ChevronRight className="ml-1 h-5 w-5" />
               </Button>
               <Button 
-                variant="outline" 
-                className="px-8 py-6 text-lg"
+                className="neon-button text-lg flex items-center gap-2"
                 onClick={() => setIsAboutModalOpen(true)}
               >
                 Saiba Mais
