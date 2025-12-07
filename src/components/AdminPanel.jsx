@@ -1528,6 +1528,37 @@ export function AdminPanel({ onClose }) {
                             {entry.comment}
                           </p>
                         )}
+
+                        {/* Configuracoes de Impressao */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2">Configuracoes de Impressao</p>
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div><span className="text-gray-500">Altura Camada:</span> <span className="font-medium">{entry.layerHeight || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Camadas Base:</span> <span className="font-medium">{entry.baseLayers || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Tempo Exp.:</span> <span className="font-medium">{entry.exposureTime || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Tempo Exp. Base:</span> <span className="font-medium">{entry.baseExposureTime || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Camadas Trans.:</span> <span className="font-medium">{entry.transitionLayers || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Atraso UV:</span> <span className="font-medium">{entry.uvOffDelay || 'N/A'}</span></div>
+                          </div>
+                          
+                          {/* Distancias */}
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Distancias (mm)</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{entry.lowerLiftDistance1 || 'N/A'} / {entry.lowerLiftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{entry.liftDistance1 || 'N/A'} / {entry.liftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{entry.lowerRetractDistance1 || 'N/A'} / {entry.lowerRetractDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{entry.retractDistance1 || 'N/A'} / {entry.retractDistance2 || 'N/A'}</span></div>
+                          </div>
+                          
+                          {/* Velocidades */}
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Velocidades (mm/s)</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{entry.lowerLiftSpeed1 || 'N/A'} / {entry.lowerLiftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{entry.liftSpeed1 || 'N/A'} / {entry.liftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{entry.lowerRetractSpeed1 || 'N/A'} / {entry.lowerRetractSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{entry.retractSpeed1 || 'N/A'} / {entry.retractSpeed2 || 'N/A'}</span></div>
+                          </div>
+                        </div>
                         
                         {entry.status === 'pending' && (
                           <div className="flex gap-2">

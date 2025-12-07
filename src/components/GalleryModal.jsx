@@ -31,14 +31,26 @@ export function GalleryModal({ isOpen, onClose }) {
     baseExposureTime: '',
     transitionLayers: '',
     uvOffDelay: '',
+    // Distancias de Elevacao
     lowerLiftDistance1: '',
     lowerLiftDistance2: '',
     liftDistance1: '',
     liftDistance2: '',
+    // Distancias de Retracao (NOVO)
+    lowerRetractDistance1: '',
+    lowerRetractDistance2: '',
+    retractDistance1: '',
+    retractDistance2: '',
+    // Velocidades de Elevacao Inferior (NOVO)
+    lowerLiftSpeed1: '',
+    lowerLiftSpeed2: '',
+    // Velocidades de Elevacao Normal
     liftSpeed1: '',
     liftSpeed2: '',
+    // Velocidades de Retracao Inferior
     lowerRetractSpeed1: '',
     lowerRetractSpeed2: '',
+    // Velocidades de Retracao Normal
     retractSpeed1: '',
     retractSpeed2: ''
   });
@@ -496,7 +508,77 @@ export function GalleryModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Campos duplos - Velocidades de Elevacao */}
+                {/* Campos duplos - Distancias de Retracao */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Distancias de Retracao (mm)</p>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-24">Inferior:</span>
+                      <input
+                        type="text"
+                        value={formData.lowerRetractDistance1}
+                        onChange={(e) => setFormData({ ...formData, lowerRetractDistance1: e.target.value })}
+                        placeholder="Valor 1"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={formData.lowerRetractDistance2}
+                        onChange={(e) => setFormData({ ...formData, lowerRetractDistance2: e.target.value })}
+                        placeholder="Valor 2"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-24">Normal:</span>
+                      <input
+                        type="text"
+                        value={formData.retractDistance1}
+                        onChange={(e) => setFormData({ ...formData, retractDistance1: e.target.value })}
+                        placeholder="Valor 1"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        value={formData.retractDistance2}
+                        onChange={(e) => setFormData({ ...formData, retractDistance2: e.target.value })}
+                        placeholder="Valor 2"
+                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campos duplos - Velocidades de Elevacao Inferior */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Velocidades de Elevacao Inferior (mm/s)</p>
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Vel. Inferior 1 (Lento)</label>
+                      <input
+                        type="text"
+                        value={formData.lowerLiftSpeed1}
+                        onChange={(e) => setFormData({ ...formData, lowerLiftSpeed1: e.target.value })}
+                        placeholder="75"
+                        className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Vel. Inferior 2 (Rapido)</label>
+                      <input
+                        type="text"
+                        value={formData.lowerLiftSpeed2}
+                        onChange={(e) => setFormData({ ...formData, lowerLiftSpeed2: e.target.value })}
+                        placeholder="235"
+                        className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campos duplos - Velocidades de Elevacao Normal */}
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
                   <p className="text-xs font-medium text-gray-500 mb-2">Velocidades de Elevacao (mm/s)</p>
                   
