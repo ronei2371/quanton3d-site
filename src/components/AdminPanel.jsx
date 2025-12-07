@@ -1470,14 +1470,14 @@ export function AdminPanel({ onClose }) {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : galleryEntries.length === 0 ? (
+            ) : galleryEntries.filter(e => e.status !== 'rejected').length === 0 ? (
               <Card className="p-8 text-center">
                 <Image className="h-16 w-16 mx-auto mb-4 opacity-30" />
                 <p className="text-gray-500">Nenhuma foto na galeria ainda.</p>
               </Card>
             ) : (
               <div className="grid gap-4">
-                {galleryEntries.map((entry) => (
+                {galleryEntries.filter(e => e.status !== 'rejected').map((entry) => (
                   <Card key={entry._id} className="p-4">
                     <div className="flex gap-4">
                       {/* Images */}

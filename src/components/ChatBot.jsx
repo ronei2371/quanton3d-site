@@ -123,7 +123,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
 
   const handleUserFormSubmit = async (e) => {
     e.preventDefault();
-    if (!userData.name || !userData.phone || !userData.email || !userData.resin) {
+    if (!userData.name || !userData.phone || !userData.email || !userData.resin || !userData.problemType) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
@@ -336,30 +336,44 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                   className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 />
-                                                                <select
-                                                  value={userData.resin}
-                                                  onChange={(e) => setUserData({ ...userData, resin: e.target.value })}
-                                                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                                  required
-                                                >
-                                                  <option value="">Qual resina você utiliza? *</option>
-                                                  <option value="Pyroblast+">Pyroblast+</option>
-                                                  <option value="Iron">Iron</option>
-                                                  <option value="Iron 7030">Iron 7030</option>
-                                                  <option value="Spin+">Spin+</option>
-                                                  <option value="Spark">Spark</option>
-                                                  <option value="FlexForm">FlexForm</option>
-                                                  <option value="Castable">Castable</option>
-                                                  <option value="Low Smell">Low Smell</option>
-                                                  <option value="Spare">Spare</option>
-                                                  <option value="ALCHEMIST">ALCHEMIST</option>
-                                                  <option value="POSEIDON">POSEIDON</option>
-                                                  <option value="RPG">RPG</option>
-                                                  <option value="Athon ALINHADORES">Athon ALINHADORES</option>
-                                                  <option value="Athon DENTAL">Athon DENTAL</option>
-                                                  <option value="Athon GENGIVA">Athon GENGIVA</option>
-                                                  <option value="Athon WASHABLE">Athon WASHABLE</option>
-                                                </select>
+                <select
+                  value={userData.problemType || ''}
+                  onChange={(e) => setUserData({ ...userData, problemType: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                >
+                  <option value="">Qual o seu problema? *</option>
+                  <option value="Adesao">Adesão na plataforma</option>
+                  <option value="Configuracao">Configuração de parâmetros</option>
+                  <option value="Qualidade">Qualidade da impressão</option>
+                  <option value="Problema de LCD / Tela">Problema de LCD / Tela</option>
+                  <option value="Resina">Dúvida sobre resina</option>
+                  <option value="Outro">Outro problema</option>
+                </select>
+                <select
+                  value={userData.resin}
+                  onChange={(e) => setUserData({ ...userData, resin: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                >
+                  <option value="">Qual resina você utiliza? *</option>
+                  <option value="Pyroblast+">Pyroblast+</option>
+                  <option value="Iron">Iron</option>
+                  <option value="Iron 7030">Iron 7030</option>
+                  <option value="Spin+">Spin+</option>
+                  <option value="Spark">Spark</option>
+                  <option value="FlexForm">FlexForm</option>
+                  <option value="Castable">Castable</option>
+                  <option value="Low Smell">Low Smell</option>
+                  <option value="Spare">Spare</option>
+                  <option value="ALCHEMIST">ALCHEMIST</option>
+                  <option value="POSEIDON">POSEIDON</option>
+                  <option value="RPG">RPG</option>
+                  <option value="Athon ALINHADORES">Athon ALINHADORES</option>
+                  <option value="Athon DENTAL">Athon DENTAL</option>
+                  <option value="Athon GENGIVA">Athon GENGIVA</option>
+                  <option value="Athon WASHABLE">Athon WASHABLE</option>
+                </select>
                 <button
                   type="submit"
                   className="w-full p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold"

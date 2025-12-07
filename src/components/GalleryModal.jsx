@@ -502,22 +502,22 @@ export function GalleryModal({ isOpen, onClose }) {
                   
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-500 mb-1">Inferior (Baixa)</label>
+                      <label className="block text-xs text-gray-500 mb-1">Lift Speed 1 (Lento)</label>
                       <input
                         type="text"
                         value={formData.liftSpeed1}
                         onChange={(e) => setFormData({ ...formData, liftSpeed1: e.target.value })}
-                        placeholder="Ex: 1.5"
+                        placeholder="Lift Speed 1 (Lento)"
                         className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-500 mb-1">Normal (Alta)</label>
+                      <label className="block text-xs text-gray-500 mb-1">Lift Speed 2 (Rapido)</label>
                       <input
                         type="text"
                         value={formData.liftSpeed2}
                         onChange={(e) => setFormData({ ...formData, liftSpeed2: e.target.value })}
-                        placeholder="Ex: 4.0"
+                        placeholder="Lift Speed 2 (Rapido)"
                         className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -528,39 +528,25 @@ export function GalleryModal({ isOpen, onClose }) {
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                   <p className="text-xs font-medium text-gray-500 mb-2">Velocidades de Retracao (mm/s)</p>
                   
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-24">Inferior:</span>
-                      <input
-                        type="text"
-                        value={formData.lowerRetractSpeed1}
-                        onChange={(e) => setFormData({ ...formData, lowerRetractSpeed1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
-                      />
-                      <input
-                        type="text"
-                        value={formData.lowerRetractSpeed2}
-                        onChange={(e) => setFormData({ ...formData, lowerRetractSpeed2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-24">Normal:</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Retract Speed 1 (Rapido)</label>
                       <input
                         type="text"
                         value={formData.retractSpeed1}
                         onChange={(e) => setFormData({ ...formData, retractSpeed1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                        placeholder="Retract Speed 1 (Rapido)"
+                        className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Retract Speed 2 (Lento)</label>
                       <input
                         type="text"
                         value={formData.retractSpeed2}
                         onChange={(e) => setFormData({ ...formData, retractSpeed2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                        placeholder="Retract Speed 2 (Lento)"
+                        className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   </div>
