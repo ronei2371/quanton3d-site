@@ -4,20 +4,22 @@
 // Total: 259 combinações | 14 resinas | 29 impressoras
 
 export const resinList = [
-  "Alchemist",
-  "Athom Alinhadores",
-  "Athom Castable",
-  "Athom Castable 2",
-  "Athom Dental",
-  "Athom Gengiva",
-  "Athom Washable",
-  "Iron",
-  "LowSmell",
-  "Poseidon",
   "Pyroblast+",
-  "RPG 4K",
-  "Spark",
+  "Iron",
+  "Iron 7030",
   "Spin+",
+  "Spark",
+  "FlexForm",
+  "Castable",
+  "Low Smell",
+  "Spare",
+  "ALCHEMIST",
+  "POSEIDON",
+  "RPG",
+  "Athon ALINHADORES",
+  "Athon DENTAL",
+  "Athon GENGIVA",
+  "Athon WASHABLE",
 ];
 
 export const printerList = [
