@@ -105,6 +105,8 @@ export function AdminPanel({ onClose }) {
     const [knowledgeTitle, setKnowledgeTitle] = useState('')
     const [knowledgeContent, setKnowledgeContent] = useState('')
     const [addingKnowledge, setAddingKnowledge] = useState(false)
+    const [knowledgeDocuments, setKnowledgeDocuments] = useState([])
+    const [knowledgeLoading, setKnowledgeLoading] = useState(false)
     const [customRequests, setCustomRequests] = useState([])
     const [editingSuggestion, setEditingSuggestion] = useState(null)
     const [editedText, setEditedText] = useState('')
@@ -205,6 +207,43 @@ export function AdminPanel({ onClose }) {
         console.error('Erro ao carregar galeria:', error)
       } finally {
         setGalleryLoading(false)
+      }
+    }
+
+    // Funcoes para Gestao de Conhecimento (documentos de texto)
+    const loadKnowledgeDocuments = async () => {
+      setKnowledgeLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/knowledge?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setKnowledgeDocuments(data.documents || [])
+      } catch (error) {
+        console.error('Erro ao carregar documentos de conhecimento:', error)
+      } finally {
+        setKnowledgeLoading(false)
+      }
+    }
+
+    const deleteKnowledgeDocument = async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar este documento? Esta acao nao pode ser desfeita.')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/knowledge/${id}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          alert('Documento deletado com sucesso!')
+          loadKnowledgeDocuments()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar documento:', error)
+        alert('Erro ao deletar documento')
       }
     }
 
@@ -432,7 +471,7 @@ export function AdminPanel({ onClose }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); loadVisualKnowledge(); }} disabled={loading}>
+            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); loadVisualKnowledge(); loadKnowledgeDocuments(); }} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
             </Button>
             {onClose && (
@@ -461,14 +500,14 @@ export function AdminPanel({ onClose }) {
             <MessageSquare className="h-4 w-4 mr-2" />
             Sugestões ({suggestions.length})
           </Button>
-          <Button 
-            onClick={() => setActiveTab('knowledge')}
-            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
-            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Gestão de Conhecimento
-          </Button>
+                    <Button 
+                      onClick={() => { setActiveTab('knowledge'); loadKnowledgeDocuments(); }}
+                      variant={activeTab === 'knowledge' ? 'default' : 'outline'}
+                      className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Gestão de Conhecimento
+                    </Button>
           <Button 
             onClick={() => setActiveTab('custom')}
             variant={activeTab === 'custom' ? 'default' : 'outline'}
@@ -711,18 +750,70 @@ export function AdminPanel({ onClose }) {
               </div>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-xl font-bold mb-4">💡 Dicas de Uso</h3>
-              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <li>• <strong>Seja específico:</strong> Quanto mais detalhado o conteúdo, melhor o bot responderá</li>
-                <li>• <strong>Use linguagem natural:</strong> Escreva como se estivesse explicando para um cliente</li>
-                <li>• <strong>Organize por tópicos:</strong> Use títulos claros que facilitem a busca semântica</li>
-                <li>• <strong>Inclua exemplos:</strong> Casos práticos ajudam o bot a contextualizar respostas</li>
-                <li>• <strong>Atualize regularmente:</strong> Adicione novos conhecimentos conforme surgem dúvidas frequentes</li>
-              </ul>
-            </Card>
-          </div>
-        )}
+                    <Card className="p-6">
+                      <h3 className="text-xl font-bold mb-4">💡 Dicas de Uso</h3>
+                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li>• <strong>Seja específico:</strong> Quanto mais detalhado o conteúdo, melhor o bot responderá</li>
+                        <li>• <strong>Use linguagem natural:</strong> Escreva como se estivesse explicando para um cliente</li>
+                        <li>• <strong>Organize por tópicos:</strong> Use títulos claros que facilitem a busca semântica</li>
+                        <li>• <strong>Inclua exemplos:</strong> Casos práticos ajudam o bot a contextualizar respostas</li>
+                        <li>• <strong>Atualize regularmente:</strong> Adicione novos conhecimentos conforme surgem dúvidas frequentes</li>
+                      </ul>
+                    </Card>
+
+                    <Card className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Documentos de Conhecimento ({knowledgeDocuments.length})
+                        </h3>
+                        <Button onClick={loadKnowledgeDocuments} variant="outline" size="sm" disabled={knowledgeLoading}>
+                          {knowledgeLoading ? 'Carregando...' : 'Atualizar Lista'}
+                        </Button>
+                      </div>
+              
+                      {knowledgeLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                        </div>
+                      ) : knowledgeDocuments.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>Nenhum documento de conhecimento encontrado</p>
+                          <p className="text-sm">Adicione conhecimentos usando o formulario acima</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {knowledgeDocuments.map((doc) => (
+                            <div key={doc._id} className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-sm truncate">{doc.title || 'Sem titulo'}</h4>
+                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                  {doc.content ? doc.content.substring(0, 150) + (doc.content.length > 150 ? '...' : '') : 'Sem conteudo'}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                                  {doc.source && <span className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded">{doc.source}</span>}
+                                  {doc.createdAt && <span>{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</span>}
+                                </div>
+                              </div>
+                              {isAdmin && (
+                                <Button
+                                  onClick={() => deleteKnowledgeDocument(doc._id)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-100"
+                                  title="Excluir documento"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                )}
 
         {activeTab === 'custom' && (
           <div className="space-y-4">

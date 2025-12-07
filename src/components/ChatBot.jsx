@@ -19,7 +19,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const fileInputRef = useRef(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
-  const [userData, setUserData] = useState({ name: '', phone: '', email: '' });
+  const [userData, setUserData] = useState({ name: '', phone: '', email: '', resin: '' });
   const [userRegistered, setUserRegistered] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
@@ -123,7 +123,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
 
   const handleUserFormSubmit = async (e) => {
     e.preventDefault();
-    if (!userData.name || !userData.phone || !userData.email) {
+    if (!userData.name || !userData.phone || !userData.email || !userData.resin) {
       alert('Por favor, preencha todos os campos.');
       return;
     }
@@ -336,6 +336,21 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                   className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   required
                 />
+                <select
+                  value={userData.resin}
+                  onChange={(e) => setUserData({ ...userData, resin: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                >
+                  <option value="">Qual resina você utiliza? *</option>
+                  <option value="Pyroblast+">Pyroblast+</option>
+                  <option value="Iron 7030">Iron 7030</option>
+                  <option value="Spin+">Spin+</option>
+                  <option value="Spark">Spark</option>
+                  <option value="FlexForm">FlexForm</option>
+                  <option value="Castable">Castable</option>
+                  <option value="Outra">Outra</option>
+                </select>
                 <button
                   type="submit"
                   className="w-full p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold"
