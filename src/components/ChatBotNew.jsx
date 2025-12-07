@@ -1,78 +1,109 @@
-// Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
+// Arquivo: quanton3d-site/src/components/ChatBotNew.jsx - CORRIGIDO
 
-// ... (Mantenha todo o código antes de 'const handleSubmit' inalterado) ...
+import { useState, useRef, useEffect } from 'react';
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// URL do backend - usa variavel de ambiente ou fallback para producao
+const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
+
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [suggestionText, setSuggestionText] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const fileInputRef = useRef(null);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
+  const [userData, setUserData] = useState({ name: '', phone: '', email: '', resin: '' });
+  const [userRegistered, setUserRegistered] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+  // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
+  const [lastUserMessage, setLastUserMessage] = useState('');
+  const [lastBotReply, setLastBotReply] = useState('');
+  
+  const endOfMessagesRef = useRef(null);
+
+  const toggleOpen = () => setIsOpen(!isOpen);
+
+  // Define a mensagem inicial com base no modo
+  useEffect(() => {
+    let initialText = '';
+    if (mode === 'suporte') {
+      initialText = 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
+    } else if (mode === 'vendas') {
+      initialText = 'Olá! Você está no modo "Vendas e Produtos". Posso ajudar a encontrar a resina ideal ou falar sobre nossos produtos?';
+    } else {
+      initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
+    }
+    setMessages([{ id: 1, sender: 'bot', text: initialText }]);
+    // Mostrar formulário de cadastro imediatamente ao abrir o chat
+    if (!userRegistered) {
+      setTimeout(() => setShowUserForm(true), 500);
+    }
+  }, [mode, userRegistered]);
+
+
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-    const userMessage = { id: Date.now(), sender: 'user', text: inputValue };
+    if ((!inputValue.trim() && !selectedImage) || isLoading) return;
+    
+    // Bloquear envio se usuário não estiver registrado
+    if (!userRegistered) {
+      setShowUserForm(true);
+      return;
+    }
+    
+    const userMessage = { 
+      id: Date.now(), 
+      sender: 'user', 
+      text: inputValue || '📷 Imagem enviada',
+      image: selectedImage ? URL.createObjectURL(selectedImage) : null
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-
-    let botResponseText = 'Não consegui processar sua resposta.'; 
-
+    
     try {
-        // =================================================================
-        // INCLUSÃO DO RAG (1. Tenta o Conhecimento de Especialista)
-        // =================================================================
-        const RAG_ENDPOINT = '/.netlify/functions/rag-handler'; // Endpoint da Função Netlify rag-handler.js
+      let response;
+      
+      if (selectedImage) {
+        // Upload com imagem
+        const formData = new FormData();
+        formData.append('image', selectedImage);
+        formData.append('message', inputValue || 'Analise esta imagem');
+        formData.append('sessionId', sessionId);
         
-        let ragAnswer = null;
-
-        try {
-            const ragResponse = await fetch(RAG_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: userMessage.text }),
-            });
-
-            if (ragResponse.ok) {
-                const ragData = await ragResponse.json();
-                
-                // Se a função RAG encontrou informação nos 185 chunks (foundContext: true):
-                if (ragData.foundContext) {
-                    ragAnswer = ragData.answer; // Usa a resposta do RAG
-                }
-            } else {
-                 console.warn('Função RAG retornou erro, caindo para IA básica:', ragResponse.status);
-            }
-        } catch(ragError) {
-             console.error('Erro de rede/execução da Função RAG, caindo para IA básica:', ragError);
-        }
-
-        // SE O RAG RETORNOU UMA RESPOSTA VÁLIDA (CONHECIMENTO DE ESPECIALISTA)
-        if (ragAnswer) {
-            botResponseText = ragAnswer;
-        } 
-        
-        // =================================================================
-        // CÓDIGO ORIGINAL DO MANUS (2. Fallback para IA Básica) - PRESERVADO
-        // =================================================================
-        else { 
-            // Se o RAG NÃO encontrou contexto (ragAnswer é null), EXECUTAMOS O CÓDIGO ORIGINAL
-            
-            const response = await fetch(`${API_URL}/ask`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage.text, sessionId: sessionId }),
-            });
-            
-            if (!response.ok) { 
-                throw new Error('Ocorreu um erro ao conectar com a IA original.'); 
-            }
-            
-            const data = await response.json();
-            botResponseText = data.reply || 'Não consegui processar sua resposta na IA básica.';
-        }
-        
-        // =================================================================
-        // FINALIZAÇÃO (Exibe a resposta)
-        // =================================================================
-        
-        const botMessage = { id: Date.now() + 1, sender: 'bot', text: botResponseText };
-        setMessages((prev) => [...prev, botMessage]);
-
+        response = await fetch(`${API_URL}/ask-with-image`, {
+          method: 'POST',
+          body: formData,
+        });
+        setSelectedImage(null);
+      } else {
+        // Mensagem normal
+        response = await fetch(`${API_URL}/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
+        });
+      }
+      
+      if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
+      const data = await response.json();
+      const botText = data.reply || 'Não consegui processar sua resposta.';
+      const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
+      setMessages((prev) => [...prev, botMessage]);
+      
+      // Armazenar ultima pergunta e resposta para uso nas sugestoes
+      setLastUserMessage(userMessage.text);
+      setLastBotReply(botText);
     } catch (error) {
       console.error('Erro na API:', error);
       const errorMessage = { id: Date.now() + 1, sender: 'bot', text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.' };
@@ -81,5 +112,423 @@
       setIsLoading(false);
     }
   };
-  
-// ... (Mantenha todo o código após 'const handleSubmit' inalterado) ...
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+    }
+  };
+
+  const handleUserFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!userData.name || !userData.phone || !userData.email || !userData.resin || !userData.problemType) {
+      alert('Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    // Validacao de telefone: apenas digitos, minimo 10 caracteres (DDD + numero)
+    const phoneDigits = userData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      setPhoneError('Telefone invalido. Informe um numero com DDD (minimo 10 digitos).');
+      return;
+    }
+    setPhoneError(''); // Limpar erro se validacao passar
+    
+    try {
+      const response = await fetch(`${API_URL}/register-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...userData, sessionId }),
+      });
+      
+      if (response.ok) {
+        setUserRegistered(true);
+        setShowUserForm(false);
+        setShowWelcomeScreen(true); // Mostrar tela de boas-vindas
+      }
+    } catch (error) {
+      console.error('Erro ao registrar usuário:', error);
+    }
+  };
+
+  const handleSuggestionSubmit = async () => {
+    if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
+    
+    // Verificar se ha contexto de conversa
+    if (!lastUserMessage && !lastBotReply) {
+      alert('Por favor, faca uma pergunta primeiro antes de enviar uma sugestao de correcao.');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Enviar sugestao com contexto completo (pergunta + resposta + dados do usuario)
+      const payload = {
+        suggestion: suggestionText,
+        userName: userData?.name || 'Usuario do Site',
+        userPhone: userData?.phone || null,
+        sessionId,
+        lastUserMessage,
+        lastBotReply
+      };
+      
+      const response = await fetch(`${API_URL}/suggest-knowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) { throw new Error('Não foi possível enviar sua sugestão.'); }
+      const data = await response.json();
+      alert(data.message || 'Obrigado! Sua sugestão foi enviada.');
+      setSuggestionText('');
+      setShowSuggestion(false);
+    } catch (error) {
+      console.error('Erro ao enviar sugestão:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md:max-h-[850px] shadow-2xl rounded-lg flex flex-col z-50 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
+        <div className="flex items-center gap-3">
+          <img src="/assets/robot-icon.png" alt="Bot" className="h-8 w-8" />
+          <div>
+            <h3 className="font-bold">Quanton3D IA</h3>
+            <p className="text-xs opacity-80">Assistente Virtual GPT</p>
+          </div>
+        </div>
+        <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Tela de Boas-Vindas */}
+      <AnimatePresence>
+        {showWelcomeScreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 50 }}
+              transition={{ type: 'spring', bounce: 0.4 }}
+              className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-lg w-full text-center"
+            >
+              <motion.img
+                src="/robot-welcome-quanton.png"
+                alt="Quanton3D 24/7 com você"
+                className="w-full max-w-md mx-auto mb-6 rounded-lg shadow-lg"
+                animate={{ 
+                  scale: [1, 1.02, 1],
+                  opacity: [0.95, 1, 0.95]
+                }}
+                transition={{ 
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: 'easeInOut'
+                }}
+              />
+              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Bem-vindo(a), {userData.name}! 🎉
+              </h2>
+              <p className="text-lg text-gray-700 dark:text-gray-300 mb-6">
+                Obrigado por escolher a <span className="font-bold text-purple-600">Quanton3D</span>! 
+                Estou aqui para te ajudar com tudo sobre impressão 3D e resinas UV.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  💡 <strong>Dica:</strong> Pergunte sobre resinas, troubleshooting, parâmetros de impressão ou qualquer dúvida técnica!
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowWelcomeScreen(false);
+                  const botMessage = { 
+                    id: Date.now(), 
+                    sender: 'bot', 
+                    text: `Olá ${userData.name}! Estou pronto para te ajudar. Como posso te auxiliar hoje?` 
+                  };
+                  setMessages((prev) => [...prev, botMessage]);
+                }}
+                className="w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 font-bold text-lg shadow-lg"
+              >
+                🚀 Começar Agora!
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Cadastro de Usuário */}
+      <AnimatePresence>
+        {showUserForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full"
+            >
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                👋 Olá! Vamos nos conhecer?
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Para te atender melhor, por favor preencha seus dados:
+              </p>
+              <form onSubmit={handleUserFormSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Seu nome"
+                  value={userData.name}
+                  onChange={(e) => setUserData({ ...userData, name: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+                <div>
+                  <input
+                    type="tel"
+                    placeholder="Seu telefone (com DDD)"
+                    value={userData.phone}
+                    onChange={(e) => {
+                      setUserData({ ...userData, phone: e.target.value });
+                      setPhoneError(''); // Limpar erro ao digitar
+                    }}
+                    className={`w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white ${phoneError ? 'border-red-500 border-2' : ''}`}
+                    required
+                  />
+                  {phoneError && (
+                    <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+                  )}
+                </div>
+                <input
+                  type="email"
+                  placeholder="Seu e-mail"
+                  value={userData.email}
+                  onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+                <select
+                  value={userData.problemType || ''}
+                  onChange={(e) => setUserData({ ...userData, problemType: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                >
+                  <option value="">Qual o seu problema? *</option>
+                  <option value="Adesao">Adesão na plataforma</option>
+                  <option value="Configuracao">Configuração de parâmetros</option>
+                  <option value="Qualidade">Qualidade da impressão</option>
+                  <option value="Problema de LCD / Tela">Problema de LCD / Tela</option>
+                  <option value="Resina">Dúvida sobre resina</option>
+                  <option value="Outro">Outro problema</option>
+                </select>
+                <select
+                  value={userData.resin}
+                  onChange={(e) => setUserData({ ...userData, resin: e.target.value })}
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                >
+                  <option value="">Qual resina você utiliza? *</option>
+                  <option value="Pyroblast+">Pyroblast+</option>
+                  <option value="Iron">Iron</option>
+                  <option value="Iron 7030">Iron 7030</option>
+                  <option value="Spin+">Spin+</option>
+                  <option value="Spark">Spark</option>
+                  <option value="FlexForm">FlexForm</option>
+                  <option value="Castable">Castable</option>
+                  <option value="Low Smell">Low Smell</option>
+                  <option value="Spare">Spare</option>
+                  <option value="ALCHEMIST">ALCHEMIST</option>
+                  <option value="POSEIDON">POSEIDON</option>
+                  <option value="RPG">RPG</option>
+                  <option value="Athon ALINHADORES">Athon ALINHADORES</option>
+                  <option value="Athon DENTAL">Athon DENTAL</option>
+                  <option value="Athon GENGIVA">Athon GENGIVA</option>
+                  <option value="Athon WASHABLE">Athon WASHABLE</option>
+                </select>
+                <button
+                  type="submit"
+                  className="w-full p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold"
+                >
+                  Enviar
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Area de Mensagens - Fundo com Circuitos (sem overlay para mostrar circuitos) */}
+      <div 
+        className="flex-1 p-4 overflow-y-auto space-y-4 relative"
+        style={{ 
+          minHeight: '400px',
+          backgroundImage: 'url(/circuit-bg.gif)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'local'
+        }}
+      >
+        {/* Sem overlay - circuitos sempre visiveis */}
+        <div className="space-y-4 relative z-10">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`p-3 rounded-lg max-w-[80%] shadow-md ${
+                  msg.sender === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                }`}
+              >
+                {msg.image && (
+                  <img src={msg.image} alt="Imagem enviada" className="w-full rounded-lg mb-2" />
+                )}
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
+                <div className="flex gap-2 items-center">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={endOfMessagesRef} />
+        </div>
+      </div>
+
+      {/* Botão de Sugestão (o "💡") */}
+      <div className="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        
+        <AnimatePresence>
+          {showSuggestion && (
+             <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
+                  Descreva a informação que você gostaria que fosse adicionada.
+                </p>
+                <textarea
+                  value={suggestionText}
+                  onChange={(e) => setSuggestionText(e.target.value)}
+                  className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
+                  rows={3}
+                  placeholder="Ex: A resina X funciona bem com..."
+                  disabled={isLoading}
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button 
+                    onClick={() => setShowSuggestion(false)}
+                    className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-gray-400 to-gray-500 text-white hover:from-gray-500 hover:to-gray-600 font-semibold shadow-md transition-all"
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSuggestionSubmit}
+                    className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 font-semibold shadow-md transition-all"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Enviando...' : '✨ Enviar Sugestão'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button 
+          onClick={() => setShowSuggestion(!showSuggestion)}
+          className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg transition-all ${showSuggestion ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+        >
+          <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
+        </button>
+        
+        {/* Preview da imagem selecionada */}
+        {selectedImage && (
+          <div className="mb-2 relative inline-block">
+            <img 
+              src={URL.createObjectURL(selectedImage)} 
+              alt="Preview" 
+              className="w-20 h-20 object-cover rounded-lg border-2 border-blue-500"
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow-lg hover:scale-110 transition-transform"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
+        {/* Input de Chat */}
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            accept="image/*"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:bg-gray-400 shadow-md transition-all hover:scale-105"
+            disabled={isLoading}
+          >
+            <ImagePlus size={20} />
+          </button>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="flex-1 p-3 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
+            placeholder="Digite sua mensagem..."
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-400 shadow-md transition-all hover:scale-105"
+            disabled={isLoading}
+          >
+            <Send size={20} />
+          </button>
+        </form>
+      </div>
+    </motion.div>
+  );
+}
