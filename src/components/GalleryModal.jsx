@@ -1,5 +1,5 @@
 // Componente: GalleryModal.jsx
-// Galeria de fotos de impressoes 3D com upload e visualizacao - CORRIGIDO
+// Galeria de fotos de impressoes 3D com upload e visualizacao
 
 import { useState, useEffect } from 'react';
 import { X, Upload, Image, Camera, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
@@ -460,36 +460,36 @@ export function GalleryModal({ isOpen, onClose }) {
                   
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-24">Estágio 1:</span>
+                      <span className="text-xs text-gray-500 w-24">Inferior:</span>
                       <input
                         type="text"
                         value={formData.lowerLiftDistance1}
                         onChange={(e) => setFormData({ ...formData, lowerLiftDistance1: e.target.value })}
-                        placeholder="Inferior"
+                        placeholder="Valor 1"
                         className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                       <input
                         type="text"
                         value={formData.lowerLiftDistance2}
                         onChange={(e) => setFormData({ ...formData, lowerLiftDistance2: e.target.value })}
-                        placeholder="Inferior"
+                        placeholder="Valor 2"
                         className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 w-24">Estágio 2:</span>
+                      <span className="text-xs text-gray-500 w-24">Normal:</span>
                       <input
                         type="text"
                         value={formData.liftDistance1}
                         onChange={(e) => setFormData({ ...formData, liftDistance1: e.target.value })}
-                        placeholder="Normal"
+                        placeholder="Valor 1"
                         className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                       <input
                         type="text"
                         value={formData.liftDistance2}
                         onChange={(e) => setFormData({ ...formData, liftDistance2: e.target.value })}
-                        placeholder="Normal"
+                        placeholder="Valor 2"
                         className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -507,17 +507,17 @@ export function GalleryModal({ isOpen, onClose }) {
                         type="text"
                         value={formData.liftSpeed1}
                         onChange={(e) => setFormData({ ...formData, liftSpeed1: e.target.value })}
-                        placeholder="Ex: 60"
+                        placeholder="Lift Speed 1 (Lento)"
                         className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-500 mb-1">Lift Speed 2 (Rápido)</label>
+                      <label className="block text-xs text-gray-500 mb-1">Lift Speed 2 (Rapido)</label>
                       <input
                         type="text"
                         value={formData.liftSpeed2}
                         onChange={(e) => setFormData({ ...formData, liftSpeed2: e.target.value })}
-                        placeholder="Ex: 180"
+                        placeholder="Lift Speed 2 (Rapido)"
                         className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -530,12 +530,12 @@ export function GalleryModal({ isOpen, onClose }) {
                   
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <label className="block text-xs text-gray-500 mb-1">Retract Speed 1 (Rápido)</label>
+                      <label className="block text-xs text-gray-500 mb-1">Retract Speed 1 (Rapido)</label>
                       <input
                         type="text"
                         value={formData.retractSpeed1}
                         onChange={(e) => setFormData({ ...formData, retractSpeed1: e.target.value })}
-                        placeholder="Ex: 180"
+                        placeholder="Retract Speed 1 (Rapido)"
                         className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -545,7 +545,7 @@ export function GalleryModal({ isOpen, onClose }) {
                         type="text"
                         value={formData.retractSpeed2}
                         onChange={(e) => setFormData({ ...formData, retractSpeed2: e.target.value })}
-                        placeholder="Ex: 60"
+                        placeholder="Retract Speed 2 (Lento)"
                         className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -760,10 +760,10 @@ export function GalleryModal({ isOpen, onClose }) {
                             <p className="text-xs text-gray-500 mb-1">Distancias (mm):</p>
                             <div className="grid grid-cols-2 gap-1 text-xs">
                               {selectedEntry.params.lowerLiftDistance?.value1 && (
-                                <div>Estágio 1: {selectedEntry.params.lowerLiftDistance.value1} / {selectedEntry.params.lowerLiftDistance.value2}</div>
+                                <div>Inferior: {selectedEntry.params.lowerLiftDistance.value1} / {selectedEntry.params.lowerLiftDistance.value2}</div>
                               )}
                               {selectedEntry.params.liftDistance?.value1 && (
-                                <div>Estágio 2: {selectedEntry.params.liftDistance.value1} / {selectedEntry.params.liftDistance.value2}</div>
+                                <div>Normal: {selectedEntry.params.liftDistance.value1} / {selectedEntry.params.liftDistance.value2}</div>
                               )}
                             </div>
                           </div>
