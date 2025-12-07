@@ -129,6 +129,14 @@ export function AdminPanel({ onClose }) {
     const [visualDiagnosis, setVisualDiagnosis] = useState('')
     const [visualSolution, setVisualSolution] = useState('')
     const [addingVisual, setAddingVisual] = useState(false)
+    // Estados para modal de detalhes de resina (CORRECAO 3)
+    const [selectedResin, setSelectedResin] = useState(null)
+    const [resinDetails, setResinDetails] = useState(null)
+    const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
+    // Estados para modal de historico do cliente (CORRECAO 4)
+    const [selectedClient, setSelectedClient] = useState(null)
+    const [clientHistory, setClientHistory] = useState(null)
+    const [clientHistoryLoading, setClientHistoryLoading] = useState(false)
 
   // Senhas de acesso - Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
   const ADMIN_PASSWORD = 'quanton3d2024'
@@ -454,6 +462,52 @@ export function AdminPanel({ onClose }) {
       }
     }
 
+    // CORRECAO 3: Carregar detalhes de clientes por resina
+    const loadResinDetails = async (resin) => {
+      setSelectedResin(resin)
+      setResinDetailsLoading(true)
+      setResinDetails(null)
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/resin-details?resin=${encodeURIComponent(resin)}&auth=quanton3d_admin_secret`)
+        const data = await response.json()
+        if (data.success) {
+          setResinDetails(data)
+        } else {
+          alert('Erro ao carregar detalhes: ' + data.error)
+          setSelectedResin(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar detalhes da resina:', error)
+        alert('Erro ao carregar detalhes da resina')
+        setSelectedResin(null)
+      } finally {
+        setResinDetailsLoading(false)
+      }
+    }
+
+    // CORRECAO 4: Carregar historico do cliente
+    const loadClientHistory = async (clientKey) => {
+      setSelectedClient(clientKey)
+      setClientHistoryLoading(true)
+      setClientHistory(null)
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/client-history?clientKey=${encodeURIComponent(clientKey)}&auth=quanton3d_admin_secret`)
+        const data = await response.json()
+        if (data.success) {
+          setClientHistory(data)
+        } else {
+          alert('Erro ao carregar historico: ' + data.error)
+          setSelectedClient(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar historico do cliente:', error)
+        alert('Erro ao carregar historico do cliente')
+        setSelectedClient(null)
+      } finally {
+        setClientHistoryLoading(false)
+      }
+    }
+
     const approveGalleryEntry = async (id) => {
       try {
         const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/approve?auth=quanton3d_admin_secret`, {
@@ -674,20 +728,26 @@ export function AdminPanel({ onClose }) {
               )}
             </Card>
 
-                        {/* Conversas por Resina */}
+                        {/* Conversas por Resina - CORRECAO 3: Cards clicaveis */}
                         <Card className="p-6">
                           <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas nas Conversas</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                          <p className="text-sm text-gray-500 mb-4">Clique em uma resina para ver detalhes dos clientes</p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             {Object.entries(metrics.resinMentions).map(([resin, count]) => (
-                              <div key={resin} className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg text-center">
+                              <div 
+                                key={resin} 
+                                onClick={() => loadResinDetails(resin)}
+                                className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg text-center cursor-pointer hover:shadow-lg hover:scale-105 transition-all border-2 border-transparent hover:border-purple-400"
+                              >
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{resin}</p>
                                 <p className="text-2xl font-bold text-purple-600">{count}</p>
+                                <p className="text-xs text-gray-400 mt-1">Clique para detalhes</p>
                               </div>
                             ))}
                           </div>
                         </Card>
 
-                        {/* Top Clientes com Duvidas */}
+                        {/* Top Clientes com Duvidas - CORRECAO 4: Botao Ver Historico */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <Card className="p-6">
                             <h3 className="text-xl font-bold mb-4">👤 Top Clientes com Dúvidas</h3>
@@ -706,11 +766,22 @@ export function AdminPanel({ onClose }) {
                                       }`}>
                                         {index + 1}
                                       </span>
-                                      <span className="text-sm truncate max-w-[180px]">{item.client}</span>
+                                      <span className="text-sm truncate max-w-[120px]">{item.client}</span>
                                     </div>
-                                    <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-semibold">
-                                      {item.count} conversas
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs font-semibold">
+                                        {item.count}x
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => loadClientHistory(item.client)}
+                                        className="text-xs px-2 py-1 h-7"
+                                      >
+                                        <Eye className="h-3 w-3 mr-1" />
+                                        Ver Histórico
+                                      </Button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1722,6 +1793,200 @@ export function AdminPanel({ onClose }) {
                     </div>
                   ))}
                 </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Detalhes da Resina - CORRECAO 3 */}
+        {selectedResin && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">🧪 Detalhes da Resina: {selectedResin}</h3>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedResin(null); setResinDetails(null); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {resinDetailsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                  <span className="ml-2">Carregando detalhes...</span>
+                </div>
+              ) : resinDetails ? (
+                <div className="space-y-6">
+                  {/* Clientes que usam essa resina */}
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-500" />
+                      Clientes que usam {selectedResin} ({resinDetails.customersCount})
+                    </h4>
+                    {resinDetails.customers.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Nenhum cliente cadastrado com essa resina</p>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {resinDetails.customers.map((customer, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                                <User className="h-4 w-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{customer.name}</p>
+                                <p className="text-xs text-gray-500">{customer.email || customer.phone || 'Sem contato'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right text-xs text-gray-500">
+                              <p>{customer.printer || 'Impressora nao informada'}</p>
+                              {customer.registeredAt && <p>{new Date(customer.registeredAt).toLocaleDateString('pt-BR')}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Conversas relacionadas */}
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-green-500" />
+                      Conversas Relacionadas ({resinDetails.conversationsCount})
+                    </h4>
+                    {resinDetails.conversations.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Nenhuma conversa encontrada</p>
+                    ) : (
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {resinDetails.conversations.map((conv, idx) => (
+                          <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{conv.customerName}</span>
+                              <span className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString('pt-BR')}</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded text-sm">
+                                <strong>Duvida:</strong> {conv.userPrompt}
+                              </div>
+                              <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded text-sm">
+                                <strong>Resposta:</strong> {conv.botReply?.substring(0, 200)}{conv.botReply?.length > 200 ? '...' : ''}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">Erro ao carregar detalhes</p>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Historico do Cliente - CORRECAO 4 */}
+        {selectedClient && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">👤 Histórico do Cliente</h3>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedClient(null); setClientHistory(null); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {clientHistoryLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  <span className="ml-2">Carregando historico...</span>
+                </div>
+              ) : clientHistory ? (
+                <div className="space-y-6">
+                  {/* Info do Cliente */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">{clientHistory.client.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          {clientHistory.client.email && <span>{clientHistory.client.email}</span>}
+                          {clientHistory.client.phone && <span>{clientHistory.client.phone}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">Total de interacoes: {clientHistory.totalInteractions}</p>
+                  </div>
+
+                  {/* Registros do Cliente */}
+                  {clientHistory.registrations.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Resinas Utilizadas</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {clientHistory.registrations.map((reg, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm">
+                            {reg.resin} - {reg.printer}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Conversas do Cliente */}
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-green-500" />
+                      Historico de Conversas ({clientHistory.conversations.length})
+                    </h4>
+                    {clientHistory.conversations.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Nenhuma conversa encontrada</p>
+                    ) : (
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                        {clientHistory.conversations.map((conv, idx) => (
+                          <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-blue-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString('pt-BR')}</span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                conv.documentsFound > 0 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              }`}>
+                                {conv.documentsFound > 0 ? 'Resolvido pelo RAG' : 'Sem match RAG'}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded">
+                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">DUVIDA PRINCIPAL</p>
+                                <p className="text-sm">{conv.prompt}</p>
+                              </div>
+                              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded">
+                                <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">RESPOSTA DO BOT</p>
+                                <p className="text-sm whitespace-pre-wrap">{conv.reply}</p>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className={`px-2 py-1 rounded ${
+                                  conv.documentsFound > 0 
+                                    ? 'bg-green-500 text-white' 
+                                    : 'bg-gray-300 text-gray-700'
+                                }`}>
+                                  Status: {conv.documentsFound > 0 ? 'Resolvido' : 'Nao resolvido'}
+                                </span>
+                                {conv.questionType && (
+                                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
+                                    Tipo: {conv.questionType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">Erro ao carregar historico</p>
               )}
             </Card>
           </div>
