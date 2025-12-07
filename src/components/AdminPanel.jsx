@@ -107,6 +107,11 @@ export function AdminPanel({ onClose }) {
     const [addingKnowledge, setAddingKnowledge] = useState(false)
     const [knowledgeDocuments, setKnowledgeDocuments] = useState([])
     const [knowledgeLoading, setKnowledgeLoading] = useState(false)
+    const [knowledgeDateStart, setKnowledgeDateStart] = useState('')
+    const [knowledgeDateEnd, setKnowledgeDateEnd] = useState('')
+    const [editingKnowledge, setEditingKnowledge] = useState(null)
+    const [editKnowledgeTitle, setEditKnowledgeTitle] = useState('')
+    const [editKnowledgeContent, setEditKnowledgeContent] = useState('')
     const [customRequests, setCustomRequests] = useState([])
     const [editingSuggestion, setEditingSuggestion] = useState(null)
     const [editedText, setEditedText] = useState('')
@@ -187,17 +192,36 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-    const loadContactMessages = async () => {
-      try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
-        const data = await response.json()
-        setContactMessages(data.messages || [])
-      } catch (error) {
-        console.error('Erro ao carregar mensagens de contato:', error)
-      }
-    }
+        const loadContactMessages = async () => {
+          try {
+            const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
+            const data = await response.json()
+            setContactMessages(data.messages || [])
+          } catch (error) {
+            console.error('Erro ao carregar mensagens de contato:', error)
+          }
+        }
 
-    const loadGalleryEntries = async () => {
+        const toggleMessageResolved = async (messageId, currentResolved) => {
+          try {
+            const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/contact/${messageId}?auth=quanton3d_admin_secret`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ resolved: !currentResolved })
+            })
+            const data = await response.json()
+            if (data.success) {
+              loadContactMessages()
+            } else {
+              alert('Erro ao atualizar status: ' + data.error)
+            }
+          } catch (error) {
+            console.error('Erro ao atualizar status da mensagem:', error)
+            alert('Erro ao atualizar status da mensagem')
+          }
+        }
+
+        const loadGalleryEntries = async () => {
       setGalleryLoading(true)
       try {
         const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/gallery/all?auth=quanton3d_admin_secret')
@@ -245,6 +269,49 @@ export function AdminPanel({ onClose }) {
         console.error('Erro ao deletar documento:', error)
         alert('Erro ao deletar documento')
       }
+    }
+
+    const openEditKnowledge = (doc) => {
+      setEditingKnowledge(doc)
+      setEditKnowledgeTitle(doc.title || '')
+      setEditKnowledgeContent(doc.content || '')
+    }
+
+    const saveEditKnowledge = async () => {
+      if (!editingKnowledge) return
+      if (!editKnowledgeTitle.trim() || !editKnowledgeContent.trim()) {
+        alert('Preencha titulo e conteudo!')
+        return
+      }
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/knowledge/${editingKnowledge._id}?auth=quanton3d_admin_secret`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: editKnowledgeTitle, content: editKnowledgeContent })
+        })
+        const data = await response.json()
+        if (data.success) {
+          alert('Documento atualizado com sucesso!')
+          setEditingKnowledge(null)
+          loadKnowledgeDocuments()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar documento:', error)
+        alert('Erro ao atualizar documento')
+      }
+    }
+
+    const getFilteredKnowledgeDocuments = () => {
+      if (!knowledgeDateStart && !knowledgeDateEnd) return knowledgeDocuments
+      return knowledgeDocuments.filter(doc => {
+        if (!doc.createdAt) return true
+        const docDate = new Date(doc.createdAt)
+        if (knowledgeDateStart && docDate < new Date(knowledgeDateStart)) return false
+        if (knowledgeDateEnd && docDate > new Date(knowledgeDateEnd + 'T23:59:59')) return false
+        return true
+      })
     }
 
     // Visual RAG functions
@@ -607,20 +674,76 @@ export function AdminPanel({ onClose }) {
               )}
             </Card>
 
-            {/* Conversas por Resina */}
-            <Card className="p-6">
-              <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas nas Conversas</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {Object.entries(metrics.resinMentions).map(([resin, count]) => (
-                  <div key={resin} className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg text-center">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{resin}</p>
-                    <p className="text-2xl font-bold text-purple-600">{count}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                        {/* Conversas por Resina */}
+                        <Card className="p-6">
+                          <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas nas Conversas</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {Object.entries(metrics.resinMentions).map(([resin, count]) => (
+                              <div key={resin} className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg text-center">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{resin}</p>
+                                <p className="text-2xl font-bold text-purple-600">{count}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
 
-            {/* Clientes Cadastrados */}
+                        {/* Top Clientes com Duvidas */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <Card className="p-6">
+                            <h3 className="text-xl font-bold mb-4">👤 Top Clientes com Dúvidas</h3>
+                            {!metrics.topClients || metrics.topClients.length === 0 ? (
+                              <p className="text-gray-500 text-center py-8">Nenhum cliente registrado ainda</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {metrics.topClients.map((item, index) => (
+                                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                                        index === 1 ? 'bg-gray-300 text-gray-700' :
+                                        index === 2 ? 'bg-orange-400 text-orange-900' :
+                                        'bg-blue-100 text-blue-800'
+                                      }`}>
+                                        {index + 1}
+                                      </span>
+                                      <span className="text-sm truncate max-w-[180px]">{item.client}</span>
+                                    </div>
+                                    <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-semibold">
+                                      {item.count} conversas
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </Card>
+
+                          {/* Topicos Mais Acessados */}
+                          <Card className="p-6">
+                            <h3 className="text-xl font-bold mb-4">🔥 Tópicos Mais Acessados</h3>
+                            {!metrics.topTopics || metrics.topTopics.length === 0 ? (
+                              <p className="text-gray-500 text-center py-8">Nenhum tópico registrado ainda</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {metrics.topTopics.map((item, index) => (
+                                  <span 
+                                    key={index} 
+                                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                                      index < 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                                      index < 6 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200' :
+                                      index < 10 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                                      'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                    }`}
+                                    title={`${item.count} menções`}
+                                  >
+                                    {item.topic} ({item.count})
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </Card>
+                        </div>
+
+                        {/* Clientes Cadastrados */}
             <Card className="p-6">
               <h3 className="text-xl font-bold mb-4">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
               {metrics.registrations.users.length === 0 ? (
@@ -761,57 +884,143 @@ export function AdminPanel({ onClose }) {
                       </ul>
                     </Card>
 
-                    <Card className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold flex items-center gap-2">
-                          <FileText className="h-5 w-5" />
-                          Documentos de Conhecimento ({knowledgeDocuments.length})
-                        </h3>
-                        <Button onClick={loadKnowledgeDocuments} variant="outline" size="sm" disabled={knowledgeLoading}>
-                          {knowledgeLoading ? 'Carregando...' : 'Atualizar Lista'}
-                        </Button>
-                      </div>
+                                        <Card className="p-6">
+                                          <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                              <FileText className="h-5 w-5" />
+                                              Documentos de Conhecimento ({getFilteredKnowledgeDocuments().length})
+                                            </h3>
+                                            <Button onClick={loadKnowledgeDocuments} variant="outline" size="sm" disabled={knowledgeLoading}>
+                                              {knowledgeLoading ? 'Carregando...' : 'Atualizar Lista'}
+                                            </Button>
+                                          </div>
+
+                                          {/* Filtro por Data */}
+                                          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <span className="text-sm font-medium">Filtrar por data:</span>
+                                            <div className="flex items-center gap-2">
+                                              <Input
+                                                type="date"
+                                                value={knowledgeDateStart}
+                                                onChange={(e) => setKnowledgeDateStart(e.target.value)}
+                                                className="w-40 text-sm"
+                                                placeholder="Data inicio"
+                                              />
+                                              <span className="text-gray-500">ate</span>
+                                              <Input
+                                                type="date"
+                                                value={knowledgeDateEnd}
+                                                onChange={(e) => setKnowledgeDateEnd(e.target.value)}
+                                                className="w-40 text-sm"
+                                                placeholder="Data fim"
+                                              />
+                                            </div>
+                                            {(knowledgeDateStart || knowledgeDateEnd) && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => { setKnowledgeDateStart(''); setKnowledgeDateEnd(''); }}
+                                                className="text-gray-500"
+                                              >
+                                                Limpar filtro
+                                              </Button>
+                                            )}
+                                          </div>
               
-                      {knowledgeLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                        </div>
-                      ) : knowledgeDocuments.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>Nenhum documento de conhecimento encontrado</p>
-                          <p className="text-sm">Adicione conhecimentos usando o formulario acima</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                          {knowledgeDocuments.map((doc) => (
-                            <div key={doc._id} className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm truncate">{doc.title || 'Sem titulo'}</h4>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                  {doc.content ? doc.content.substring(0, 150) + (doc.content.length > 150 ? '...' : '') : 'Sem conteudo'}
-                                </p>
-                                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                                  {doc.source && <span className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded">{doc.source}</span>}
-                                  {doc.createdAt && <span>{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</span>}
-                                </div>
-                              </div>
-                              {isAdmin && (
-                                <Button
-                                  onClick={() => deleteKnowledgeDocument(doc._id)}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-100"
-                                  title="Excluir documento"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
+                                          {knowledgeLoading ? (
+                                            <div className="flex items-center justify-center py-8">
+                                              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                                            </div>
+                                          ) : getFilteredKnowledgeDocuments().length === 0 ? (
+                                            <div className="text-center py-8 text-gray-500">
+                                              <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                              <p>Nenhum documento de conhecimento encontrado</p>
+                                              <p className="text-sm">Adicione conhecimentos usando o formulario acima</p>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                              {getFilteredKnowledgeDocuments().map((doc) => (
+                                                <div key={doc._id} className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                                  <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold text-sm truncate">{doc.title || 'Sem titulo'}</h4>
+                                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                                      {doc.content ? doc.content.substring(0, 150) + (doc.content.length > 150 ? '...' : '') : 'Sem conteudo'}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                                                      {doc.source && <span className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded">{doc.source}</span>}
+                                                      {doc.createdAt && <span>{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</span>}
+                                                    </div>
+                                                  </div>
+                                                  <div className="flex items-center gap-1 ml-2">
+                                                    {isAdmin && (
+                                                      <>
+                                                        <Button
+                                                          onClick={() => openEditKnowledge(doc)}
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+                                                          title="Editar documento"
+                                                        >
+                                                          <Edit3 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                          onClick={() => deleteKnowledgeDocument(doc._id)}
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                                                          title="Excluir documento"
+                                                        >
+                                                          <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </Card>
+
+                                        {/* Modal de Edicao de Conhecimento */}
+                                        {editingKnowledge && (
+                                          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                                            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                                              <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-xl font-bold">Editar Conhecimento</h3>
+                                                <Button variant="ghost" size="sm" onClick={() => setEditingKnowledge(null)}>
+                                                  <X className="h-4 w-4" />
+                                                </Button>
+                                              </div>
+                                              <div className="space-y-4">
+                                                <div>
+                                                  <label className="block text-sm font-medium mb-2">Titulo</label>
+                                                  <Input
+                                                    value={editKnowledgeTitle}
+                                                    onChange={(e) => setEditKnowledgeTitle(e.target.value)}
+                                                    placeholder="Titulo do conhecimento"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-sm font-medium mb-2">Conteudo</label>
+                                                  <textarea
+                                                    className="w-full min-h-[200px] p-3 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
+                                                    value={editKnowledgeContent}
+                                                    onChange={(e) => setEditKnowledgeContent(e.target.value)}
+                                                    placeholder="Conteudo do conhecimento"
+                                                  />
+                                                </div>
+                                                <div className="flex justify-end gap-2">
+                                                  <Button variant="outline" onClick={() => setEditingKnowledge(null)}>
+                                                    Cancelar
+                                                  </Button>
+                                                  <Button onClick={saveEditKnowledge} className="bg-gradient-to-r from-blue-600 to-purple-600">
+                                                    Salvar Alteracoes
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            </Card>
+                                          </div>
+                                        )}
                   </div>
                 )}
 
@@ -881,84 +1090,106 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {activeTab === 'messages' && (
-          <div className="space-y-4">
-            {contactMessages.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Mail className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 dark:text-gray-400">
-                  Nenhuma mensagem de contato ainda
-                </p>
-              </Card>
-            ) : (
-              contactMessages.map((message, index) => (
-                <Card key={index} className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
-                        <Mail className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{message.name}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          {message.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {message.phone}
-                            </span>
-                          )}
-                          {message.email && (
-                            <span className="truncate">{message.email}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        message.status === 'new' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                      }`}>
-                        {message.status === 'new' ? 'Nova' : message.status}
-                      </span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(message.createdAt).toLocaleString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
+                {activeTab === 'messages' && (
+                  <div className="space-y-4">
+                    {contactMessages.length === 0 ? (
+                      <Card className="p-12 text-center">
+                        <Mail className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Nenhuma mensagem de contato ainda
+                        </p>
+                      </Card>
+                    ) : (
+                      contactMessages.map((message, index) => (
+                        <Card 
+                          key={index} 
+                          className={`p-6 transition-all ${message.resolved ? 'opacity-60 bg-gray-100 dark:bg-gray-900' : ''}`}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                                message.resolved 
+                                  ? 'bg-green-500' 
+                                  : 'bg-gradient-to-br from-green-500 to-blue-500'
+                              }`}>
+                                {message.resolved ? (
+                                  <Check className="h-5 w-5 text-white" />
+                                ) : (
+                                  <Mail className="h-5 w-5 text-white" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-semibold">{message.name}</p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  {message.phone && (
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {message.phone}
+                                    </span>
+                                  )}
+                                  {message.email && (
+                                    <span className="truncate">{message.email}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                message.resolved 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                  : message.status === 'new' 
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                              }`}>
+                                {message.resolved ? 'Resolvido' : message.status === 'new' ? 'Pendente' : message.status}
+                              </span>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(message.createdAt).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
 
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                    <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                  </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                            <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                          </div>
 
-                  <div className="flex gap-2">
-                    {message.phone && (
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => window.open(`https://wa.me/55${message.phone.replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
-                      >
-                        <Phone className="h-4 w-4 mr-2" />
-                        WhatsApp
-                      </Button>
-                    )}
-                    {message.email && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => window.open(`mailto:${message.email}?subject=Re: Contato Quanton3D&body=Olá ${message.name},%0A%0ARecebemos sua mensagem...`, '_blank')}
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email
-                      </Button>
+                          <div className="flex gap-2 items-center">
+                            {message.phone && (
+                              <Button 
+                                size="sm" 
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                onClick={() => window.open(`https://wa.me/55${message.phone.replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
+                              >
+                                <Phone className="h-4 w-4 mr-2" />
+                                WhatsApp
+                              </Button>
+                            )}
+                            {message.email && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => window.open(`mailto:${message.email}?subject=Re: Contato Quanton3D&body=Olá ${message.name},%0A%0ARecebemos sua mensagem...`, '_blank')}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Email
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant={message.resolved ? 'outline' : 'default'}
+                              className={message.resolved ? 'border-green-500 text-green-600' : 'bg-blue-600 hover:bg-blue-700'}
+                              onClick={() => toggleMessageResolved(message._id, message.resolved)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              {message.resolved ? 'Reabrir' : 'Marcar Resolvido'}
+                            </Button>
+                          </div>
+                        </Card>
+                      ))
                     )}
                   </div>
-                </Card>
-              ))
-            )}
-          </div>
-        )}
+                )}
 
         {activeTab === 'suggestions' && (
           <div className="space-y-4">
