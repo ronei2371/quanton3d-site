@@ -500,22 +500,27 @@ export function GalleryModal({ isOpen, onClose }) {
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
                   <p className="text-xs font-medium text-gray-500 mb-2">Velocidades de Elevacao (mm/s)</p>
                   
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 w-24">Elevacao:</span>
-                    <input
-                      type="text"
-                      value={formData.liftSpeed1}
-                      onChange={(e) => setFormData({ ...formData, liftSpeed1: e.target.value })}
-                      placeholder="Valor 1"
-                      className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="text"
-                      value={formData.liftSpeed2}
-                      onChange={(e) => setFormData({ ...formData, liftSpeed2: e.target.value })}
-                      placeholder="Valor 2"
-                      className="flex-1 px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
-                    />
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Inferior (Baixa)</label>
+                      <input
+                        type="text"
+                        value={formData.liftSpeed1}
+                        onChange={(e) => setFormData({ ...formData, liftSpeed1: e.target.value })}
+                        placeholder="Ex: 1.5"
+                        className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Normal (Alta)</label>
+                      <input
+                        type="text"
+                        value={formData.liftSpeed2}
+                        onChange={(e) => setFormData({ ...formData, liftSpeed2: e.target.value })}
+                        placeholder="Ex: 4.0"
+                        className="w-full px-2 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
