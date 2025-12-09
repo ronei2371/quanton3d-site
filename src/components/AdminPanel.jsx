@@ -142,7 +142,7 @@ export function AdminPanel({ onClose }) {
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
   
-  // Details Modals
+  // Details Modals (ESSENCIAIS PARA O CLIQUE)
   const [selectedResin, setSelectedResin] = useState(null)
   const [resinDetails, setResinDetails] = useState(null)
   const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
@@ -445,6 +445,7 @@ export function AdminPanel({ onClose }) {
     }
   }
 
+  // === FUNÇÕES DE CLIQUE NAS MÉTRICAS (RESTAURADAS!) ===
   const loadResinDetails = async (resin) => {
     setSelectedResin(resin)
     setResinDetailsLoading(true)
@@ -835,7 +836,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* GALERIA (AGORA COM A CAIXINHA AZUL!) */}
+        {/* GALERIA */}
         {activeTab === 'gallery' && (
           <div className="space-y-4">
             {galleryEntries.filter(e => e.status !== 'rejected').map(entry => (
@@ -854,7 +855,7 @@ export function AdminPanel({ onClose }) {
                     <p className="text-xs text-gray-500 mb-2">{entry.resin} | {entry.printer}</p>
                     {entry.comment && <p className="text-sm bg-gray-50 p-2 rounded mb-2">{entry.comment}</p>}
                     
-                    {/* AQUI ESTÁ A CORREÇÃO: A CAIXINHA AZUL COM OS DETALHES */}
+                    {/* CAIXA AZUL DO MANUS */}
                     {(entry.layerHeight || entry.baseLayers || entry.exposureTime) && (
                       <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2 mt-2">
                         {entry.layerHeight && <div>Layer: {entry.layerHeight}</div>}
