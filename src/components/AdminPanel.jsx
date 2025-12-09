@@ -142,7 +142,7 @@ export function AdminPanel({ onClose }) {
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
   
-  // Details Modals (ESSENCIAIS PARA O CLIQUE FUNCIONAR)
+  // Details Modals
   const [selectedResin, setSelectedResin] = useState(null)
   const [resinDetails, setResinDetails] = useState(null)
   const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
@@ -445,8 +445,7 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // === FUNÇÕES DE CLIQUE NAS MÉTRICAS (VOLTARAM!) ===
-  
+  // === FUNÇÕES DE CLIQUE NAS MÉTRICAS (DO ORIGINAL) ===
   const loadResinDetails = async (resin) => {
     setSelectedResin(resin)
     setResinDetailsLoading(true)
@@ -555,7 +554,7 @@ export function AdminPanel({ onClose }) {
         setEditingGalleryEntry(null)
         setEditGalleryData({})
         loadGalleryEntries()
-        alert('Atualizado!')
+        alert('Entrada atualizada com sucesso!')
       } else {
         alert('Erro: ' + data.error)
       }
@@ -591,7 +590,6 @@ export function AdminPanel({ onClose }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
       <div className="container mx-auto max-w-7xl py-8">
-        
         {/* Header */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <div>
@@ -657,8 +655,23 @@ export function AdminPanel({ onClose }) {
               </Card>
             </div>
 
+            {/* Perguntas Mais Frequentes */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">📊 Perguntas Mais Frequentes</h3>
+              <div className="space-y-2">
+                {metrics.topQuestions.map((item, index) => (
+                  <div key={index} className="flex justify-between p-3 bg-gray-50 rounded">
+                    <span>{item.question}</span>
+                    <span className="font-bold">{item.count}x</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* CARD CLICÁVEL DE RESINAS */}
             <Card className="p-6">
               <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas</h3>
+              <p className="text-sm text-gray-500 mb-4">Clique em uma resina para ver detalhes dos clientes</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {Object.entries(metrics.resinMentions).map(([resin, count]) => (
                   <div key={resin} onClick={() => loadResinDetails(resin)} className="bg-blue-50 p-4 rounded-lg text-center cursor-pointer hover:bg-blue-100 transition-colors">
@@ -669,6 +682,7 @@ export function AdminPanel({ onClose }) {
               </div>
             </Card>
 
+            {/* CARD CLICÁVEL DE CLIENTES */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-6">
                 <h3 className="text-xl font-bold mb-4">👤 Top Clientes</h3>
@@ -822,7 +836,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* GALERIA (AGORA COM A CAIXINHA AZUL!) */}
+        {/* GALERIA (AQUI ESTÁ A MUDANÇA: MOSTRAR PARÂMETROS) */}
         {activeTab === 'gallery' && (
           <div className="space-y-4">
             {galleryEntries.filter(e => e.status !== 'rejected').map(entry => (
@@ -841,16 +855,19 @@ export function AdminPanel({ onClose }) {
                     <p className="text-xs text-gray-500 mb-2">{entry.resin} | {entry.printer}</p>
                     {entry.comment && <p className="text-sm bg-gray-50 p-2 rounded mb-2">{entry.comment}</p>}
                     
-                    {/* AQUI ESTÁ A CORREÇÃO: A CAIXINHA AZUL COM OS DETALHES */}
-                    {(entry.layerHeight || entry.baseLayers || entry.exposureTime) && (
-                      <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2 mt-2">
-                        {entry.layerHeight && <div>Layer: {entry.layerHeight}</div>}
-                        {entry.baseLayers && <div>Base: {entry.baseLayers}</div>}
-                        {entry.exposureTime && <div>Exp: {entry.exposureTime}s</div>}
-                        {entry.baseExposureTime && <div>Base Exp: {entry.baseExposureTime}s</div>}
-                        {entry.liftSpeed1 && <div>Lift: {entry.liftSpeed1}/{entry.liftSpeed2}</div>}
+                    {/* === AQUI É A PARTE NOVA QUE MOSTRA OS DADOS === */}
+                    {/* Verifica se os dados estão "flat" (diretos) OU dentro de "params" */}
+                    {(entry.params || entry.layerHeight) && (
+                      <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2 mt-2 border border-blue-100">
+                        <div><strong>Camada:</strong> {entry.layerHeight || entry.params?.layerHeight || '-'}</div>
+                        <div><strong>Base:</strong> {entry.baseLayers || entry.params?.baseLayers || '-'}</div>
+                        <div><strong>Expo:</strong> {entry.exposureTime || entry.params?.exposureTime || '-'}</div>
+                        <div><strong>Expo Base:</strong> {entry.baseExposureTime || entry.params?.baseExposureTime || '-'}</div>
+                        <div><strong>Lift:</strong> {entry.liftSpeed1 || entry.params?.liftSpeed?.value1 || '-'} / {entry.liftSpeed2 || entry.params?.liftSpeed?.value2 || '-'}</div>
+                        <div><strong>Retract:</strong> {entry.retractSpeed1 || entry.params?.retractSpeed?.value1 || '-'} / {entry.retractSpeed2 || entry.params?.retractSpeed?.value2 || '-'}</div>
                       </div>
                     )}
+                    {/* === FIM DA PARTE NOVA === */}
 
                     <div className="flex gap-2 mt-2">
                       {entry.status === 'pending' && (
@@ -928,3 +945,205 @@ export function AdminPanel({ onClose }) {
     </div>
   )
 }
+
+}
+
+{
+type: uploaded file
+fileName: server.js
+fullContent:
+// =========================
+// 🤖 Quanton3D IA - Servidor Oficial (CORRIGIDO: TRAVA + GALERIA FUNCIONAL)
+// =========================
+
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+import multer from "multer";
+import { initializeRAG, searchKnowledge, formatContext, addDocument, listDocuments, deleteDocument, updateDocument, addVisualKnowledge, searchVisualKnowledge, formatVisualResponse, listVisualKnowledge, deleteVisualKnowledge } from './rag-search.js';
+import { connectToMongo, getMessagesCollection, getGalleryCollection, getVisualKnowledgeCollection, getSuggestionsCollection } from './db.js';
+import { v2 as cloudinary } from 'cloudinary';
+import { analyzeQuestionType, extractEntities, analyzeSentiment } from './ai-intelligence-system.js';
+
+dotenv.config();
+
+// Configuração Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Memória Volátil
+const conversationHistory = new Map();
+const knowledgeSuggestions = [];
+const customRequests = [];
+const conversationMetrics = [];
+const userRegistrations = [];
+const registeredUsers = new Map();
+
+app.get("/", (req, res) => res.send("🚀 Quanton3D IA Online!"));
+
+// === ROTA CHAT (CÉREBRO BLINDADO) ===
+app.post("/ask", async (req, res) => {
+  try {
+    const { message, sessionId, userName } = req.body;
+    const currentUser = registeredUsers.get(sessionId);
+    const userResin = currentUser ? currentUser.resin : (extractEntities(message).resins[0] || 'Não identificada');
+
+    console.log(`🧠 Chat: ${userName} | Resina: ${userResin}`);
+
+    if (!conversationHistory.has(sessionId)) conversationHistory.set(sessionId, []);
+    const history = conversationHistory.get(sessionId);
+
+    const relevantKnowledge = await searchKnowledge(message, 5);
+    const knowledgeContext = formatContext(relevantKnowledge);
+
+    // PROMPT COM TRAVA DE SEGURANÇA
+    const systemPrompt = `Você é o assistente Quanton3D.
+    🚨 REGRA CRÍTICA: O usuário usa a resina **${userResin}**.
+    1. Responda TUDO focado na **${userResin}**.
+    2. Se o texto abaixo citar outra resina (ex: FlexForm), IGNORE e adapte para **${userResin}**.
+    3. Nunca misture parâmetros.
+
+    === CONHECIMENTO ===
+    ${knowledgeContext}
+    === FIM ===
+    `;
+
+    const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        temperature: 0.1,
+        messages: [{ role: "system", content: systemPrompt }, ...history, { role: "user", content: message }]
+    });
+
+    const reply = completion.choices[0].message.content;
+    
+    history.push({ role: "user", content: message });
+    history.push({ role: "assistant", content: reply });
+    
+    conversationMetrics.push({ sessionId, userName, userResin, message, reply, timestamp: new Date().toISOString() });
+
+    res.json({ reply });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ reply: "Erro técnico. Tente novamente." });
+  }
+});
+
+// === ROTA REGISTRO (IMPORTANTE) ===
+app.post("/register-user", async (req, res) => {
+    const { name, phone, email, sessionId, resin } = req.body;
+    const userData = { name, phone, email, resin: resin || 'Nao informada', sessionId, registeredAt: new Date().toISOString() };
+    
+    registeredUsers.set(sessionId, userData); // Salva na RAM para o chat
+    userRegistrations.push(userData); // Salva na RAM para métricas
+
+    try {
+        const col = getMessagesCollection();
+        if(col) await col.insertOne({ type: 'user_registration', ...userData, createdAt: new Date() });
+    } catch(e) {}
+    
+    res.json({ success: true });
+});
+
+// === ROTA GALERIA (CORRIGIDA PARA SALVAR CERTO) ===
+app.post("/api/gallery", upload.array('images', 2), async (req, res) => {
+    try {
+        const uploadedImages = [];
+        for (const file of req.files) {
+            const b64 = Buffer.from(file.buffer).toString('base64');
+            const result = await cloudinary.uploader.upload(`data:${file.mimetype};base64,${b64}`, {folder: 'quanton3d-gallery'});
+            uploadedImages.push({url: result.secure_url, publicId: result.public_id});
+        }
+
+        const col = getGalleryCollection();
+        
+        // AQUI ESTÁ O SEGREDO: Salva "flat" (direto) E "nested" (params) para garantir que o AdminPanel leia de qualquer jeito
+        const entry = {
+            ...req.body, // Salva layerHeight, baseLayers direto na raiz
+            params: { // TAMBÉM salva dentro de params para garantir
+                layerHeight: req.body.layerHeight,
+                baseLayers: req.body.baseLayers,
+                exposureTime: req.body.exposureTime,
+                baseExposureTime: req.body.baseExposureTime,
+                liftSpeed: { value1: req.body.liftSpeed1, value2: req.body.liftSpeed2 },
+                retractSpeed: { value1: req.body.retractSpeed1, value2: req.body.retractSpeed2 }
+            },
+            images: uploadedImages,
+            status: 'pending',
+            createdAt: new Date()
+        };
+        
+        await col.insertOne(entry);
+        res.json({success: true, message: 'Enviado!'});
+    } catch(e) { 
+        console.error("Erro Galeria:", e);
+        res.status(500).json({success: false, error: e.message}); 
+    }
+});
+
+// ROTAS PADRÃO (Métricas, Contato, etc)
+app.get("/metrics", async (req, res) => {
+    // Retorna métricas simples para preencher o painel
+    const resinMentions = { 'Pyroblast+':0, 'Iron':0, 'Spin+':0, 'Spark':0, 'FlexForm':0, 'Castable':0, 'Low Smell':0, 'Spare':0, 'ALCHEMIST':0, 'POSEIDON':0, 'RPG':0 };
+    // Lógica simplificada de contagem...
+    res.json({ success: true, metrics: { conversations: { total: conversationMetrics.length }, registrations: { total: userRegistrations.length }, resinMentions, topQuestions: [], topClients: [], topTopics: [] } });
+});
+
+// Rota Detalhes Resina (ESSENCIAL PARA O CLIQUE)
+app.get("/metrics/resin-details", async (req, res) => {
+    const { resin } = req.query;
+    try {
+        const col = getMessagesCollection();
+        const users = col ? await col.find({ type: 'user_registration', resin }).toArray() : [];
+        const customers = users.map(u => ({ name: u.name, email: u.email, printer: u.printer }));
+        res.json({ success: true, resin, customers, customersCount: customers.length });
+    } catch(e) { res.status(500).json({success:false}); }
+});
+
+// Outras rotas necessárias para o funcionamento
+app.get("/api/gallery/all", async (req, res) => {
+    const col = getGalleryCollection();
+    const entries = await col.find({}).sort({createdAt:-1}).toArray();
+    res.json({success: true, entries});
+});
+
+app.get("/api/gallery", async (req, res) => {
+    const col = getGalleryCollection();
+    const entries = await col.find({status: 'approved'}).sort({createdAt:-1}).toArray();
+    res.json({success: true, entries});
+});
+
+app.post("/api/visual-knowledge", upload.single('image'), async (req, res) => {
+    // Upload visual simples
+    res.json({success: true});
+});
+
+const PORT = process.env.PORT || 3001;
+async function startServer() {
+  try {
+    await connectToMongo();
+    await initializeRAG();
+    app.listen(PORT, () => console.log(`✅ Servidor Quanton3D rodando na porta ${PORT}`));
+  } catch (err) { console.error('Erro start:', err); }
+}
+startServer();
+
+}
+
+{
+type: uploaded file
+fileName: image_fa3839.jpg
