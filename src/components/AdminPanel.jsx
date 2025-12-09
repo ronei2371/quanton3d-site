@@ -179,7 +179,6 @@ export function AdminPanel({ onClose }) {
     loadKnowledgeDocuments()
   }
 
-  // --- CARREGAMENTO DE DADOS ---
   const loadMetrics = async () => {
     setLoading(true)
     try {
@@ -195,7 +194,6 @@ export function AdminPanel({ onClose }) {
 
   const loadSuggestions = async () => {
     try {
-      // Usando rota /suggestions padrão
       const response = await fetch(`${API_URL}/suggestions?auth=quanton3d_admin_secret`)
       const data = await response.json()
       setSuggestions(data.suggestions || [])
@@ -447,7 +445,6 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- Detalhes (Métricas) - RESTAURADO ---
   const loadResinDetails = async (resin) => {
     setSelectedResin(resin)
     setResinDetailsLoading(true)
@@ -574,9 +571,6 @@ export function AdminPanel({ onClose }) {
           <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Painel Administrativo
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
-            Métricas e Gestão de Conhecimento
-          </p>
           <div className="space-y-4">
             <Input
               type="password"
@@ -660,6 +654,7 @@ export function AdminPanel({ onClose }) {
               </Card>
             </div>
 
+            {/* Perguntas Mais Frequentes */}
             <Card className="p-6">
               <h3 className="text-xl font-bold mb-4">📊 Perguntas Mais Frequentes</h3>
               <div className="space-y-2">
@@ -672,8 +667,10 @@ export function AdminPanel({ onClose }) {
               </div>
             </Card>
 
+            {/* CARD CLICÁVEL DE RESINAS */}
             <Card className="p-6">
               <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas</h3>
+              <p className="text-sm text-gray-500 mb-4">Clique em uma resina para ver detalhes dos clientes</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {Object.entries(metrics.resinMentions).map(([resin, count]) => (
                   <div key={resin} onClick={() => loadResinDetails(resin)} className="bg-blue-50 p-4 rounded-lg text-center cursor-pointer hover:bg-blue-100 transition-colors">
@@ -684,6 +681,7 @@ export function AdminPanel({ onClose }) {
               </div>
             </Card>
 
+            {/* CARD CLICÁVEL DE CLIENTES */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="p-6">
                 <h3 className="text-xl font-bold mb-4">👤 Top Clientes</h3>
@@ -837,7 +835,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* GALERIA */}
+        {/* GALERIA (AGORA COM A CAIXINHA AZUL!) */}
         {activeTab === 'gallery' && (
           <div className="space-y-4">
             {galleryEntries.filter(e => e.status !== 'rejected').map(entry => (
@@ -856,9 +854,9 @@ export function AdminPanel({ onClose }) {
                     <p className="text-xs text-gray-500 mb-2">{entry.resin} | {entry.printer}</p>
                     {entry.comment && <p className="text-sm bg-gray-50 p-2 rounded mb-2">{entry.comment}</p>}
                     
-                    {/* CAIXA AZUL DO MANUS */}
+                    {/* AQUI ESTÁ A CORREÇÃO: A CAIXINHA AZUL COM OS DETALHES */}
                     {(entry.layerHeight || entry.baseLayers || entry.exposureTime) && (
-                      <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2">
+                      <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2 mt-2">
                         {entry.layerHeight && <div>Layer: {entry.layerHeight}</div>}
                         {entry.baseLayers && <div>Base: {entry.baseLayers}</div>}
                         {entry.exposureTime && <div>Exp: {entry.exposureTime}s</div>}
