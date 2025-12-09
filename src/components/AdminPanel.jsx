@@ -195,6 +195,7 @@ export function AdminPanel({ onClose }) {
 
   const loadSuggestions = async () => {
     try {
+      // Usando rota /suggestions padrão
       const response = await fetch(`${API_URL}/suggestions?auth=quanton3d_admin_secret`)
       const data = await response.json()
       setSuggestions(data.suggestions || [])
@@ -268,7 +269,6 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- CRUD Conhecimento Texto ---
   const deleteKnowledgeDocument = async (id) => {
     if (!isAdmin) {
       alert('Seu nivel de acesso nao permite excluir dados.')
@@ -329,7 +329,6 @@ export function AdminPanel({ onClose }) {
     })
   }
 
-  // --- Visual RAG ---
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
     try {
@@ -413,8 +412,12 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       
       if (data.success) {
-        alert('Foto adicionada ao cérebro visual do Bot!')
-        setVisualImage(null); setVisualImagePreview(null); setVisualDefectType(''); setVisualDiagnosis(''); setVisualSolution('');
+        alert('Conhecimento visual adicionado!')
+        setVisualImage(null)
+        setVisualImagePreview(null)
+        setVisualDefectType('')
+        setVisualDiagnosis('')
+        setVisualSolution('')
         loadVisualKnowledge()
       } else {
         alert('Erro: ' + data.error)
@@ -444,7 +447,7 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- Detalhes (Métricas) ---
+  // --- Detalhes (Métricas) - RESTAURADO ---
   const loadResinDetails = async (resin) => {
     setSelectedResin(resin)
     setResinDetailsLoading(true)
@@ -571,6 +574,9 @@ export function AdminPanel({ onClose }) {
           <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Painel Administrativo
           </h2>
+          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+            Métricas e Gestão de Conhecimento
+          </p>
           <div className="space-y-4">
             <Input
               type="password"
@@ -589,7 +595,6 @@ export function AdminPanel({ onClose }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
       <div className="container mx-auto max-w-7xl py-8">
-        
         {/* Header */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <div>
@@ -706,7 +711,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* SUGESTÕES */}
+        {/* SUGESTÕES (LAYOUT ORIGINAL) */}
         {activeTab === 'suggestions' && (
           <div className="space-y-4">
             {suggestions.length === 0 ? (
@@ -880,29 +885,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* MENSAGENS */}
-        {activeTab === 'messages' && (
-          <div className="space-y-4">
-            {contactMessages.map((msg) => (
-              <Card key={msg._id} className={`p-4 ${msg.resolved ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
-                <div className="flex justify-between mb-2">
-                  <span className="font-bold">{msg.name}</span>
-                  <span className="text-xs text-gray-500">{new Date(msg.createdAt).toLocaleString()}</span>
-                </div>
-                <div className="text-sm mb-3">
-                  <p>{msg.email}</p>
-                  <p>{msg.phone}</p>
-                </div>
-                <p className="bg-gray-50 p-3 rounded mb-3">{msg.message}</p>
-                <Button size="sm" variant="outline" onClick={() => toggleMessageResolved(msg._id, msg.resolved)}>
-                  {msg.resolved ? 'Reabrir' : 'Marcar Resolvido'}
-                </Button>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* MODALS */}
+        {/* MODALS DE DETALHES (FUNCIONANDO) */}
         {selectedResin && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <Card className="w-full max-w-2xl p-6 h-[80vh] overflow-y-auto">
@@ -941,6 +924,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
+        {/* Modal de Edição de Texto */}
         {editingKnowledge && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
              <Card className="w-full max-w-lg p-6">
