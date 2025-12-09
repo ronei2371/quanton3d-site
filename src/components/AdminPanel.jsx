@@ -142,7 +142,7 @@ export function AdminPanel({ onClose }) {
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
   
-  // Details Modals (ESSENCIAIS PARA AS MÉTRICAS FUNCIONAREM)
+  // Details Modals
   const [selectedResin, setSelectedResin] = useState(null)
   const [resinDetails, setResinDetails] = useState(null)
   const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
@@ -179,7 +179,7 @@ export function AdminPanel({ onClose }) {
     loadKnowledgeDocuments()
   }
 
-  // --- CARREGAMENTO DE DADOS (ROTAS ORIGINAIS RESTAURADAS) ---
+  // --- CARREGAMENTO DE DADOS ---
   const loadMetrics = async () => {
     setLoading(true)
     try {
@@ -195,7 +195,6 @@ export function AdminPanel({ onClose }) {
 
   const loadSuggestions = async () => {
     try {
-      // VOLTANDO PARA A ROTA ORIGINAL QUE FUNCIONA
       const response = await fetch(`${API_URL}/suggestions?auth=quanton3d_admin_secret`)
       const data = await response.json()
       setSuggestions(data.suggestions || [])
@@ -210,7 +209,7 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       setCustomRequests(data.requests || [])
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
+      console.error('Erro ao carregar pedidos customizados:', error)
     }
   }
 
@@ -220,7 +219,7 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       setContactMessages(data.messages || [])
     } catch (error) {
-      console.error('Erro ao carregar mensagens:', error)
+      console.error('Erro ao carregar mensagens de contato:', error)
     }
   }
 
@@ -263,7 +262,7 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       setKnowledgeDocuments(data.documents || [])
     } catch (error) {
-      console.error('Erro ao carregar documentos:', error)
+      console.error('Erro ao carregar documentos de conhecimento:', error)
     } finally {
       setKnowledgeLoading(false)
     }
@@ -445,13 +444,12 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- FUNÇÕES DE DETALHES DAS MÉTRICAS (VOLTARAM!) ---
+  // --- Detalhes (Métricas) ---
   const loadResinDetails = async (resin) => {
     setSelectedResin(resin)
     setResinDetailsLoading(true)
     setResinDetails(null)
     try {
-      // Usando a rota original que funcionava (/metrics/resin-details)
       const response = await fetch(`${API_URL}/metrics/resin-details?resin=${encodeURIComponent(resin)}&auth=quanton3d_admin_secret`)
       const data = await response.json()
       if (data.success) {
@@ -658,11 +656,21 @@ export function AdminPanel({ onClose }) {
             </div>
 
             <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">📊 Perguntas Mais Frequentes</h3>
+              <div className="space-y-2">
+                {metrics.topQuestions.map((item, index) => (
+                  <div key={index} className="flex justify-between p-3 bg-gray-50 rounded">
+                    <span>{item.question}</span>
+                    <span className="font-bold">{item.count}x</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-6">
               <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {Object.entries(metrics.resinMentions)
-                  .filter(([name]) => !['Outros', 'Outra', 'Outras'].includes(name))
-                  .map(([resin, count]) => (
+                {Object.entries(metrics.resinMentions).map(([resin, count]) => (
                   <div key={resin} onClick={() => loadResinDetails(resin)} className="bg-blue-50 p-4 rounded-lg text-center cursor-pointer hover:bg-blue-100 transition-colors">
                     <p className="text-sm font-medium">{resin}</p>
                     <p className="text-2xl font-bold text-blue-600">{count}</p>
@@ -698,7 +706,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* SUGESTÕES (RESTAURADA E FUNCIONAL) */}
+        {/* SUGESTÕES */}
         {activeTab === 'suggestions' && (
           <div className="space-y-4">
             {suggestions.length === 0 ? (
@@ -767,7 +775,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* TREINAMENTO VISUAL (COM UPLOAD CORRIGIDO) */}
+        {/* TREINAMENTO VISUAL */}
         {activeTab === 'visual' && (
           <div className="space-y-6">
             {pendingVisualPhotos.length > 0 && (
@@ -824,7 +832,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* GALERIA (COM CAIXA AZUL DE PARÂMETROS) */}
+        {/* GALERIA */}
         {activeTab === 'gallery' && (
           <div className="space-y-4">
             {galleryEntries.filter(e => e.status !== 'rejected').map(entry => (
@@ -843,7 +851,7 @@ export function AdminPanel({ onClose }) {
                     <p className="text-xs text-gray-500 mb-2">{entry.resin} | {entry.printer}</p>
                     {entry.comment && <p className="text-sm bg-gray-50 p-2 rounded mb-2">{entry.comment}</p>}
                     
-                    {/* AQUI ESTÁ A CORREÇÃO DO MANUS (CAIXA AZUL) */}
+                    {/* CAIXA AZUL DO MANUS */}
                     {(entry.layerHeight || entry.baseLayers || entry.exposureTime) && (
                       <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2">
                         {entry.layerHeight && <div>Layer: {entry.layerHeight}</div>}
@@ -872,7 +880,29 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* MODALS DE DETALHES (FUNCIONANDO) */}
+        {/* MENSAGENS */}
+        {activeTab === 'messages' && (
+          <div className="space-y-4">
+            {contactMessages.map((msg) => (
+              <Card key={msg._id} className={`p-4 ${msg.resolved ? 'bg-gray-100 opacity-60' : 'bg-white'}`}>
+                <div className="flex justify-between mb-2">
+                  <span className="font-bold">{msg.name}</span>
+                  <span className="text-xs text-gray-500">{new Date(msg.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="text-sm mb-3">
+                  <p>{msg.email}</p>
+                  <p>{msg.phone}</p>
+                </div>
+                <p className="bg-gray-50 p-3 rounded mb-3">{msg.message}</p>
+                <Button size="sm" variant="outline" onClick={() => toggleMessageResolved(msg._id, msg.resolved)}>
+                  {msg.resolved ? 'Reabrir' : 'Marcar Resolvido'}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* MODALS */}
         {selectedResin && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <Card className="w-full max-w-2xl p-6 h-[80vh] overflow-y-auto">
@@ -911,7 +941,6 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* Modal de Edição de Texto */}
         {editingKnowledge && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
              <Card className="w-full max-w-lg p-6">
