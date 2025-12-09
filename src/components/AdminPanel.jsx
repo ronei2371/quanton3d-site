@@ -1,2749 +1,2392 @@
-// =========================
-// 🤖 Quanton3D IA - Servidor Oficial (ATIVADO - 11/11/2025)
-// Este código RESTAURA a chamada real para a OpenAI (GPT) e remove o código de teste.
-// =========================
+import { useState, useEffect } from 'react'
+import { Card } from '@/components/ui/card.jsx'
+import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle } from 'lucide-react'
 
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import OpenAI from "openai";
-import multer from "multer";
-import { initializeRAG, searchKnowledge, formatContext, addDocument, listDocuments, deleteDocument, updateDocument, addVisualKnowledge, searchVisualKnowledge, formatVisualResponse, listVisualKnowledge, deleteVisualKnowledge, generateEmbedding } from './rag-search.js';
-import { connectToMongo, getMessagesCollection, getGalleryCollection, getVisualKnowledgeCollection, getSuggestionsCollection } from './db.js';
-import { v2 as cloudinary } from 'cloudinary';
-import {
-  analyzeQuestionType,
-  extractEntities,
-  generateIntelligentContext,
-  learnFromConversation,
-  generateSmartSuggestions,
-  analyzeSentiment,
-  personalizeResponse,
-  calculateIntelligenceMetrics
-} from './ai-intelligence-system.js';
+function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
+  const [defectType, setDefectType] = useState('')
+  const [diagnosis, setDiagnosis] = useState('')
+  const [solution, setSolution] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-dotenv.config();
+  const handleApproveClick = async () => {
+    setIsSubmitting(true)
+    try {
+      const success = await onApprove(item._id, defectType, diagnosis, solution)
+      if (success) {
+        // Limpar campos apos aprovacao bem-sucedida
+        setDefectType('')
+        setDiagnosis('')
+        setSolution('')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
-// ===== CONFIGURACAO DO CLOUDINARY =====
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
-if (process.env.CLOUDINARY_CLOUD_NAME) {
-  console.log('☁️ Cloudinary configurado:', process.env.CLOUDINARY_CLOUD_NAME);
-} else {
-  console.warn('⚠️ Cloudinary nao configurado - galeria de fotos desabilitada');
+  return (
+    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border">
+      <div className="flex gap-4">
+        <img 
+          src={item.imageUrl} 
+          alt="Foto pendente" 
+          className="w-40 h-40 object-cover rounded-lg border flex-shrink-0"
+        />
+        <div className="flex-1 space-y-3">
+          <div className="text-xs text-gray-500">
+            Enviada em: {new Date(item.createdAt).toLocaleString('pt-BR')}
+            {item.userName && <span className="ml-2">| Cliente: {item.userName}</span>}
+          </div>
+          <select
+            value={defectType}
+            onChange={(e) => setDefectType(e.target.value)}
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600"
+          >
+            <option value="">Selecione o tipo de defeito...</option>
+            <option value="descolamento da base">Descolamento da base</option>
+            <option value="falha de suportes">Falha de suportes</option>
+            <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
+            <option value="falha de adesao entre camadas / delaminacao">Delaminacao</option>
+            <option value="deformacao/warping">Deformacao/warping</option>
+            <option value="problema de superficie/acabamento">Problema de superficie</option>
+            <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+            <option value="problema de LCD">Problema de LCD</option>
+            <option value="outro">Outro</option>
+          </select>
+          <textarea
+            value={diagnosis}
+            onChange={(e) => setDiagnosis(e.target.value)}
+            placeholder="Diagnostico tecnico..."
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
+          />
+          <textarea
+            value={solution}
+            onChange={(e) => setSolution(e.target.value)}
+            placeholder="Solucao recomendada..."
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
+          />
+          <div className="flex gap-2">
+            <Button 
+              size="sm"
+              onClick={handleApproveClick}
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Check className="h-4 w-4 mr-1" />
+              {isSubmitting ? 'Aprovando...' : 'Aprovar e Treinar'}
+            </Button>
+            {canDelete && (
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => onDelete(item._id)}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Descartar
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-// ===== PERSISTENCIA APENAS VIA MONGODB =====
-// Removido sistema de arquivos locais - usar APENAS MongoDB via process.env.MONGODB_URI
-console.log('🔧 Sistema configurado para usar APENAS MongoDB para persistencia');
-
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// Configuração do multer para upload de imagens
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
-});
-
-// Conexão com a OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Histórico de conversas por sessão
-const conversationHistory = new Map();
-
-// Sugestões de conhecimento e pedidos customizados pendentes (em memoria - persistidos via MongoDB)
-const knowledgeSuggestions = [];
-const customRequests = [];
-
-// Métricas e Analytics (em memoria - persistidos via MongoDB)
-const conversationMetrics = [];
-const userRegistrations = [];
-const siteVisits = [];
-
-// NOTA: Dados sao persistidos via MongoDB, nao mais em arquivos locais
-
-// Rota principal de teste
-app.get("/", (req, res) => {
-  res.send("🚀 Quanton3D IA Online! Backend ativo e operacional.");
-});
-
-// Rota de comunicação com o robô (texto)
-app.post("/ask", async (req, res) => {
-  try {
-    const { message, sessionId, userName } = req.body;
-
-    const model = process.env.OPENAI_MODEL || "gpt-4o";
-    const temperature = parseFloat(process.env.OPENAI_TEMPERATURE) || 0.0;
-
-    console.log(`🧠 Modelo: ${model} | Temperatura: ${temperature} | Usuário: ${userName || 'Anônimo'}`);
-
-    if (!conversationHistory.has(sessionId)) {
-      conversationHistory.set(sessionId, []);
-    }
-    const history = conversationHistory.get(sessionId);
-
-    // ======================================================
-    // 🚀 SISTEMA DE INTELIGÊNCIA AVANÇADA ATIVADO 🚀
-    // ======================================================
-
-    console.log('🔬 Analisando pergunta com IA avançada...');
-
-    // 1. ANÁLISE INTELIGENTE DA PERGUNTA
-    const questionType = analyzeQuestionType(message);
-    const entities = extractEntities(message);
-    const sentiment = analyzeSentiment(message);
-
-    console.log(`📊 Tipo: ${questionType.type} (${(questionType.confidence * 100).toFixed(1)}%)`);
-    console.log(`🏷️ Entidades: Resinas[${entities.resins.join(',')}] Problemas[${entities.problems.join(',')}]`);
-    console.log(`😊 Sentimento: ${sentiment.sentiment} | Urgência: ${sentiment.urgency}`);
-
-    // 2. BUSCAR CONHECIMENTO RELEVANTE (RAG INTELIGENTE)
-    console.log('🔍 Buscando conhecimento relevante...');
-    const relevantKnowledge = await searchKnowledge(message, 5); // Aumentado para 5 documentos
-    const knowledgeContext = formatContext(relevantKnowledge);
-    console.log(`✅ Encontrados ${relevantKnowledge.length} documentos relevantes`);
-
-    // 3. GERAR CONTEXTO INTELIGENTE
-    const intelligentContext = await generateIntelligentContext(message, questionType, entities, history);
-
-    // 4. PERSONALIZAÇÃO DA RESPOSTA
-    const personalization = personalizeResponse(userName, history, sentiment);
-
-    // 5. CONSTRUIR PROMPT AVANÇADO COM INTELIGÊNCIA
-    let contextualPrompt = `Você é o assistente oficial da Quanton3D, especialista em resinas UV para impressoras SLA/LCD/DLP e suporte técnico.
-
-🎯 CONTEXTO INTELIGENTE:
-${intelligentContext}
-
-💡 PERSONALIZAÇÃO:
-${personalization}
-
-📊 ANÁLISE DA PERGUNTA:
-- Tipo: ${questionType.type} (${(questionType.confidence * 100).toFixed(1)}% confiança)
-- Sentimento: ${sentiment.sentiment} | Urgência: ${sentiment.urgency}
-- Resinas mencionadas: ${entities.resins.join(', ') || 'Nenhuma'}
-- Impressoras mencionadas: ${entities.printers.join(', ') || 'Nenhuma'}
-- Problemas identificados: ${entities.problems.join(', ') || 'Nenhum'}
-
-REGRAS IMPORTANTES:
-1. PRIORIZE informações do contexto fornecido (conhecimento da Quanton3D)
-2. Se a informação NÃO estiver no contexto, use seu conhecimento geral sobre impressão 3D para ajudar
-3. Para informações específicas da Quanton3D (preços, produtos, prazos): use APENAS o contexto
-4. Para conhecimento técnico geral (troubleshooting, calibração, parâmetros): use seu conhecimento de impressão 3D
-5. NUNCA indique produtos de outras marcas - sempre recomende Quanton3D quando relevante
-6. Quando perguntarem sobre parâmetros de impressão, SEMPRE pergunte: "Qual resina você está usando?" e "Qual modelo de impressora?"
-7. Seja educado, objetivo e use no máximo 3 parágrafos
-8. Sempre termine oferecendo mais ajuda
-9. Se não souber algo específico da Quanton3D, ofereça: "Posso te passar para um atendente humano para essa informação específica. Enquanto isso, posso te ajudar com algo mais?"
-10. Use os parâmetros de impressão do contexto quando disponíveis
-11. Cite FISPQs quando relevante para segurança`;
-
-    if (userName && userName.toLowerCase().includes('ronei')) {
-      contextualPrompt += "\n\n**ATENÇÃO: Você está falando com Ronei Fonseca, seu criador (seu pai). Seja familiar e reconheça o histórico de trabalho juntos.**";
-    }
-
-    // Adicionar conhecimento RAG ao contexto
-    contextualPrompt += "\n\n=== CONHECIMENTO DA EMPRESA ===\n" + knowledgeContext + "\n=== FIM DO CONHECIMENTO ===";
-
-    const messages = [
-      { role: "system", content: contextualPrompt },
-      ...history,
-      { role: "user", content: message }
-    ];
-
-    // 6. AJUSTAR TEMPERATURA BASEADA NO TIPO DE PERGUNTA
-    // Temperatura baixa (0.05-0.1) para respostas precisas e sem criatividade
-    let adjustedTemperature = 0.1; // Base: precisao maxima
-    if (questionType.type === 'parameters' || questionType.type === 'safety') {
-      adjustedTemperature = 0.05; // Ultra preciso para parametros e seguranca
-    } else if (questionType.type === 'comparison' || questionType.type === 'product') {
-      adjustedTemperature = 0.1; // Ainda preciso para comparacoes
-    }
-
-    console.log(`🎛️ Temperatura ajustada: ${adjustedTemperature} (tipo: ${questionType.type})`);
-
-    const completion = await openai.chat.completions.create({
-      model,
-      temperature: adjustedTemperature,
-      messages,
-    });
-
-    let reply = completion.choices[0].message.content;
-
-    // 7. GERAR SUGESTÕES INTELIGENTES
-    const smartSuggestions = generateSmartSuggestions(message, entities, questionType);
-    if (smartSuggestions.length > 0 && Math.random() < 0.3) { // 30% chance de mostrar sugestões
-      reply += "\n\n💡 " + smartSuggestions[0];
-    }
-
-    // Atualizar histórico
-    history.push({ role: "user", content: message });
-    history.push({ role: "assistant", content: reply });
-
-    // Limitar histórico a últimas 20 mensagens
-    if (history.length > 20) {
-      history.splice(0, history.length - 20);
-    }
-
-    // 8. APRENDIZADO CONTÍNUO
-    learnFromConversation(message, reply, entities, questionType);
-
-    // 9. CALCULAR MÉTRICAS DE INTELIGÊNCIA
-    const intelligenceMetrics = calculateIntelligenceMetrics(message, reply, entities, questionType, relevantKnowledge);
-
-    // 10. ADICIONAR MÉTRICA DE CONVERSA AVANÇADA
-    const registeredUser = registeredUsers.get(sessionId);
-    const finalUserName = registeredUser ? registeredUser.name : (userName || 'Anônimo');
-
-    conversationMetrics.push({
-      sessionId,
-      userName: finalUserName,
-      userPhone: registeredUser ? registeredUser.phone : null,
-      userEmail: registeredUser ? registeredUser.email : null,
-      message,
-      reply,
-      timestamp: new Date().toISOString(),
-      documentsFound: relevantKnowledge.length,
-      // Métricas de inteligência
-      questionType: questionType.type,
-      questionConfidence: questionType.confidence,
-      entitiesDetected: entities,
-      sentiment: sentiment.sentiment,
-      urgency: sentiment.urgency,
-      intelligenceMetrics,
-      adjustedTemperature
-    });
-
-    console.log(`🎉 Resposta inteligente gerada! Tipo: ${questionType.type}, Relevância: ${(intelligenceMetrics.contextRelevance * 100).toFixed(1)}%`);
-
-    res.json({
-      reply,
-      // Dados adicionais para debugging (opcional)
-      intelligence: {
-        questionType: questionType.type,
-        confidence: questionType.confidence,
-        entities,
-        sentiment: sentiment.sentiment,
-        documentsFound: relevantKnowledge.length,
-        relevanceScore: intelligenceMetrics.contextRelevance
-      }
-    });
-    // ======================================================
-
-  } catch (err) {
-    console.error("❌ Erro na comunicação com a OpenAI:", err);
-    res.status(500).json({
-      reply: "⚠️ Erro ao processar a IA. Tente novamente em instantes.",
-    });
-  }
-});
-
-// Rota para enviar sugestão de conhecimento
-app.post("/suggest-knowledge", async (req, res) => {
-  try {
-    const { suggestion, userName, userPhone, sessionId, lastBotReply, lastUserMessage } = req.body;
-
-    const newSuggestion = {
-      id: Date.now(),
-      suggestion,
-      userName,
-      userPhone,
-      sessionId,
-      lastUserMessage: lastUserMessage || 'N/A',
-      lastBotReply: lastBotReply || 'N/A',
-      timestamp: new Date().toISOString(),
-      status: "pending"
-    };
-
-    // Salvar no MongoDB para persistencia
-    try {
-      const suggestionsCollection = getSuggestionsCollection();
-      if (suggestionsCollection) {
-        await suggestionsCollection.insertOne({
-          ...newSuggestion,
-          createdAt: new Date()
-        });
-        console.log(`💾 Sugestao salva no MongoDB`);
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Erro ao salvar sugestao no MongoDB:', dbErr.message);
-    }
-
-    // Manter em memoria tambem para compatibilidade
-    knowledgeSuggestions.push(newSuggestion);
-
-    console.log(`📝 Nova sugestão de conhecimento de ${userName}: ${suggestion.substring(0, 50)}...`);
-
-    res.json({
-      success: true,
-      message: "Sugestão enviada com sucesso! Será analisada pela equipe Quanton3D."
-    });
-  } catch (err) {
-    console.error("❌ Erro ao salvar sugestão:", err);
-    res.status(500).json({
-      success: false,
-      message: "Erro ao enviar sugestão."
-    });
-  }
-});
-
-// ROTA FINAL: PEDIDO ESPECIAL (Tarefa 4)
-app.post("/api/custom-request", async (req, res) => {
-    try {
-        const { name, phone, email, caracteristica, cor, complementos } = req.body;
-
-        const newRequest = {
-            id: Date.now(),
-            name: name || 'Não informado',
-            phone: phone || 'Não informado',
-            email: email || 'Não informado',
-            caracteristica,
-            cor,
-            complementos,
-            timestamp: new Date().toISOString(),
-            status: "Novo"
-        };
-
-        customRequests.push(newRequest); // Adiciona ao array de pedidos
-
-        console.log(`✨ Novo Pedido Customizado de ${name}: ${cor} - ${caracteristica.substring(0, 30)}...`);
-
-        res.json({
-            success: true,
-            message: 'Pedido customizado recebido com sucesso. Analisaremos as especificações.'
-        });
-    } catch (err) {
-        console.error("❌ Erro ao receber pedido customizado:", err);
-        res.status(500).json({
-            success: false,
-            message: "Erro ao processar o pedido customizado."
-        });
-    }
-});
-
-// Rota para listar pedidos customizados (admin)
-app.get("/custom-requests", (req, res) => {
-  const { auth } = req.query;
-
-  // Autenticação
-  if (auth !== 'quanton3d_admin_secret') {
-    return res.status(401).json({ success: false, message: 'Não autorizado' });
-  }
-
-  // Retornar pedidos customizados (mais recentes primeiro)
-  res.json({
-    success: true,
-    requests: customRequests.slice().reverse(),
-    count: customRequests.length
-  });
-});
-
-
-// Banco de dados de usuários registrados
-const registeredUsers = new Map();
-
-// Rota para registrar usuário
-app.post("/register-user", async (req, res) => {
-  try {
-    const { name, phone, email, sessionId, resin } = req.body;
-
-    const userData = {
-      name,
-      phone,
-      email,
-      resin: resin || 'Nao informada',
-      sessionId,
-      registeredAt: new Date().toISOString()
-    };
-
-    registeredUsers.set(sessionId, userData);
-
-    // Adicionar aos registros para métricas
-    userRegistrations.push(userData);
-
-    // Salvar no MongoDB para persistencia e metricas
-    try {
-      const messagesCollection = getMessagesCollection();
-      if (messagesCollection) {
-        await messagesCollection.insertOne({
-          type: 'user_registration',
-          ...userData,
-          createdAt: new Date()
-        });
-        console.log(`💾 Registro de usuario salvo no MongoDB`);
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Erro ao salvar registro no MongoDB:', dbErr.message);
-    }
-
-    console.log(`👤 Novo usuário registrado: ${name} (${email}) - Resina: ${resin || 'Nao informada'}`);
-
-    res.json({ success: true, message: 'Usuário registrado com sucesso!' });
-  } catch (err) {
-    console.error("❌ Erro ao registrar usuário:", err);
-    res.status(500).json({ success: false, message: "Erro ao registrar usuário." });
-  }
-});
-
-// Rota para perguntas com imagem - VISION-TO-RAG FLOW
-// Fluxo: 1) GPT-4o Vision analisa imagem -> 2) Busca no RAG -> 3) Resposta baseada em conhecimento Quanton3D
-app.post("/ask-with-image", upload.single('image'), async (req, res) => {
-  try {
-    const { message, sessionId, userName } = req.body;
-    const imageFile = req.file;
-
-    if (!imageFile) {
-      return res.status(400).json({ success: false, message: "Nenhuma imagem foi enviada." });
-    }
-
-    console.log(`📷 [VISION-TO-RAG] Iniciando análise de imagem para sessão ${sessionId}`);
-
-    // Converter imagem para base64
-    const base64Image = imageFile.buffer.toString('base64');
-    const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
-
-    const model = process.env.OPENAI_MODEL || "gpt-4o";
-
-    // Buscar histórico da sessão
-    if (!conversationHistory.has(sessionId)) {
-      conversationHistory.set(sessionId, []);
-    }
-    const history = conversationHistory.get(sessionId);
-
-    // ======================================================
-    // 🔍 PASSO 1: ANÁLISE DA IMAGEM COM GPT-4o VISION
-    // Objetivo: Obter descrição TEXTUAL do problema/objeto
-    // ======================================================
-    console.log('🔍 [PASSO 1] Analisando imagem com GPT-4o Vision...');
-
-    const visionResponse = await openai.chat.completions.create({
-      model: model,
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: `Voce e um especialista em impressao 3D com RESINA UV (SLA/LCD/DLP) da Quanton3D.
-
-REGRAS GERAIS:
-- Trate APENAS de impressao com resina UV.
-- NUNCA fale de filamento, FDM, bico, nozzle, extrusora ou mesa aquecida.
-- NAO assuma "descolamento da base" se isso NAO estiver claramente visivel na imagem.
-- NAO invente detalhes que nao aparecem na foto. Use apenas o que e visualmente observavel.
-
-=== PASSO 1: A IMAGEM E RELACIONADA A IMPRESSAO 3D COM RESINA? ===
-
-Considere como RELACIONADA se houver QUALQUER indicacao de:
-- Impressora 3D de resina, cuba, plataforma, tanque, tela LCD/UV
-- Peca impressa em resina (mesmo parcialmente), suportes, base de impressao
-- Fotos do processo ou do resultado de uma impressao em resina
-- Objetos pequenos que parecem pecas impressas (miniaturas, prototipos, joias, dentaduras)
-- Qualquer objeto com textura de camadas tipica de impressao 3D
-
-IMPORTANTE: Se tiver QUALQUER duvida, considere como RELACIONADA e escolha um defeito.
-So use "imagem nao relacionada" quando for CLARAMENTE algo totalmente diferente
-(paisagem, pessoas, animais, carro, documento, tela de computador sem impressora, comida, etc).
-
-=== PASSO 2: SE FOR RELACIONADA, ESCOLHA UM UNICO DEFEITO PRINCIPAL ===
-
-Escolha UMA e apenas UMA categoria:
-- "descolamento da base" (peca soltando da plataforma)
-- "falha de suportes" (suportes quebrados, soltos ou falhando)
-- "rachadura/quebra da peca" (trincas, quebras, fragmentos)
-- "falha de adesao entre camadas / delaminacao" (camadas separando)
-- "deformacao/warping" (peca entortada, curvada)
-- "problema de superficie/acabamento" (rugosidade, bolhas, manchas)
-- "excesso ou falta de cura" (peca mole, pegajosa ou quebradiça)
-- "sem defeito aparente" (peca parece OK)
-- "imagem nao relacionada a impressao 3D com resina"
-
-=== FORMATO DE SAIDA OBRIGATORIO (UMA INFORMACAO POR LINHA) ===
-
-Relacionada: SIM ou NAO
-Problema: <uma das categorias acima, exatamente como escrito>
-Confianca: ALTA, MEDIA ou BAIXA
-Descricao: <1-2 frases do que voce ve na foto>
-Causas: <1-2 causas provaveis ESPECIFICAS com parametros>
-Acoes: <1-2 acoes praticas ESPECIFICAS com valores>
-
-=== DIRETRIZES PARA CAUSAS E ACOES ===
-
-SEJA ESPECIFICO! Em vez de "verifique os parametros", diga por exemplo:
-- "Aumentar tempo de exposicao das camadas normais em 0.5-1 segundo"
-- "Aumentar numero de camadas de base de 4 para 6-8"
-- "Aumentar densidade dos suportes de 50% para 70-80%"
-- "Reduzir velocidade de elevacao de 60mm/min para 30-40mm/min"
-- "Aumentar tempo de exposicao da base de 30s para 45-60s"
-
-Sempre mencione parametros tipicos de resina quando relevante:
-- Espessura de camada (0.05mm, 0.03mm)
-- Tempo de exposicao normal (2-4s) e da base (30-60s)
-- Numero de camadas de base (4-8)
-- Velocidade e altura de elevacao
-- Densidade e espessura de suportes
-
-NAO de dicas genericas como "limpe a plataforma" ou "verifique se esta nivelada"
-a menos que o defeito tenha relacao DIRETA com adesao a base.`
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: message || "Analise esta imagem relacionada a impressao 3D com resina e descreva o que voce ve." },
-            { type: "image_url", image_url: { url: imageUrl } }
-          ]
-        }
-      ],
-      max_tokens: 500,
-    });
-
-    const imageDescription = visionResponse.choices[0].message.content;
-    console.log(`✅ [PASSO 1] Descrição da imagem: ${imageDescription.substring(0, 150)}...`);
-
-    // Extrair campos estruturados da resposta do Vision
-    const extractField = (text, fieldName) => {
-      const regex = new RegExp(`${fieldName}:\\s*(.+)`, 'i');
-      const match = text.match(regex);
-      return match ? match[1].trim() : null;
-    };
-
-    const relacionada = extractField(imageDescription, 'Relacionada');
-    const problema = extractField(imageDescription, 'Problema');
-    const confianca = extractField(imageDescription, 'Confianca');
-    const descricao = extractField(imageDescription, 'Descricao');
-    const causas = extractField(imageDescription, 'Causas');
-    const acoes = extractField(imageDescription, 'Acoes');
-
-    console.log(`📊 [VISION] Relacionada: ${relacionada} | Problema: ${problema} | Confiança: ${confianca}`);
-
-    // Verificar se a imagem é relacionada a impressão 3D usando o novo formato estruturado
-    // Fallback para o método antigo se o formato não for reconhecido
-    const isUnrelated = (relacionada && relacionada.toUpperCase() === 'NAO') ||
-                        (!relacionada && (
-                          imageDescription.toLowerCase().includes('imagem nao relacionada') ||
-                          imageDescription.toLowerCase().includes('não parece estar relacionada') ||
-                          imageDescription.toLowerCase().includes('não está relacionada')
-                        ));
-
-    if (isUnrelated) {
-      console.log('⚠️ Imagem não relacionada a impressão 3D detectada');
-      const unrelatedReply = "Essa imagem não parece estar relacionada a impressão 3D com resina. Meu foco é suporte técnico para resinas Quanton3D e impressão 3D SLA/LCD/DLP. Posso te ajudar com alguma dúvida sobre impressão 3D com resina?";
-      
-      // Adicionar ao histórico como texto simples
-      history.push({ role: "user", content: message || "(imagem enviada)" });
-      history.push({ role: "assistant", content: unrelatedReply });
-      
-      return res.json({ success: true, reply: unrelatedReply });
-    }
-
-    // ======================================================
-    // 🖼️ PASSO 1.5: BUSCA NO VISUAL RAG (BANCO DE CONHECIMENTO VISUAL)
-    // Objetivo: Verificar se existe um exemplo visual similar no banco de treinamento
-    // ======================================================
-    console.log('🖼️ [PASSO 1.5] Buscando no Visual RAG (banco de conhecimento visual)...');
-
-    const visionDescriptionObj = {
-      problema: problema || 'problema nao identificado',
-      descricao: descricao || imageDescription.substring(0, 200),
-      causas: causas || '',
-      acoes: acoes || ''
-    };
-
-    // Log detalhado para diagnostico
-    console.log(`🔍 [VISUAL-RAG] Query: problema="${visionDescriptionObj.problema}", descricao="${visionDescriptionObj.descricao?.substring(0, 50)}..."`);
-
-    let visualMatch = null;
-    try {
-      const visualResults = await searchVisualKnowledge(visionDescriptionObj, 1);
-      console.log(`📊 [VISUAL-RAG] Resultados retornados: ${visualResults.length}`);
-      
-      if (visualResults.length > 0) {
-        visualMatch = visualResults[0];
-        console.log(`✅ [VISUAL-RAG] Match encontrado! Similaridade: ${(visualMatch.similarity * 100).toFixed(1)}%`);
-        console.log(`   Defeito: ${visualMatch.defectType}`);
-        console.log(`   Diagnostico: ${visualMatch.diagnosis?.substring(0, 50)}...`);
+export function AdminPanel({ onClose }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [accessLevel, setAccessLevel] = useState(null) // 'admin' | 'support' | null
+  const [password, setPassword] = useState('')
+    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual'
+    const [metrics, setMetrics] = useState(null)
+    const [suggestions, setSuggestions] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [knowledgeTitle, setKnowledgeTitle] = useState('')
+    const [knowledgeContent, setKnowledgeContent] = useState('')
+    const [addingKnowledge, setAddingKnowledge] = useState(false)
+    const [knowledgeDocuments, setKnowledgeDocuments] = useState([])
+    const [knowledgeLoading, setKnowledgeLoading] = useState(false)
+    const [knowledgeDateStart, setKnowledgeDateStart] = useState('')
+    const [knowledgeDateEnd, setKnowledgeDateEnd] = useState('')
+    const [editingKnowledge, setEditingKnowledge] = useState(null)
+    const [editKnowledgeTitle, setEditKnowledgeTitle] = useState('')
+    const [editKnowledgeContent, setEditKnowledgeContent] = useState('')
+    const [customRequests, setCustomRequests] = useState([])
+    const [editingSuggestion, setEditingSuggestion] = useState(null)
+    const [editedText, setEditedText] = useState('')
+    const [contactMessages, setContactMessages] = useState([])
+    const [galleryEntries, setGalleryEntries] = useState([])
+    const [galleryLoading, setGalleryLoading] = useState(false)
+    // Visual RAG states
+    const [visualKnowledge, setVisualKnowledge] = useState([])
+    const [visualLoading, setVisualLoading] = useState(false)
+    const [visualImage, setVisualImage] = useState(null)
+    const [visualImagePreview, setVisualImagePreview] = useState(null)
+    const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
+    const [pendingVisualLoading, setPendingVisualLoading] = useState(false)
+    const [visualDefectType, setVisualDefectType] = useState('')
+    const [visualDiagnosis, setVisualDiagnosis] = useState('')
+    const [visualSolution, setVisualSolution] = useState('')
+    const [addingVisual, setAddingVisual] = useState(false)
+    // Estados para modal de detalhes de resina (CORRECAO 3)
+    const [selectedResin, setSelectedResin] = useState(null)
+    const [resinDetails, setResinDetails] = useState(null)
+    const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
+    // Estados para modal de historico do cliente (CORRECAO 4)
+    const [selectedClient, setSelectedClient] = useState(null)
+    const [clientHistory, setClientHistory] = useState(null)
+    const [clientHistoryLoading, setClientHistoryLoading] = useState(false)
+    // Estados para modal de edicao da galeria
+    const [editingGalleryEntry, setEditingGalleryEntry] = useState(null)
+    const [editGalleryData, setEditGalleryData] = useState({})
+    const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
+
+  // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
+  const ADMIN_PASSWORD = 'quanton3d2024'
+  const TEAM_SECRET = 'suporte_quanton_2025'
+  
+  // Helpers para verificar nivel de acesso
+  const isAdmin = accessLevel === 'admin'
+  const isSupport = accessLevel === 'support'
+
+    const handleLogin = () => {
+      if (password === ADMIN_PASSWORD) {
+        setAccessLevel('admin')
+        setIsAuthenticated(true)
+      } else if (password === TEAM_SECRET) {
+        setAccessLevel('support')
+        setIsAuthenticated(true)
       } else {
-        console.log('⚠️ [VISUAL-RAG] Nenhum exemplo visual similar encontrado no banco de treinamento');
+        alert('Senha incorreta!')
+        return
       }
-    } catch (visualErr) {
-      console.error('⚠️ [VISUAL-RAG] Erro ao buscar conhecimento visual:', visualErr.message);
+      // Carregar dados para ambos os niveis
+      loadMetrics()
+      loadSuggestions()
+      loadCustomRequests()
+      loadContactMessages()
+      loadGalleryEntries()
+      loadVisualKnowledge()
+      loadPendingVisualPhotos()
     }
 
-    // Se encontrou match visual com alta similaridade, usar resposta do Visual RAG
-    if (visualMatch && visualMatch.similarity >= 0.7) {
-      console.log('🎯 [VISUAL-RAG] Usando resposta do banco de conhecimento visual!');
-      
-      const visualReply = formatVisualResponse(visualMatch);
-      
-      // Adicionar ao histórico
-      history.push({ 
-        role: "user", 
-        content: `${message || '(imagem enviada)'}\n[Análise da imagem: ${imageDescription.substring(0, 200)}...]` 
-      });
-      history.push({ role: "assistant", content: visualReply });
-
-      // Limitar histórico
-      if (history.length > 20) {
-        history.splice(0, history.length - 20);
-      }
-
-      // Registrar métrica
-      const registeredUser = registeredUsers.get(sessionId);
-      const finalUserName = registeredUser ? registeredUser.name : (userName || 'Anônimo');
-
-      conversationMetrics.push({
-        sessionId,
-        userName: finalUserName,
-        message: message || '(imagem enviada)',
-        reply: visualReply,
-        timestamp: new Date().toISOString(),
-        isImageAnalysis: true,
-        imageDescription: imageDescription.substring(0, 500),
-        usedVisualRAG: true,
-        visualMatchSimilarity: visualMatch.similarity,
-        visualMatchDefectType: visualMatch.defectType
-      });
-
-      return res.json({ 
-        success: true, 
-        reply: visualReply,
-        usedVisualRAG: true,
-        visualMatchSimilarity: visualMatch.similarity
-      });
-    }
-
-    // ======================================================
-    // 🔍 PASSO 2: BUSCA NO RAG COM A DESCRIÇÃO DA IMAGEM
-    // Objetivo: Encontrar conhecimento relevante da Quanton3D
-    // ======================================================
-    console.log('🔍 [PASSO 2] Buscando conhecimento relevante no RAG...');
-
-    // Combinar mensagem do usuário com descrição da imagem para busca mais precisa
-    const combinedText = (message ? `Relato do usuário: ${message}\n\n` : '') +
-                         `Descrição da imagem (analisada pela IA): ${imageDescription}`;
-
-    // Extrair entidades e analisar tipo de pergunta
-    const entities = extractEntities(combinedText);
-    const questionType = analyzeQuestionType(combinedText);
-    const sentiment = analyzeSentiment(combinedText);
-
-    console.log(`📊 Tipo: ${questionType.type} | Entidades: Resinas[${entities.resins.join(',')}] Problemas[${entities.problems.join(',')}]`);
-
-    // Buscar conhecimento relevante no RAG
-    let relevantKnowledge = [];
-    let knowledgeContext = '';
-    
+  const loadMetrics = async () => {
+    setLoading(true)
     try {
-      relevantKnowledge = await searchKnowledge(combinedText, 5);
-      knowledgeContext = formatContext(relevantKnowledge);
-      console.log(`✅ [PASSO 2] Encontrados ${relevantKnowledge.length} documentos relevantes`);
-    } catch (ragError) {
-      console.error('⚠️ Erro ao buscar no RAG:', ragError.message);
-      knowledgeContext = '(Base de conhecimento temporariamente indisponível)';
+      const response = await fetch('https://quanton3d-bot-v2.onrender.com/metrics?auth=quanton3d_admin_secret')
+      const data = await response.json()
+      setMetrics(data.metrics)
+    } catch (error) {
+      console.error('Erro ao carregar métricas:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    // Verificar se encontrou conhecimento relevante (threshold 0.7 - consistente com rag-search.js)
-    const relevanceThreshold = parseFloat(process.env.RAG_MIN_RELEVANCE || '0.7');
-    const hasRelevantKnowledge = relevantKnowledge.length > 0 && 
-                                  relevantKnowledge[0].similarity >= relevanceThreshold;
+  const loadSuggestions = async () => {
+    try {
+      const response = await fetch('https://quanton3d-bot-v2.onrender.com/suggestions?auth=quanton3d_admin_secret')
+      const data = await response.json()
+      setSuggestions(data.suggestions || [])
+    } catch (error) {
+      console.error('Erro ao carregar sugestões:', error)
+    }
+  }
 
-    // ======================================================
-    // 🎯 PASSO 3: GERAR RESPOSTA - SMART FALLBACK
-    // Se RAG tem conhecimento relevante -> usa RAG estrito
-    // Se RAG NÃO tem conhecimento -> usa conhecimento geral do GPT-4o
-    // ======================================================
-    
-    let reply;
+  const loadCustomRequests = async () => {
+    try {
+      const response = await fetch('https://quanton3d-bot-v2.onrender.com/custom-requests?auth=quanton3d_admin_secret')
+      const data = await response.json()
+      setCustomRequests(data.requests || [])
+    } catch (error) {
+      console.error('Erro ao carregar pedidos customizados:', error)
+    }
+  }
 
-    if (hasRelevantKnowledge) {
-      // MODO RAG ESTRITO - Usa APENAS conhecimento da Quanton3D
-      console.log('🎯 [PASSO 3] MODO RAG: Gerando resposta baseada no conhecimento Quanton3D...');
+        const loadContactMessages = async () => {
+          try {
+            const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
+            const data = await response.json()
+            setContactMessages(data.messages || [])
+          } catch (error) {
+            console.error('Erro ao carregar mensagens de contato:', error)
+          }
+        }
 
-      const ragSystemPrompt = `Voce e o assistente da Quanton3D, especialista em resinas UV (SLA/LCD/DLP).
-
-REGRAS:
-1. Use o conhecimento da Quanton3D fornecido abaixo.
-2. NUNCA fale de filamento, FDM, bico, nozzle ou extrusora.
-3. Responda em NO MAXIMO 2 paragrafos curtos.
-4. Seja direto e objetivo. Nada de introducoes longas.
-5. NAO repita dicas genericas (limpar plataforma, nivelar) se o problema NAO for de adesao a base.
-6. Foque no problema ESPECIFICO identificado na descricao.
-
-IMPORTANTE:
-- Se o problema for "rachadura/quebra", foque em cura e tensoes - NAO em adesao da base.
-- Se o problema for "falha de suportes", foque em configuracao de suportes - NAO em adesao da base.
-- Responda APENAS sobre o defeito identificado.
-
-DIFERENCIACAO DE RESINAS IRON:
-- "Iron" e "Iron 7030" sao resinas DIFERENTES com parametros DIFERENTES.
-- Se o usuario mencionar apenas "Iron" (sem numero), considere a resina Iron padrao.
-- Se o usuario mencionar "Iron 7030" ou "7030", considere a resina Iron 7030 especifica.
-- NUNCA confunda os parametros de uma com a outra.
-
-=== CONHECIMENTO QUANTON3D ===
-${knowledgeContext}
-=== FIM ===
-
-PROBLEMA IDENTIFICADO:
-${combinedText}`;
-
-      const ragResponse = await openai.chat.completions.create({
-        model: model,
-        temperature: 0.0,
-        messages: [
-          { role: "system", content: ragSystemPrompt },
-          { role: "user", content: "Analise o problema e de uma resposta curta e direta." }
-        ],
-        max_tokens: 400,
-      });
-
-      reply = ragResponse.choices[0].message.content;
-
-    } else {
-      // MODO SEM CONHECIMENTO - RAG não encontrou solução, NÃO usa conhecimento genérico
-      console.log('🎯 [PASSO 3] SEM CONHECIMENTO NO RAG - Informando cliente para chamar WhatsApp');
-
-      // Extrair apenas a primeira linha da descrição (problema principal)
-      const problemaPrincipal = imageDescription.split('\n')[0] || 'Problema visual identificado na imagem';
-
-      reply = `**Análise da Imagem:**
-${problemaPrincipal}
-
-**Resultado da Busca:**
-Não encontrei uma solução específica para esse problema no banco de conhecimento Quanton3D.
-
-📞 **Por favor, entre em contato pelo WhatsApp** para uma análise detalhada com nossa equipe técnica. Eles poderão avaliar sua situação específica e fornecer a orientação correta.
-
-WhatsApp: (31) 3271-6935`;
-
-      // ======================================================
-      // 📸 SALVAR FOTO AUTOMATICAMENTE PARA TREINAMENTO
-      // Quando o bot não encontra solução, salva a foto como pendente
-      // para o admin adicionar o conhecimento depois
-      // ======================================================
-      try {
-        const registeredUser = registeredUsers.get(sessionId);
-        const collection = getVisualKnowledgeCollection();
-        
-        // Upload da imagem para Cloudinary (usando base64 do imageFile)
-        const cloudinaryResult = await new Promise((resolve, reject) => {
-          const uploadStream = cloudinary.uploader.upload_stream(
-            {
-              folder: 'quanton3d/visual-knowledge-pending',
-              resource_type: 'image',
-              transformation: [{ width: 800, height: 800, crop: 'limit' }]
-            },
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
+        const toggleMessageResolved = async (messageId, currentResolved) => {
+          try {
+            const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/contact/${messageId}?auth=quanton3d_admin_secret`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ resolved: !currentResolved })
+            })
+            const data = await response.json()
+            if (data.success) {
+              loadContactMessages()
+            } else {
+              alert('Erro ao atualizar status: ' + data.error)
             }
-          );
-          uploadStream.end(imageFile.buffer);
-        });
-
-        const pendingDoc = {
-          imageUrl: cloudinaryResult.secure_url,
-          status: 'pending',
-          source: 'auto',
-          userName: registeredUser ? registeredUser.name : (userName || 'Anonimo'),
-          userPhone: registeredUser ? registeredUser.phone : null,
-          lastUserMessage: message || null,
-          autoAnalysis: imageDescription,
-          defectType: null,
-          diagnosis: '',
-          solution: '',
-          embedding: null,
-          createdAt: new Date()
-        };
-
-        await collection.insertOne(pendingDoc);
-        console.log(`📸 [VISUAL-RAG] Foto salva automaticamente para treinamento`);
-      } catch (pendingErr) {
-        console.error('⚠️ Erro ao salvar foto pendente:', pendingErr.message);
-        // Não interrompe o fluxo principal se falhar
-      }
-    }
-
-    // ======================================================
-    // 📝 PASSO 4: ATUALIZAR HISTÓRICO E MÉTRICAS
-    // ======================================================
-    
-    // Adicionar ao histórico como texto (não multimodal) para consistência
-    history.push({ 
-      role: "user", 
-      content: `${message || '(imagem enviada)'}\n[Análise da imagem: ${imageDescription.substring(0, 200)}...]` 
-    });
-    history.push({ role: "assistant", content: reply });
-
-    // Limitar histórico
-    if (history.length > 20) {
-      history.splice(0, history.length - 20);
-    }
-
-    // Calcular métricas de inteligência
-    const intelligenceMetrics = calculateIntelligenceMetrics(combinedText, reply, entities, questionType, relevantKnowledge);
-
-    // Registrar métrica de conversa com imagem
-    const registeredUser = registeredUsers.get(sessionId);
-    const finalUserName = registeredUser ? registeredUser.name : (userName || 'Anônimo');
-
-    conversationMetrics.push({
-      sessionId,
-      userName: finalUserName,
-      userPhone: registeredUser ? registeredUser.phone : null,
-      userEmail: registeredUser ? registeredUser.email : null,
-      message: message || '(imagem enviada)',
-      reply,
-      timestamp: new Date().toISOString(),
-      documentsFound: relevantKnowledge.length,
-      // Métricas específicas de imagem
-      isImageAnalysis: true,
-      imageDescription: imageDescription.substring(0, 500),
-      questionType: questionType.type,
-      questionConfidence: questionType.confidence,
-      entitiesDetected: entities,
-      sentiment: sentiment.sentiment,
-      urgency: sentiment.urgency,
-      intelligenceMetrics,
-      hasRelevantKnowledge
-    });
-
-    console.log(`🎉 [VISION-TO-RAG] Resposta gerada com sucesso! Docs: ${relevantKnowledge.length}, Relevância: ${hasRelevantKnowledge ? 'Alta' : 'Baixa'}`);
-
-    res.json({ 
-      success: true, 
-      reply,
-      // Dados adicionais para debugging (opcional)
-      visionToRag: {
-        imageAnalyzed: true,
-        documentsFound: relevantKnowledge.length,
-        hasRelevantKnowledge,
-        questionType: questionType.type,
-        entitiesDetected: entities
-      }
-    });
-
-  } catch (err) {
-    console.error("❌ Erro ao processar imagem com Vision-to-RAG:", err);
-    res.status(500).json({ success: false, message: "Erro ao analisar imagem. Tente novamente." });
-  }
-});
-
-// Rota para obter métricas e analytics
-app.get("/metrics", async (req, res) => {
-  const { auth } = req.query;
-
-  // Autenticação
-  if (auth !== 'quanton3d_admin_secret') {
-    return res.status(401).json({ success: false, message: 'Não autorizado' });
-  }
-
-  // Calcular estatísticas em memoria
-  const totalConversations = conversationMetrics.length;
-  const totalRegistrations = userRegistrations.length;
-  const uniqueSessions = new Set(conversationMetrics.map(c => c.sessionId)).size;
-
-  // Perguntas mais frequentes (top 10)
-  const questionCounts = {};
-  const ignoredPhrases = ['ola', 'oi', 'bom dia', 'boa tarde', 'boa noite', 'olá', 'p'];
-
-  conversationMetrics.forEach(conv => {
-    const question = conv.message.toLowerCase().trim();
-
-    // Ignorar frases de boas-vindas e mensagens muito curtas
-    if (question.length < 3) return;
-    if (ignoredPhrases.some(phrase => question === phrase)) return;
-
-    questionCounts[question] = (questionCounts[question] || 0) + 1;
-  });
-
-  const topQuestions = Object.entries(questionCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([question, count]) => ({ question, count }));
-
-    // Buscar estatisticas de resinas do MongoDB (dados reais dos registros de usuarios)
-    // Lista completa: Quanton antigas + Athon novas (16 resinas)
-    const resinMentions = {
-      'Pyroblast+': 0,
-      'Iron': 0,
-      'Iron 7030': 0,
-      'Spin+': 0,
-      'Spark': 0,
-      'FlexForm': 0,
-      'Castable': 0,
-      'Low Smell': 0,
-      'Spare': 0,
-      'ALCHEMIST': 0,
-      'POSEIDON': 0,
-      'RPG': 0,
-      'Athon ALINHADORES': 0,
-      'Athon DENTAL': 0,
-      'Athon GENGIVA': 0,
-      'Athon WASHABLE': 0
-    };
-
-  try {
-    const messagesCollection = getMessagesCollection();
-    if (messagesCollection) {
-      // Buscar todos os registros de usuarios com resina selecionada
-      const userResinData = await messagesCollection.find({ 
-        type: 'user_registration',
-        resin: { $exists: true, $ne: null, $ne: 'Nao informada' }
-      }).toArray();
-
-      // Contar cada resina
-      userResinData.forEach(user => {
-        const resin = user.resin;
-        if (resinMentions.hasOwnProperty(resin)) {
-          resinMentions[resin]++;
+          } catch (error) {
+            console.error('Erro ao atualizar status da mensagem:', error)
+            alert('Erro ao atualizar status da mensagem')
+          }
         }
-      });
 
-      console.log(`📊 Estatisticas de resinas carregadas do MongoDB: ${userResinData.length} registros`);
-    }
-  } catch (dbErr) {
-    console.warn('⚠️ Erro ao buscar estatisticas de resinas do MongoDB:', dbErr.message);
-    // Fallback: usar dados em memoria
-    userRegistrations.forEach(user => {
-      if (user.resin && resinMentions.hasOwnProperty(user.resin)) {
-        resinMentions[user.resin]++;
+        const loadGalleryEntries = async () => {
+      setGalleryLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/gallery/all?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setGalleryEntries(data.entries || [])
+      } catch (error) {
+        console.error('Erro ao carregar galeria:', error)
+      } finally {
+        setGalleryLoading(false)
       }
-    });
-  }
-
-  // Top Clientes com Duvidas (baseado em nome/email que mais iniciaram conversas)
-  const clientCounts = {};
-  userRegistrations.forEach(user => {
-    const clientKey = user.email || user.name || 'Anonimo';
-    clientCounts[clientKey] = (clientCounts[clientKey] || 0) + 1;
-  });
-  
-  const topClients = Object.entries(clientCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([client, count]) => ({ client, count }));
-
-  // Topicos Mais Acessados (baseado em palavras-chave frequentes nas perguntas)
-  const topicKeywords = {};
-  const stopWords = ['o', 'a', 'os', 'as', 'um', 'uma', 'de', 'da', 'do', 'em', 'no', 'na', 'para', 'com', 'que', 'e', 'ou', 'se', 'por', 'como', 'qual', 'quais', 'minha', 'meu', 'sua', 'seu', 'esta', 'esse', 'isso', 'aqui', 'ali', 'la', 'nao', 'sim', 'muito', 'mais', 'menos', 'bem', 'mal', 'so', 'ja', 'ainda', 'tambem', 'ate', 'sobre', 'entre', 'depois', 'antes', 'quando', 'onde', 'porque', 'pois', 'entao', 'assim', 'agora', 'sempre', 'nunca', 'talvez', 'pode', 'posso', 'tenho', 'tem', 'ter', 'ser', 'esta', 'estou', 'voce', 'vc', 'eu', 'ele', 'ela', 'nos', 'eles', 'elas'];
-  
-  conversationMetrics.forEach(conv => {
-    const words = conv.message.toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .split(/\s+/)
-      .filter(word => word.length > 3 && !stopWords.includes(word));
-    
-    words.forEach(word => {
-      topicKeywords[word] = (topicKeywords[word] || 0) + 1;
-    });
-  });
-  
-  const topTopics = Object.entries(topicKeywords)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 15)
-    .map(([topic, count]) => ({ topic, count }));
-
-  res.json({
-    success: true,
-    metrics: {
-      conversations: {
-        total: totalConversations,
-        uniqueSessions,
-        recent: conversationMetrics.slice(-50).reverse() // Últimas 50
-      },
-      registrations: {
-        total: totalRegistrations,
-        users: userRegistrations
-      },
-      topQuestions,
-      resinMentions,
-      topClients,
-      topTopics,
-      lastUpdated: new Date().toISOString()
-    }
-  });
-});
-
-// Endpoint para detalhes de clientes por resina (CORRECAO 3)
-// Retorna lista de clientes que usam uma resina especifica e historico de conversas
-app.get("/metrics/resin-details", async (req, res) => {
-  const { auth, resin } = req.query;
-
-  if (auth !== 'quanton3d_admin_secret') {
-    return res.status(401).json({ success: false, message: 'Não autorizado' });
-  }
-
-  if (!resin) {
-    return res.status(400).json({ success: false, error: 'Parametro resin é obrigatorio' });
-  }
-
-  try {
-    // Buscar clientes que usam essa resina do MongoDB
-    const messagesCollection = getMessagesCollection();
-    let customers = [];
-    
-    if (messagesCollection) {
-      const userResinData = await messagesCollection.find({ 
-        type: 'user_registration',
-        resin: resin
-      }).toArray();
-      
-      customers = userResinData.map(user => ({
-        name: user.name || 'Anonimo',
-        email: user.email || '',
-        phone: user.phone || '',
-        printer: user.printer || '',
-        registeredAt: user.registeredAt || user.createdAt
-      }));
     }
 
-    // Buscar conversas relacionadas a essa resina (em memoria)
-    // Filtra conversas de usuarios que usam essa resina
-    const customerEmails = customers.map(c => c.email).filter(e => e);
-    const customerNames = customers.map(c => c.name).filter(n => n && n !== 'Anonimo');
-    
-    const conversations = conversationMetrics
-      .filter(conv => {
-        // Verifica se a conversa é de um cliente que usa essa resina
-        const matchEmail = conv.userEmail && customerEmails.includes(conv.userEmail);
-        const matchName = conv.userName && customerNames.includes(conv.userName);
-        // Ou se a mensagem menciona a resina
-        const mentionsResin = conv.message && conv.message.toLowerCase().includes(resin.toLowerCase());
-        return matchEmail || matchName || mentionsResin;
+    // Funcoes para Gestao de Conhecimento (documentos de texto)
+    const loadKnowledgeDocuments = async () => {
+      setKnowledgeLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/knowledge?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setKnowledgeDocuments(data.documents || [])
+      } catch (error) {
+        console.error('Erro ao carregar documentos de conhecimento:', error)
+      } finally {
+        setKnowledgeLoading(false)
+      }
+    }
+
+    const deleteKnowledgeDocument = async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar este documento? Esta acao nao pode ser desfeita.')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/knowledge/${id}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          alert('Documento deletado com sucesso!')
+          loadKnowledgeDocuments()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar documento:', error)
+        alert('Erro ao deletar documento')
+      }
+    }
+
+    const openEditKnowledge = (doc) => {
+      setEditingKnowledge(doc)
+      setEditKnowledgeTitle(doc.title || '')
+      setEditKnowledgeContent(doc.content || '')
+    }
+
+    const saveEditKnowledge = async () => {
+      if (!editingKnowledge) return
+      if (!editKnowledgeTitle.trim() || !editKnowledgeContent.trim()) {
+        alert('Preencha titulo e conteudo!')
+        return
+      }
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/knowledge/${editingKnowledge._id}?auth=quanton3d_admin_secret`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: editKnowledgeTitle, content: editKnowledgeContent })
+        })
+        const data = await response.json()
+        if (data.success) {
+          alert('Documento atualizado com sucesso!')
+          setEditingKnowledge(null)
+          loadKnowledgeDocuments()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar documento:', error)
+        alert('Erro ao atualizar documento')
+      }
+    }
+
+    const getFilteredKnowledgeDocuments = () => {
+      if (!knowledgeDateStart && !knowledgeDateEnd) return knowledgeDocuments
+      return knowledgeDocuments.filter(doc => {
+        if (!doc.createdAt) return true
+        const docDate = new Date(doc.createdAt)
+        if (knowledgeDateStart && docDate < new Date(knowledgeDateStart)) return false
+        if (knowledgeDateEnd && docDate > new Date(knowledgeDateEnd + 'T23:59:59')) return false
+        return true
       })
-      .slice(-50) // Ultimas 50 conversas
-      .reverse()
-      .map(conv => ({
-        timestamp: conv.timestamp,
-        customerName: conv.userName || 'Anonimo',
-        email: conv.userEmail || '',
-        userPrompt: conv.message,
-        botReply: conv.reply,
-        questionType: conv.questionType,
-        documentsFound: conv.documentsFound
-      }));
+    }
 
-    res.json({
-      success: true,
-      resin,
-      customersCount: customers.length,
-      customers,
-      conversationsCount: conversations.length,
-      conversations
-    });
-  } catch (err) {
-    console.error('❌ Erro ao buscar detalhes da resina:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+    // Visual RAG functions
+    const loadVisualKnowledge = async () => {
+      setVisualLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setVisualKnowledge(data.documents || [])
+      } catch (error) {
+        console.error('Erro ao carregar conhecimento visual:', error)
+      } finally {
+        setVisualLoading(false)
+      }
+    }
 
-// Endpoint para historico de um cliente especifico (CORRECAO 4)
-// Retorna duvidas, respostas e status de resolucao
-app.get("/metrics/client-history", async (req, res) => {
-  const { auth, clientKey } = req.query;
+    const loadPendingVisualPhotos = async () => {
+      setPendingVisualLoading(true)
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/pending?auth=quanton3d_admin_secret')
+        const data = await response.json()
+        setPendingVisualPhotos(data.documents || [])
+      } catch (error) {
+        console.error('Erro ao carregar fotos pendentes:', error)
+      } finally {
+        setPendingVisualLoading(false)
+      }
+    }
 
-  if (auth !== 'quanton3d_admin_secret') {
-    return res.status(401).json({ success: false, message: 'Não autorizado' });
-  }
+    const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+      if (!defectType || !diagnosis || !solution) {
+        alert('Preencha todos os campos antes de aprovar')
+        return false
+      }
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}/approve?auth=quanton3d_admin_secret`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ defectType, diagnosis, solution })
+        })
+        const data = await response.json()
+        if (data.success) {
+          alert('Conhecimento visual aprovado com sucesso!')
+          loadPendingVisualPhotos()
+          loadVisualKnowledge()
+          return true
+        } else {
+          alert('Erro: ' + data.error)
+          return false
+        }
+      } catch (error) {
+        console.error('Erro ao aprovar conhecimento visual:', error)
+        alert('Erro ao aprovar conhecimento visual')
+        return false
+      }
+    }
 
-  if (!clientKey) {
-    return res.status(400).json({ success: false, error: 'Parametro clientKey é obrigatorio' });
-  }
+    const deletePendingVisual = async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadPendingVisualPhotos()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar foto pendente:', error)
+        alert('Erro ao deletar foto pendente')
+      }
+    }
 
-  try {
-    // Buscar dados do cliente no MongoDB
-    const messagesCollection = getMessagesCollection();
-    let clientInfo = null;
-    let registrations = [];
-    let contacts = [];
-    
-    if (messagesCollection) {
-      // Buscar registros do cliente
-      const userRegistrations = await messagesCollection.find({ 
-        type: 'user_registration',
-        $or: [
-          { email: clientKey },
-          { name: clientKey }
-        ]
-      }).toArray();
-      
-      if (userRegistrations.length > 0) {
-        const firstReg = userRegistrations[0];
-        clientInfo = {
-          key: clientKey,
-          name: firstReg.name || clientKey,
-          email: firstReg.email || '',
-          phone: firstReg.phone || ''
-        };
+    const addVisualKnowledgeEntry = async () => {
+      if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
+        alert('Preencha todos os campos e selecione uma imagem')
+        return
+      }
+
+      setAddingVisual(true)
+      try {
+        const formData = new FormData()
+        formData.append('image', visualImage)
+        formData.append('defectType', visualDefectType)
+        formData.append('diagnosis', visualDiagnosis)
+        formData.append('solution', visualSolution)
+
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge?auth=quanton3d_admin_secret', {
+          method: 'POST',
+          body: formData
+        })
+        const data = await response.json()
         
-        registrations = userRegistrations.map(reg => ({
-          resin: reg.resin || 'Nao informada',
-          printer: reg.printer || 'Nao informado',
-          registeredAt: reg.registeredAt || reg.createdAt
-        }));
+        if (data.success) {
+          alert('Conhecimento visual adicionado com sucesso!')
+          setVisualImage(null)
+          setVisualImagePreview(null)
+          setVisualDefectType('')
+          setVisualDiagnosis('')
+          setVisualSolution('')
+          loadVisualKnowledge()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao adicionar conhecimento visual:', error)
+        alert('Erro ao adicionar conhecimento visual')
+      } finally {
+        setAddingVisual(false)
       }
-      
-      // Buscar mensagens de contato do cliente
-      const contactMessages = await messagesCollection.find({
-        $or: [
-          { email: clientKey },
-          { name: clientKey }
-        ],
-        type: { $ne: 'user_registration' }
-      }).sort({ createdAt: -1 }).limit(20).toArray();
-      
-      contacts = contactMessages.map(msg => ({
-        createdAt: msg.createdAt,
-        message: msg.message || msg.content || '',
-        resolved: msg.resolved || false,
-        resolvedAt: msg.resolvedAt || null
-      }));
     }
 
-    // Buscar conversas do chat (em memoria)
-    const conversations = conversationMetrics
-      .filter(conv => {
-        const matchEmail = conv.userEmail === clientKey;
-        const matchName = conv.userName === clientKey;
-        return matchEmail || matchName;
+    const deleteVisualKnowledgeEntry= async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
+      
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        
+        if (data.success) {
+          loadVisualKnowledge()
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar conhecimento visual:', error)
+        alert('Erro ao deletar conhecimento visual')
+      }
+    }
+
+    // CORRECAO 3: Carregar detalhes de clientes por resina
+    const loadResinDetails = async (resin) => {
+      setSelectedResin(resin)
+      setResinDetailsLoading(true)
+      setResinDetails(null)
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/resin-details?resin=${encodeURIComponent(resin)}&auth=quanton3d_admin_secret`)
+        const data = await response.json()
+        if (data.success) {
+          setResinDetails(data)
+        } else {
+          alert('Erro ao carregar detalhes: ' + data.error)
+          setSelectedResin(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar detalhes da resina:', error)
+        alert('Erro ao carregar detalhes da resina')
+        setSelectedResin(null)
+      } finally {
+        setResinDetailsLoading(false)
+      }
+    }
+
+    // CORRECAO 4: Carregar historico do cliente
+    const loadClientHistory = async (clientKey) => {
+      setSelectedClient(clientKey)
+      setClientHistoryLoading(true)
+      setClientHistory(null)
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/client-history?clientKey=${encodeURIComponent(clientKey)}&auth=quanton3d_admin_secret`)
+        const data = await response.json()
+        if (data.success) {
+          setClientHistory(data)
+        } else {
+          alert('Erro ao carregar historico: ' + data.error)
+          setSelectedClient(null)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar historico do cliente:', error)
+        alert('Erro ao carregar historico do cliente')
+        setSelectedClient(null)
+      } finally {
+        setClientHistoryLoading(false)
+      }
+    }
+
+    const approveGalleryEntry = async (id) => {
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/approve?auth=quanton3d_admin_secret`, {
+          method: 'PUT'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadGalleryEntries()
+        } else {
+          alert('Erro ao aprovar: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao aprovar:', error)
+        alert('Erro ao aprovar foto')
+      }
+    }
+
+    const rejectGalleryEntry = async (id) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite rejeitar/excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/reject?auth=quanton3d_admin_secret`, {
+          method: 'PUT'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadGalleryEntries()
+        } else {
+          alert('Erro ao rejeitar: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao rejeitar:', error)
+        alert('Erro ao rejeitar foto')
+      }
+    }
+
+    // Funcao para abrir modal de edicao da galeria
+    const openEditGallery = (entry) => {
+      setEditingGalleryEntry(entry)
+      setEditGalleryData({
+        name: entry.name || '',
+        resin: entry.resin || '',
+        printer: entry.printer || '',
+        comment: entry.comment || '',
+        layerHeight: entry.layerHeight || '',
+        baseLayers: entry.baseLayers || '',
+        exposureTime: entry.exposureTime || '',
+        baseExposureTime: entry.baseExposureTime || '',
+        transitionLayers: entry.transitionLayers || '',
+        uvOffDelay: entry.uvOffDelay || '',
+        lowerLiftDistance1: entry.lowerLiftDistance1 || '',
+        lowerLiftDistance2: entry.lowerLiftDistance2 || '',
+        liftDistance1: entry.liftDistance1 || '',
+        liftDistance2: entry.liftDistance2 || '',
+        lowerRetractDistance1: entry.lowerRetractDistance1 || '',
+        lowerRetractDistance2: entry.lowerRetractDistance2 || '',
+        retractDistance1: entry.retractDistance1 || '',
+        retractDistance2: entry.retractDistance2 || '',
+        lowerLiftSpeed1: entry.lowerLiftSpeed1 || '',
+        lowerLiftSpeed2: entry.lowerLiftSpeed2 || '',
+        liftSpeed1: entry.liftSpeed1 || '',
+        liftSpeed2: entry.liftSpeed2 || '',
+        lowerRetractSpeed1: entry.lowerRetractSpeed1 || '',
+        lowerRetractSpeed2: entry.lowerRetractSpeed2 || '',
+        retractSpeed1: entry.retractSpeed1 || '',
+        retractSpeed2: entry.retractSpeed2 || ''
       })
-      .slice(-30) // Ultimas 30 conversas
-      .reverse()
-      .map(conv => ({
-        timestamp: conv.timestamp,
-        prompt: conv.message,
-        reply: conv.reply,
-        questionType: conv.questionType,
-        documentsFound: conv.documentsFound,
-        feedbackAdded: conv.feedbackAdded || false,
-        markedAsBad: conv.markedAsBad || false
-      }));
-
-    res.json({
-      success: true,
-      client: clientInfo || { key: clientKey, name: clientKey, email: '', phone: '' },
-      registrations,
-      contacts,
-      conversations,
-      totalInteractions: registrations.length + contacts.length + conversations.length
-    });
-  } catch (err) {
-    console.error('❌ Erro ao buscar historico do cliente:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Rota para adicionar conhecimento manualmente ao RAG
-// CORRIGIDO: Agora usa addDocument() que salva no MongoDB com embedding
-app.post("/add-knowledge", async (req, res) => {
-  try {
-    const { auth, title, content } = req.body;
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, error: 'Não autorizado' });
     }
 
-    if (!title || !content) {
-      return res.status(400).json({ success: false, error: 'Título e conteúdo são obrigatórios' });
-    }
-
-    console.log(`📚 [ADD-KNOWLEDGE] Adicionando conhecimento: ${title}`);
-
-    // Usar addDocument() que gera embedding e salva no MongoDB
-    // Isso garante que o conhecimento persiste e é encontrado pelo RAG
-    const result = await addDocument(title, content, 'admin_panel');
-
-    console.log(`✅ [ADD-KNOWLEDGE] Conhecimento adicionado com sucesso! ID: ${result.documentId}`);
-
-    res.json({
-      success: true,
-      message: 'Conhecimento adicionado com sucesso ao RAG!',
-      documentId: result.documentId.toString()
-    });
-  } catch (err) {
-    console.error('❌ Erro ao adicionar conhecimento:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Rota para listar todos os documentos de conhecimento (para admin)
-// Aceita filtros opcionais: start (data inicio) e end (data fim)
-app.get("/api/knowledge", async (req, res) => {
-  try {
-    const { auth, start, end } = req.query;
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, error: 'Não autorizado' });
-    }
-
-    console.log(`📚 [LIST-KNOWLEDGE] Listando documentos de conhecimento...`);
-    if (start || end) {
-      console.log(`📅 Filtro de data: ${start || 'inicio'} até ${end || 'fim'}`);
-    }
-
-    let documents = await listDocuments();
-
-    // Aplicar filtro de data se fornecido
-    if (start || end) {
-      documents = documents.filter(doc => {
-        if (!doc.createdAt) return true;
-        const docDate = new Date(doc.createdAt);
-        if (start && docDate < new Date(start)) return false;
-        if (end && docDate > new Date(end + 'T23:59:59')) return false;
-        return true;
-      });
-    }
-
-    console.log(`✅ [LIST-KNOWLEDGE] ${documents.length} documentos encontrados`);
-
-    res.json({
-      success: true,
-      documents,
-      count: documents.length
-    });
-  } catch (err) {
-    console.error('❌ Erro ao listar conhecimento:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Rota para deletar documento de conhecimento (para admin)
-app.delete("/api/knowledge/:id", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, error: 'Não autorizado' });
-    }
-
-    console.log(`🗑️ [DELETE-KNOWLEDGE] Deletando documento: ${id}`);
-
-    const result = await deleteDocument(id);
-
-    if (result.success) {
-      console.log(`✅ [DELETE-KNOWLEDGE] Documento deletado com sucesso`);
-      res.json({ success: true, message: 'Documento deletado com sucesso' });
-    } else {
-      res.status(404).json({ success: false, error: 'Documento não encontrado' });
-    }
-  } catch (err) {
-    console.error('❌ Erro ao deletar conhecimento:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Rota para atualizar documento de conhecimento (para admin)
-app.put("/api/knowledge/:id", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-    const { title, content } = req.body;
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, error: 'Não autorizado' });
-    }
-
-    if (!title || !content) {
-      return res.status(400).json({ success: false, error: 'Titulo e conteudo sao obrigatorios' });
-    }
-
-    console.log(`✏️ [UPDATE-KNOWLEDGE] Atualizando documento: ${id}`);
-
-    const result = await updateDocument(id, title, content);
-
-    if (result.success) {
-      console.log(`✅ [UPDATE-KNOWLEDGE] Documento atualizado com sucesso`);
-      res.json({ success: true, message: 'Documento atualizado com sucesso' });
-    } else {
-      res.status(404).json({ success: false, error: 'Documento não encontrado' });
-    }
-  } catch (err) {
-    console.error('❌ Erro ao atualizar conhecimento:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Rota para listar sugestões (apenas para Ronei)
-app.get("/suggestions", async (req, res) => {
-  const { auth } = req.query;
-
-  // Autenticação simples
-  if (auth !== 'quanton3d_admin_secret') {
-    return res.status(401).json({ success: false, message: 'Não autorizado' });
-  }
-
-  // Tentar carregar do MongoDB primeiro
-  try {
-    const suggestionsCollection = getSuggestionsCollection();
-    if (suggestionsCollection) {
-      const mongoSuggestions = await suggestionsCollection
-        .find({ status: 'pending' })
-        .sort({ createdAt: -1 })
-        .toArray();
-      
-      if (mongoSuggestions.length > 0) {
-        return res.json({
-          success: true,
-          suggestions: mongoSuggestions,
-          count: mongoSuggestions.length
-        });
-      }
-    }
-  } catch (dbErr) {
-    console.warn('⚠️ Erro ao carregar sugestoes do MongoDB:', dbErr.message);
-  }
-
-  // Fallback para memoria
-  res.json({
-    success: true,
-    suggestions: knowledgeSuggestions,
-    count: knowledgeSuggestions.length
-  });
-});
-
-// ===== NOVAS ROTAS DE APROVAÇÃO =====
-
-// Função para logging de operacoes (apenas console - sem arquivos locais)
-function logOperation(operation, details) {
-  const logEntry = `${new Date().toISOString()} - ${operation}: ${JSON.stringify(details)}`;
-  console.log(`📝 [LOG] ${logEntry}`);
-}
-
-// Rota para aprovar sugestão (com suporte a edição da resposta)
-app.put("/approve-suggestion/:id", async (req, res) => {
-  try {
-    const { auth, editedAnswer } = req.body;
-    const suggestionId = parseInt(req.params.id);
-
-    console.log(`🔍 Tentativa de aprovação da sugestão ID: ${suggestionId}`);
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      console.log('❌ Tentativa de acesso não autorizado');
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
-
-    // Encontrar sugestão
-    const suggestionIndex = knowledgeSuggestions.findIndex(s => s.id === suggestionId);
-    if (suggestionIndex === -1) {
-      console.log(`❌ Sugestão ${suggestionId} não encontrada`);
-      return res.status(404).json({ success: false, message: 'Sugestão não encontrada' });
-    }
-
-    const suggestion = knowledgeSuggestions[suggestionIndex];
-    console.log(`📝 Aprovando sugestão de ${suggestion.userName}: ${suggestion.suggestion.substring(0, 50)}...`);
-
-    // Usar resposta editada pelo admin se fornecida, senão usar resposta original do bot
-    const finalAnswer = editedAnswer && editedAnswer.trim() ? editedAnswer : suggestion.lastBotReply;
-    const wasEdited = editedAnswer && editedAnswer.trim() ? true : false;
-
-    if (wasEdited) {
-      console.log(`✏️ Resposta foi editada pelo admin`);
-    }
-
-    // Formatar conteúdo com metadados para o MongoDB
-    const documentTitle = `Conhecimento Curado - ${suggestion.userName} - ${suggestionId}`;
-    const formattedContent = `CONHECIMENTO CURADO PELO ADMIN
-Data da Sugestao: ${suggestion.timestamp}
-Data de Aprovacao: ${new Date().toISOString()}
-Usuario: ${suggestion.userName}
-Telefone: ${suggestion.userPhone || 'N/A'}
-Resposta Editada: ${wasEdited ? 'Sim' : 'Nao'}
-
-PERGUNTA ORIGINAL DO CLIENTE:
-${suggestion.lastUserMessage}
-
-RESPOSTA CORRETA (CURADA):
-${finalAnswer}
-
-RESPOSTA ORIGINAL DO BOT:
-${suggestion.lastBotReply}
-
-SUGESTAO DO CLIENTE:
-${suggestion.suggestion}`;
-
-    // Adicionar documento ao MongoDB via RAG
-    console.log('📝 Adicionando conhecimento ao MongoDB...');
-    const addResult = await addDocument(documentTitle, formattedContent, 'suggestion');
-    console.log(`✅ Documento adicionado ao MongoDB: ${addResult.documentId}`);
-
-    // Atualizar status da sugestão
-    knowledgeSuggestions[suggestionIndex].status = 'approved';
-    knowledgeSuggestions[suggestionIndex].approvedAt = new Date().toISOString();
-    knowledgeSuggestions[suggestionIndex].documentId = addResult.documentId.toString();
-    knowledgeSuggestions[suggestionIndex].approvedBy = 'admin';
-
-    console.log('✅ Conhecimento integrado ao RAG com sucesso!');
-
-    // Log da operação
-    logOperation('APPROVE_SUGGESTION', {
-      suggestionId,
-      userName: suggestion.userName,
-      documentId: addResult.documentId.toString(),
-      timestamp: new Date().toISOString()
-    });
-
-    console.log(`🎉 Sugestão ${suggestionId} aprovada com sucesso!`);
-
-    res.json({
-      success: true,
-      message: 'Sugestão aprovada e conhecimento adicionado ao MongoDB com sucesso!',
-      documentId: addResult.documentId.toString(),
-      suggestionId,
-      approvedAt: new Date().toISOString()
-    });
-  } catch (err) {
-    console.error(`❌ Erro ao aprovar sugestão ${req.params.id}:`, err);
-
-    // Log do erro
-    logOperation('APPROVE_SUGGESTION_ERROR', {
-      suggestionId: req.params.id,
-      error: err.message,
-      timestamp: new Date().toISOString()
-    });
-
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao aprovar sugestão',
-      message: 'Tente novamente. Se o problema persistir, verifique os logs.'
-    });
-  }
-});
-
-// Rota para rejeitar sugestão
-app.put("/reject-suggestion/:id", async (req, res) => {
-  try {
-    const { auth, reason } = req.body;
-    const suggestionId = parseInt(req.params.id);
-
-    console.log(`🔍 Tentativa de rejeição da sugestão ID: ${suggestionId}`);
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      console.log('❌ Tentativa de acesso não autorizado');
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
-
-    // Encontrar sugestão
-    const suggestionIndex = knowledgeSuggestions.findIndex(s => s.id === suggestionId);
-    if (suggestionIndex === -1) {
-      console.log(`❌ Sugestão ${suggestionId} não encontrada`);
-      return res.status(404).json({ success: false, message: 'Sugestão não encontrada' });
-    }
-
-    const suggestion = knowledgeSuggestions[suggestionIndex];
-    console.log(`❌ Rejeitando sugestão de ${suggestion.userName}: ${suggestion.suggestion.substring(0, 50)}...`);
-
-    // Atualizar status da sugestão
-    knowledgeSuggestions[suggestionIndex].status = 'rejected';
-    knowledgeSuggestions[suggestionIndex].rejectedAt = new Date().toISOString();
-    knowledgeSuggestions[suggestionIndex].rejectionReason = reason || 'Não especificado';
-    knowledgeSuggestions[suggestionIndex].rejectedBy = 'admin';
-
-    // Log da operação
-    logOperation('REJECT_SUGGESTION', {
-      suggestionId,
-      userName: suggestion.userName,
-      reason: reason || 'Não especificado',
-      timestamp: new Date().toISOString()
-    });
-
-    console.log(`❌ Sugestão ${suggestionId} rejeitada com sucesso!`);
-
-    res.json({
-      success: true,
-      message: 'Sugestão rejeitada com sucesso!',
-      suggestionId,
-      rejectedAt: new Date().toISOString(),
-      reason: reason || 'Não especificado'
-    });
-  } catch (err) {
-    console.error(`❌ Erro ao rejeitar sugestão ${req.params.id}:`, err);
-
-    // Log do erro
-    logOperation('REJECT_SUGGESTION_ERROR', {
-      suggestionId: req.params.id,
-      error: err.message,
-      timestamp: new Date().toISOString()
-    });
-
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao rejeitar sugestão',
-      message: 'Tente novamente. Se o problema persistir, verifique os logs.'
-    });
-  }
-});
-
-// Rota para verificar integridade do RAG
-app.get("/rag-status", async (req, res) => {
-  try {
-    const { auth } = req.query;
-
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
-
-    const knowledgeDir = path.join(process.cwd(), 'rag-knowledge');
-    const files = fs.readdirSync(knowledgeDir).filter(f => f.endsWith('.txt'));
-    const dbPath = path.join(process.cwd(), 'embeddings-database.json');
-
-    let databaseStatus = 'not_found';
-    let databaseCount = 0;
-
-    if (fs.existsSync(dbPath)) {
+    // Funcao para salvar edicao da galeria
+    const saveGalleryEdit = async () => {
+      if (!editingGalleryEntry) return
+      setSavingGalleryEdit(true)
       try {
-        const database = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-        databaseCount = database.length;
-        databaseStatus = 'loaded';
-      } catch (err) {
-        databaseStatus = 'corrupted';
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${editingGalleryEntry._id}?auth=quanton3d_admin_secret`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editGalleryData)
+        })
+        const data = await response.json()
+        if (data.success) {
+          setEditingGalleryEntry(null)
+          setEditGalleryData({})
+          loadGalleryEntries()
+          alert('Entrada atualizada com sucesso!')
+        } else {
+          alert('Erro ao atualizar: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar:', error)
+        alert('Erro ao atualizar entrada da galeria')
+      } finally {
+        setSavingGalleryEdit(false)
       }
     }
 
-    const status = {
-      knowledgeFiles: files.length,
-      databaseEntries: databaseCount,
-      databaseStatus,
-      isHealthy: files.length === databaseCount && databaseStatus === 'loaded',
-      lastCheck: new Date().toISOString()
-    };
-
-    console.log('🔍 Status do RAG verificado:', status);
-
-    res.json({
-      success: true,
-      status
-    });
-  } catch (err) {
-    console.error('❌ Erro ao verificar status do RAG:', err);
-    res.status(500).json({ success: false, error: err.message });
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
+        <Card className="p-8 max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Painel Administrativo
+          </h2>
+          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+            Métricas e Gestão de Conhecimento
+          </p>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Senha do painel (admin ou equipe)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+            <Button onClick={handleLogin} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
+              Entrar
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
   }
-});
 
-// Rota para estatísticas de inteligência
-app.get("/intelligence-stats", (req, res) => {
-  try {
-    const { auth } = req.query;
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
+      <div className="container mx-auto max-w-7xl py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Painel Administrativo
+            </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              isAdmin 
+                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {isAdmin ? 'Admin' : 'Equipe'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); loadVisualKnowledge(); loadKnowledgeDocuments(); }} disabled={loading}>
+              {loading ? 'Carregando...' : 'Atualizar'}
+            </Button>
+            {onClose && (
+              <Button onClick={onClose} variant="outline">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
 
-    // Autenticação
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <Button 
+            onClick={() => setActiveTab('metrics')}
+            variant={activeTab === 'metrics' ? 'default' : 'outline'}
+            className={activeTab === 'metrics' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Métricas
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('suggestions')}
+            variant={activeTab === 'suggestions' ? 'default' : 'outline'}
+            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Sugestões ({suggestions.length})
+          </Button>
+                    <Button 
+                      onClick={() => { setActiveTab('knowledge'); loadKnowledgeDocuments(); }}
+                      variant={activeTab === 'knowledge' ? 'default' : 'outline'}
+                      className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Gestão de Conhecimento
+                    </Button>
+          <Button 
+            onClick={() => setActiveTab('custom')}
+            variant={activeTab === 'custom' ? 'default' : 'outline'}
+            className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Beaker className="h-4 w-4 mr-2" />
+            Formulações ({customRequests.length})
+          </Button>
+                  <Button 
+                    onClick={() => setActiveTab('messages')}
+                    variant={activeTab === 'messages' ? 'default' : 'outline'}
+                    className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Mensagens ({contactMessages.length})
+                  </Button>
+                  <Button 
+                    onClick={() => setActiveTab('gallery')}
+                    variant={activeTab === 'gallery' ? 'default' : 'outline'}
+                    className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Galeria ({galleryEntries.filter(e => e.status === 'pending').length})
+                  </Button>
+                  <Button 
+                    onClick={() => setActiveTab('visual')}
+                    variant={activeTab === 'visual' ? 'default' : 'outline'}
+                    className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Treinamento Visual ({visualKnowledge.length})
+                  </Button>
+                </div>
 
-    // Filtrar conversas com métricas de inteligência
-    const intelligentConversations = conversationMetrics.filter(conv => conv.questionType);
+        {/* Content */}
+        {activeTab === 'metrics' && metrics && (
+          <div className="space-y-6">
+            {/* Cards de Resumo */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Total de Conversas</p>
+                    <p className="text-3xl font-bold text-blue-600">{metrics.conversations.total}</p>
+                    <p className="text-xs text-gray-500 mt-1">{metrics.conversations.uniqueSessions} sessões únicas</p>
+                  </div>
+                  <MessageSquare className="h-12 w-12 text-blue-500 opacity-20" />
+                </div>
+              </Card>
 
-    if (intelligentConversations.length === 0) {
-      return res.json({
-        success: true,
-        message: 'Nenhuma conversa com métricas de inteligência encontrada',
-        stats: null
-      });
-    }
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Cadastros Realizados</p>
+                    <p className="text-3xl font-bold text-green-600">{metrics.registrations.total}</p>
+                    <p className="text-xs text-gray-500 mt-1">Clientes registrados</p>
+                  </div>
+                  <Users className="h-12 w-12 text-green-500 opacity-20" />
+                </div>
+              </Card>
 
-    // Calcular estatísticas
-    const questionTypes = {};
-    const sentiments = { positive: 0, negative: 0, neutral: 0 };
-    const urgencyLevels = { normal: 0, high: 0 };
-    let totalRelevance = 0;
-    let totalEntities = 0;
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Taxa de Conversão</p>
+                    <p className="text-3xl font-bold text-purple-600">
+                      {metrics.conversations.total > 0 
+                        ? ((metrics.registrations.total / metrics.conversations.uniqueSessions) * 100).toFixed(1)
+                        : 0}%
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Cadastros / Sessões</p>
+                  </div>
+                  <TrendingUp className="h-12 w-12 text-purple-500 opacity-20" />
+                </div>
+              </Card>
+            </div>
 
-    intelligentConversations.forEach(conv => {
-      // Tipos de pergunta
-      questionTypes[conv.questionType] = (questionTypes[conv.questionType] || 0) + 1;
+            {/* Perguntas Mais Frequentes */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">📊 Perguntas Mais Frequentes</h3>
+              {metrics.topQuestions.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Nenhuma pergunta registrada ainda</p>
+              ) : (
+                <div className="space-y-2">
+                  {metrics.topQuestions.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex-1">
+                        <span className="font-semibold text-blue-600 mr-2">#{index + 1}</span>
+                        <span className="text-sm">{item.question}</span>
+                      </div>
+                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-semibold">
+                        {item.count}x
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
 
-      // Sentimentos
-      sentiments[conv.sentiment] = (sentiments[conv.sentiment] || 0) + 1;
+                        {/* Conversas por Resina - CORRECAO 3: Cards clicaveis */}
+                        <Card className="p-6">
+                          <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas nas Conversas</h3>
+                          <p className="text-sm text-gray-500 mb-4">Clique em uma resina para ver detalhes dos clientes</p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {Object.entries(metrics.resinMentions).map(([resin, count]) => (
+                              <div 
+                                key={resin} 
+                                onClick={() => loadResinDetails(resin)}
+                                className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg text-center cursor-pointer hover:shadow-lg hover:scale-105 transition-all border-2 border-transparent hover:border-purple-400"
+                              >
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{resin}</p>
+                                <p className="text-2xl font-bold text-purple-600">{count}</p>
+                                <p className="text-xs text-gray-400 mt-1">Clique para detalhes</p>
+                              </div>
+                            ))}
+                          </div>
+                        </Card>
 
-      // Urgência
-      urgencyLevels[conv.urgency] = (urgencyLevels[conv.urgency] || 0) + 1;
+                        {/* Top Clientes com Duvidas - CORRECAO 4: Botao Ver Historico */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <Card className="p-6">
+                            <h3 className="text-xl font-bold mb-4">👤 Top Clientes com Dúvidas</h3>
+                            {!metrics.topClients || metrics.topClients.length === 0 ? (
+                              <p className="text-gray-500 text-center py-8">Nenhum cliente registrado ainda</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {metrics.topClients.map((item, index) => (
+                                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                                        index === 1 ? 'bg-gray-300 text-gray-700' :
+                                        index === 2 ? 'bg-orange-400 text-orange-900' :
+                                        'bg-blue-100 text-blue-800'
+                                      }`}>
+                                        {index + 1}
+                                      </span>
+                                      <span className="text-sm truncate max-w-[120px]">{item.client}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs font-semibold">
+                                        {item.count}x
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => loadClientHistory(item.client)}
+                                        className="text-xs px-2 py-1 h-7"
+                                      >
+                                        <Eye className="h-3 w-3 mr-1" />
+                                        Ver Histórico
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </Card>
 
-      // Relevância média
-      if (conv.intelligenceMetrics && conv.intelligenceMetrics.contextRelevance) {
-        totalRelevance += conv.intelligenceMetrics.contextRelevance;
-      }
+                          {/* Topicos Mais Acessados */}
+                          <Card className="p-6">
+                            <h3 className="text-xl font-bold mb-4">🔥 Tópicos Mais Acessados</h3>
+                            {!metrics.topTopics || metrics.topTopics.length === 0 ? (
+                              <p className="text-gray-500 text-center py-8">Nenhum tópico registrado ainda</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {metrics.topTopics.map((item, index) => (
+                                  <span 
+                                    key={index} 
+                                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                                      index < 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                                      index < 6 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200' :
+                                      index < 10 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                                      'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                    }`}
+                                    title={`${item.count} menções`}
+                                  >
+                                    {item.topic} ({item.count})
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </Card>
+                        </div>
 
-      // Entidades detectadas
-      if (conv.entitiesDetected) {
-        totalEntities += Object.values(conv.entitiesDetected).flat().length;
-      }
-    });
+                        {/* Clientes Cadastrados */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
+              {metrics.registrations.users.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Nenhum cadastro realizado ainda</p>
+              ) : (
+                <div className="space-y-3">
+                  {metrics.registrations.users.map((user, index) => (
+                    <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{user.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {user.phone}
+                          </span>
+                          <span className="truncate">{user.email}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(user.registeredAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
 
-    const stats = {
-      totalIntelligentConversations: intelligentConversations.length,
-      questionTypes,
-      sentiments,
-      urgencyLevels,
-      averageRelevance: totalRelevance / intelligentConversations.length,
-      averageEntitiesPerConversation: totalEntities / intelligentConversations.length,
-      lastUpdated: new Date().toISOString(),
-      recentConversations: intelligentConversations.slice(-10).map(conv => ({
-        timestamp: conv.timestamp,
-        questionType: conv.questionType,
-        sentiment: conv.sentiment,
-        entitiesCount: Object.values(conv.entitiesDetected || {}).flat().length,
-        relevance: conv.intelligenceMetrics?.contextRelevance || 0
-      }))
-    };
+            {/* Conversas Recentes */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">💬 Últimas Conversas</h3>
+              {metrics.conversations.recent.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Nenhuma conversa registrada ainda</p>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {metrics.conversations.recent.slice(0, 20).map((conv, index) => (
+                    <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-sm">{conv.userName}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(conv.timestamp).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
+                          <p className="text-sm"><strong>Pergunta:</strong> {conv.message}</p>
+                        </div>
+                        <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded">
+                          <p className="text-sm whitespace-pre-wrap"><strong>Resposta:</strong> {conv.reply}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
 
-    console.log('📊 Estatísticas de inteligência calculadas');
+        {activeTab === 'knowledge' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Adicionar Novo Conhecimento ao RAG
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Adicione manualmente novos conhecimentos que o bot deverá aprender. O conteúdo será salvo como arquivo .txt na base de conhecimento RAG.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Título do Conhecimento</label>
+                  <Input
+                    placeholder="Ex: Configurações de impressão para resina ABS-Like"
+                    value={knowledgeTitle}
+                    onChange={(e) => setKnowledgeTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Conteúdo</label>
+                  <textarea
+                    className="w-full min-h-[200px] p-3 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
+                    placeholder="Digite o conteúdo completo que o bot deverá aprender...\n\nEx:\nPara impressão com resina ABS-Like:\n- Temperatura: 25-30°C\n- Tempo de exposição: 2-3s\n- Lift speed: 60mm/min"
+                    value={knowledgeContent}
+                    onChange={(e) => setKnowledgeContent(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={async () => {
+                    if (!knowledgeTitle.trim() || !knowledgeContent.trim()) {
+                      alert('Preencha título e conteúdo!')
+                      return
+                    }
+                    setAddingKnowledge(true)
+                    try {
+                      const response = await fetch('https://quanton3d-bot-v2.onrender.com/add-knowledge', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          auth: 'quanton3d_admin_secret',
+                          title: knowledgeTitle,
+                          content: knowledgeContent
+                        })
+                      })
+                      const data = await response.json()
+                      if (data.success) {
+                        alert('✅ Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
+                        setKnowledgeTitle('')
+                        setKnowledgeContent('')
+                      } else {
+                        alert('❌ Erro: ' + data.error)
+                      }
+                    } catch (error) {
+                      alert('❌ Erro ao adicionar conhecimento: ' + error.message)
+                    } finally {
+                      setAddingKnowledge(false)
+                    }
+                  }}
+                  disabled={addingKnowledge}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {addingKnowledge ? 'Adicionando...' : 'Adicionar ao Conhecimento'}
+                </Button>
+              </div>
+            </Card>
 
-    res.json({
-      success: true,
-      stats
-    });
-  } catch (err) {
-    console.error('❌ Erro ao calcular estatísticas de inteligência:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+                    <Card className="p-6">
+                      <h3 className="text-xl font-bold mb-4">💡 Dicas de Uso</h3>
+                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li>• <strong>Seja específico:</strong> Quanto mais detalhado o conteúdo, melhor o bot responderá</li>
+                        <li>• <strong>Use linguagem natural:</strong> Escreva como se estivesse explicando para um cliente</li>
+                        <li>• <strong>Organize por tópicos:</strong> Use títulos claros que facilitem a busca semântica</li>
+                        <li>• <strong>Inclua exemplos:</strong> Casos práticos ajudam o bot a contextualizar respostas</li>
+                        <li>• <strong>Atualize regularmente:</strong> Adicione novos conhecimentos conforme surgem dúvidas frequentes</li>
+                      </ul>
+                    </Card>
 
-// ===== ENDPOINT FALE CONOSCO (MongoDB) =====
-app.post("/api/contact", async (req, res) => {
-  try {
-    const { name, email, phone, message, source } = req.body;
+                                        <Card className="p-6">
+                                          <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                              <FileText className="h-5 w-5" />
+                                              Documentos de Conhecimento ({getFilteredKnowledgeDocuments().length})
+                                            </h3>
+                                            <Button onClick={loadKnowledgeDocuments} variant="outline" size="sm" disabled={knowledgeLoading}>
+                                              {knowledgeLoading ? 'Carregando...' : 'Atualizar Lista'}
+                                            </Button>
+                                          </div>
 
-    console.log(`📧 Nova mensagem de contato de: ${name || 'Anonimo'}`);
+                                          {/* Filtro por Data */}
+                                          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <span className="text-sm font-medium">Filtrar por data:</span>
+                                            <div className="flex items-center gap-2">
+                                              <Input
+                                                type="date"
+                                                value={knowledgeDateStart}
+                                                onChange={(e) => setKnowledgeDateStart(e.target.value)}
+                                                className="w-40 text-sm"
+                                                placeholder="Data inicio"
+                                              />
+                                              <span className="text-gray-500">ate</span>
+                                              <Input
+                                                type="date"
+                                                value={knowledgeDateEnd}
+                                                onChange={(e) => setKnowledgeDateEnd(e.target.value)}
+                                                className="w-40 text-sm"
+                                                placeholder="Data fim"
+                                              />
+                                            </div>
+                                            {(knowledgeDateStart || knowledgeDateEnd) && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => { setKnowledgeDateStart(''); setKnowledgeDateEnd(''); }}
+                                                className="text-gray-500"
+                                              >
+                                                Limpar filtro
+                                              </Button>
+                                            )}
+                                          </div>
+              
+                                          {knowledgeLoading ? (
+                                            <div className="flex items-center justify-center py-8">
+                                              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                                            </div>
+                                          ) : getFilteredKnowledgeDocuments().length === 0 ? (
+                                            <div className="text-center py-8 text-gray-500">
+                                              <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                              <p>Nenhum documento de conhecimento encontrado</p>
+                                              <p className="text-sm">Adicione conhecimentos usando o formulario acima</p>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                              {getFilteredKnowledgeDocuments().map((doc) => (
+                                                <div key={doc._id} className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                                  <div className="flex-1 min-w-0">
+                                                    <h4 className="font-semibold text-sm truncate">{doc.title || 'Sem titulo'}</h4>
+                                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                                      {doc.content ? doc.content.substring(0, 150) + (doc.content.length > 150 ? '...' : '') : 'Sem conteudo'}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                                                      {doc.source && <span className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded">{doc.source}</span>}
+                                                      {doc.createdAt && <span>{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</span>}
+                                                    </div>
+                                                  </div>
+                                                  <div className="flex items-center gap-1 ml-2">
+                                                    {isAdmin && (
+                                                      <>
+                                                        <Button
+                                                          onClick={() => openEditKnowledge(doc)}
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+                                                          title="Editar documento"
+                                                        >
+                                                          <Edit3 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                          onClick={() => deleteKnowledgeDocument(doc._id)}
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                                                          title="Excluir documento"
+                                                        >
+                                                          <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </Card>
 
-    // Validacao basica
-    if (!message || message.trim().length < 5) {
-      return res.status(400).json({
-        success: false,
-        error: 'Mensagem muito curta. Por favor, descreva sua duvida ou solicitacao.'
-      });
-    }
+                                        {/* Modal de Edicao de Conhecimento */}
+                                        {editingKnowledge && (
+                                          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                                            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                                              <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-xl font-bold">Editar Conhecimento</h3>
+                                                <Button variant="ghost" size="sm" onClick={() => setEditingKnowledge(null)}>
+                                                  <X className="h-4 w-4" />
+                                                </Button>
+                                              </div>
+                                              <div className="space-y-4">
+                                                <div>
+                                                  <label className="block text-sm font-medium mb-2">Titulo</label>
+                                                  <Input
+                                                    value={editKnowledgeTitle}
+                                                    onChange={(e) => setEditKnowledgeTitle(e.target.value)}
+                                                    placeholder="Titulo do conhecimento"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-sm font-medium mb-2">Conteudo</label>
+                                                  <textarea
+                                                    className="w-full min-h-[200px] p-3 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
+                                                    value={editKnowledgeContent}
+                                                    onChange={(e) => setEditKnowledgeContent(e.target.value)}
+                                                    placeholder="Conteudo do conhecimento"
+                                                  />
+                                                </div>
+                                                <div className="flex justify-end gap-2">
+                                                  <Button variant="outline" onClick={() => setEditingKnowledge(null)}>
+                                                    Cancelar
+                                                  </Button>
+                                                  <Button onClick={saveEditKnowledge} className="bg-gradient-to-r from-blue-600 to-purple-600">
+                                                    Salvar Alteracoes
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            </Card>
+                                          </div>
+                                        )}
+                  </div>
+                )}
 
-    if (!email && !phone) {
-      return res.status(400).json({
-        success: false,
-        error: 'Por favor, informe um email ou telefone para contato.'
-      });
-    }
+        {activeTab === 'custom' && (
+          <div className="space-y-4">
+            {customRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Beaker className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhum pedido de formulação customizada ainda
+                </p>
+              </Card>
+            ) : (
+              customRequests.map((request, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{request.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {request.phone}
+                          </span>
+                          <span className="truncate">{request.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(request.timestamp).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
 
-    // Salvar no MongoDB
-    const messagesCollection = getMessagesCollection();
-    const contactMessage = {
-      name: name || 'Anonimo',
-      email: email || null,
-      phone: phone || null,
-      message: message.trim(),
-      source: source || 'site-form',
-      status: 'new',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
+                      <p className="text-sm">{request.caracteristica}</p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
+                      <p className="text-sm">{request.cor}</p>
+                    </div>
+                    {request.complementos && (
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">COMPLEMENTOS</p>
+                        <p className="text-sm whitespace-pre-wrap">{request.complementos}</p>
+                      </div>
+                    )}
+                  </div>
 
-    const result = await messagesCollection.insertOne(contactMessage);
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => window.open(`https://wa.me/55${request.phone.replace(/\D/g, '')}?text=Olá ${request.name}, sobre sua solicitação de formulação customizada...`, '_blank')}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contatar via WhatsApp
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
 
-    console.log(`✅ Mensagem salva no MongoDB: ${result.insertedId}`);
+                {activeTab === 'messages' && (
+                  <div className="space-y-4">
+                    {contactMessages.length === 0 ? (
+                      <Card className="p-12 text-center">
+                        <Mail className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                        <p className="text-gray-600 dark:text-gray-400">
+                          Nenhuma mensagem de contato ainda
+                        </p>
+                      </Card>
+                    ) : (
+                      contactMessages.map((message, index) => (
+                        <Card 
+                          key={index} 
+                          className={`p-6 transition-all ${message.resolved ? 'opacity-60 bg-gray-100 dark:bg-gray-900' : ''}`}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                                message.resolved 
+                                  ? 'bg-green-500' 
+                                  : 'bg-gradient-to-br from-green-500 to-blue-500'
+                              }`}>
+                                {message.resolved ? (
+                                  <Check className="h-5 w-5 text-white" />
+                                ) : (
+                                  <Mail className="h-5 w-5 text-white" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-semibold">{message.name}</p>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  {message.phone && (
+                                    <span className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {message.phone}
+                                    </span>
+                                  )}
+                                  {message.email && (
+                                    <span className="truncate">{message.email}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                message.resolved 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                  : message.status === 'new' 
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                              }`}>
+                                {message.resolved ? 'Resolvido' : message.status === 'new' ? 'Pendente' : message.status}
+                              </span>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(message.createdAt).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                          </div>
 
-    // Log da operacao
-    logOperation('CONTACT_MESSAGE', {
-      messageId: result.insertedId.toString(),
-      name: contactMessage.name,
-      hasEmail: !!email,
-      hasPhone: !!phone,
-      timestamp: new Date().toISOString()
-    });
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                            <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                          </div>
 
-    res.json({
-      success: true,
-      message: 'Mensagem enviada com sucesso! Entraremos em contato em breve.',
-      messageId: result.insertedId.toString()
-    });
-  } catch (err) {
-    console.error('❌ Erro ao salvar mensagem de contato:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao enviar mensagem. Tente novamente.'
-    });
-  }
-});
+                          <div className="flex gap-2 items-center">
+                            {message.phone && (
+                              <Button 
+                                size="sm" 
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                onClick={() => window.open(`https://wa.me/55${message.phone.replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
+                              >
+                                <Phone className="h-4 w-4 mr-2" />
+                                WhatsApp
+                              </Button>
+                            )}
+                            {message.email && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => window.open(`mailto:${message.email}?subject=Re: Contato Quanton3D&body=Olá ${message.name},%0A%0ARecebemos sua mensagem...`, '_blank')}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Email
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant={message.resolved ? 'outline' : 'default'}
+                              className={message.resolved ? 'border-green-500 text-green-600' : 'bg-blue-600 hover:bg-blue-700'}
+                              onClick={() => toggleMessageResolved(message._id, message.resolved)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              {message.resolved ? 'Reabrir' : 'Marcar Resolvido'}
+                            </Button>
+                          </div>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                )}
 
-// Rota para listar mensagens de contato (admin)
-app.get("/api/contact", async (req, res) => {
-  try {
-    const { auth } = req.query;
+        {activeTab === 'suggestions' && (
+          <div className="space-y-4">
+            {suggestions.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Clock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhuma sugestão pendente no momento
+                </p>
+              </Card>
+            ) : (
+              suggestions.map((suggestion) => (
+                <Card key={suggestion.id} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{suggestion.userName}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {suggestion.userPhone}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(suggestion.timestamp).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      suggestion.status === 'pending' 
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        : suggestion.status === 'approved'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                    }`}>
+                      {suggestion.status === 'pending' ? 'Pendente' : suggestion.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                    </span>
+                  </div>
 
-    // Autenticacao
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
+                  {/* Pergunta Original do Cliente */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3">
+                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">PERGUNTA DO CLIENTE</p>
+                    <p className="text-sm whitespace-pre-wrap">{suggestion.lastUserMessage || 'Pergunta não disponível'}</p>
+                  </div>
 
-    const messagesCollection = getMessagesCollection();
-    const messages = await messagesCollection
-      .find({})
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .toArray();
+                  {/* Resposta Original do Bot */}
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3">
+                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">RESPOSTA DO BOT</p>
+                    <p className="text-sm whitespace-pre-wrap">{suggestion.lastBotReply || 'Resposta não disponível'}</p>
+                  </div>
 
-    res.json({
-      success: true,
-      messages,
-      count: messages.length
-    });
-  } catch (err) {
-    console.error('❌ Erro ao listar mensagens:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+                  {/* Sugestão do Cliente */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">SUGESTÃO DO CLIENTE</p>
+                    <p className="text-sm whitespace-pre-wrap">{suggestion.suggestion}</p>
+                  </div>
 
-// Rota para atualizar status de mensagem (marcar como resolvido)
-app.put("/api/contact/:id", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-    const { resolved } = req.body;
+                  {suggestion.status === 'pending' && (
+                    <>
+                      {editingSuggestion === suggestion.id ? (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1 block">RESPOSTA CORRIGIDA (será salva no RAG)</label>
+                            <textarea
+                              className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 min-h-[120px]"
+                              value={editedText}
+                              onChange={(e) => setEditedText(e.target.value)}
+                              placeholder="Escreva a resposta técnica correta que o bot deveria ter dado..."
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      auth: 'quanton3d_admin_secret',
+                                      editedAnswer: editedText
+                                    })
+                                  })
+                                  const data = await response.json()
+                                  if (data.success) {
+                                    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                    setEditingSuggestion(null)
+                                    setEditedText('')
+                                  } else {
+                                    alert('Erro: ' + data.message)
+                                  }
+                                } catch (error) {
+                                  alert('Erro ao aprovar: ' + error.message)
+                                }
+                              }}
+                            >
+                              <Check className="h-4 w-4 mr-2" />
+                              Aprovar com Correção
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => {
+                                setEditingSuggestion(null)
+                                setEditedText('')
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                })
+                                const data = await response.json()
+                                if (data.success) {
+                                  setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                } else {
+                                  alert('Erro: ' + data.message)
+                                }
+                              } catch (error) {
+                                alert('Erro ao aprovar: ' + error.message)
+                              }
+                            }}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Aprovar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              setEditingSuggestion(suggestion.id)
+                              setEditedText(suggestion.lastBotReply || '')
+                            }}
+                          >
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            Editar Resposta
+                          </Button>
+                          {isAdmin && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                  })
+                                  const data = await response.json()
+                                  if (data.success) {
+                                    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
+                                  } else {
+                                    alert('Erro: ' + data.message)
+                                  }
+                                } catch (error) {
+                                  alert('Erro ao rejeitar: ' + error.message)
+                                }
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Rejeitar
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Card>
+              ))
+            )}
+          </div>
+        )}
 
-    // Autenticacao
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
+        {/* Gallery Tab */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Galeria de Fotos - Aprovacao
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Aprove ou rejeite as fotos enviadas pelos clientes antes de aparecerem na galeria publica.
+              </p>
+            </Card>
 
-    const { ObjectId } = await import('mongodb');
-    const messagesCollection = getMessagesCollection();
-    
-    const result = await messagesCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { resolved: resolved, resolvedAt: resolved ? new Date() : null } }
-    );
+            {galleryLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : galleryEntries.filter(e => e.status !== 'rejected').length === 0 ? (
+              <Card className="p-8 text-center">
+                <Image className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                <p className="text-gray-500">Nenhuma foto na galeria ainda.</p>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {galleryEntries.filter(e => e.status !== 'rejected').map((entry) => (
+                  <Card key={entry._id} className="p-4">
+                    <div className="flex gap-4">
+                      {/* Images */}
+                      <div className="flex gap-2 flex-shrink-0">
+                        {entry.images && entry.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img.url}
+                            alt={`Foto ${idx + 1}`}
+                            className="w-24 h-24 object-cover rounded-lg border"
+                          />
+                        ))}
+                      </div>
+                      
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold">{entry.name || 'Anonimo'}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(entry.createdAt).toLocaleString('pt-BR')}
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            entry.status === 'pending' 
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : entry.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {entry.status === 'pending' ? 'Pendente' : entry.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                          <div>
+                            <span className="text-gray-500">Resina:</span>
+                            <span className="ml-1 font-medium">{entry.resin}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Impressora:</span>
+                            <span className="ml-1 font-medium">{entry.printer}</span>
+                          </div>
+                        </div>
+                        
+                        {entry.comment && (
+                          <p className="text-sm text-gray-600 bg-gray-50 dark:bg-gray-800 p-2 rounded mb-3">
+                            {entry.comment}
+                          </p>
+                        )}
 
-    if (result.modifiedCount > 0) {
-      console.log(`✅ Mensagem ${id} marcada como ${resolved ? 'resolvida' : 'pendente'}`);
-      res.json({ success: true, message: `Mensagem ${resolved ? 'resolvida' : 'reaberta'}` });
-    } else {
-      res.status(404).json({ success: false, error: 'Mensagem nao encontrada' });
-    }
-  } catch (err) {
-    console.error('❌ Erro ao atualizar mensagem:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+                        {/* Configuracoes de Impressao */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2">Configuracoes de Impressao</p>
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div><span className="text-gray-500">Altura Camada:</span> <span className="font-medium">{entry.layerHeight || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Camadas Base:</span> <span className="font-medium">{entry.baseLayers || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Tempo Exp.:</span> <span className="font-medium">{entry.exposureTime || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Tempo Exp. Base:</span> <span className="font-medium">{entry.baseExposureTime || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Camadas Trans.:</span> <span className="font-medium">{entry.transitionLayers || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Atraso UV:</span> <span className="font-medium">{entry.uvOffDelay || 'N/A'}</span></div>
+                          </div>
+                          
+                          {/* Distancias */}
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Distancias (mm)</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{entry.lowerLiftDistance1 || 'N/A'} / {entry.lowerLiftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{entry.liftDistance1 || 'N/A'} / {entry.liftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{entry.lowerRetractDistance1 || 'N/A'} / {entry.lowerRetractDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{entry.retractDistance1 || 'N/A'} / {entry.retractDistance2 || 'N/A'}</span></div>
+                          </div>
+                          
+                          {/* Velocidades */}
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Velocidades (mm/s)</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{entry.lowerLiftSpeed1 || 'N/A'} / {entry.lowerLiftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{entry.liftSpeed1 || 'N/A'} / {entry.liftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{entry.lowerRetractSpeed1 || 'N/A'} / {entry.lowerRetractSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{entry.retractSpeed1 || 'N/A'} / {entry.retractSpeed2 || 'N/A'}</span></div>
+                          </div>
+                        </div>
+                        
+                        {entry.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => approveGalleryEntry(entry._id)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Aprovar
+                            </Button>
+                            {isAdmin && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                                onClick={() => rejectGalleryEntry(entry._id)}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Rejeitar
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        
+                        {entry.status === 'approved' && isAdmin && (
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              onClick={() => openEditGallery(entry)}
+                            >
+                              <Edit3 className="h-4 w-4 mr-1" />
+                              Editar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                              onClick={() => rejectGalleryEntry(entry._id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Apagar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-// ===== ENDPOINTS DA GALERIA DE FOTOS =====
+        {/* Visual RAG Tab - Treinamento Visual */}
+        {activeTab === 'visual' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Treinamento Visual - Banco de Conhecimento Visual
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Adicione fotos de problemas com diagnostico e solucao. Quando um cliente enviar uma foto similar, o bot usara sua resposta treinada.
+              </p>
 
-// Configuracao do multer para upload de multiplas imagens (galeria)
-const galleryUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB por imagem
-  fileFilter: (req, file, cb) => {
-    // Aceitar apenas imagens
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Apenas imagens sao permitidas'), false);
-    }
-  }
-});
+              {/* Secao de fotos pendentes - enviadas automaticamente pelo bot */}
+              {pendingVisualPhotos.length > 0 && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                  <h4 className="font-semibold flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-3">
+                    <AlertCircle className="h-5 w-5" />
+                    Fotos Pendentes para Treinamento ({pendingVisualPhotos.length})
+                  </h4>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                    Estas fotos foram enviadas por clientes e o bot nao conseguiu identificar o problema. Adicione o conhecimento para treinar o bot.
+                  </p>
+                  <div className="space-y-4">
+                    {pendingVisualPhotos.map((item) => (
+                      <PendingVisualItemForm 
+                        key={item._id} 
+                        item={item} 
+                        onApprove={approvePendingVisual}
+                        onDelete={deletePendingVisual}
+                        canDelete={isAdmin}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-// Funcao auxiliar para upload no Cloudinary
-async function uploadToCloudinary(buffer, mimetype) {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'quanton3d-gallery',
-        resource_type: 'image',
-        transformation: [
-          { width: 1200, height: 1200, crop: 'limit' }, // Limitar tamanho
-          { quality: 'auto:good' } // Otimizar qualidade
-        ]
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      }
-    );
-    uploadStream.end(buffer);
-  });
+              {/* Form para adicionar novo conhecimento visual */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Adicionar Novo Exemplo Visual
+                </h4>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Foto do Problema</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      setVisualImage(file)
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setVisualImagePreview(reader.result)
+                        }
+                        reader.readAsDataURL(file)
+                      } else {
+                        setVisualImagePreview(null)
+                      }
+                    }}
+                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
+                  />
+                  {visualImagePreview && (
+                    <div className="mt-3 relative">
+                      <p className="text-sm text-green-600 mb-2">Preview da imagem:</p>
+                      <img 
+                        src={visualImagePreview} 
+                        alt="Preview" 
+                        className="max-w-xs max-h-48 object-contain rounded-lg border shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVisualImage(null)
+                          setVisualImagePreview(null)
+                        }}
+                        className="absolute top-8 left-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transform -translate-x-1/2 -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tipo de Defeito</label>
+                  <select
+                    value={visualDefectType}
+                    onChange={(e) => setVisualDefectType(e.target.value)}
+                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
+                  >
+                    <option value="">Selecione o tipo de defeito...</option>
+                    <option value="descolamento da base">Descolamento da base</option>
+                    <option value="falha de suportes">Falha de suportes</option>
+                    <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
+                    <option value="falha de adesao entre camadas / delaminacao">Delaminacao</option>
+                    <option value="deformacao/warping">Deformacao/warping</option>
+                    <option value="problema de superficie/acabamento">Problema de superficie</option>
+                    <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+                    <option value="problema de LCD">Problema de LCD</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Diagnostico Tecnico</label>
+                  <textarea
+                    value={visualDiagnosis}
+                    onChange={(e) => setVisualDiagnosis(e.target.value)}
+                    placeholder="Descreva o diagnostico tecnico do problema..."
+                    className="w-full p-3 border rounded-lg bg-white dark:bg-gray-700 min-h-[80px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Solucao Recomendada</label>
+                  <textarea
+                    value={visualSolution}
+                    onChange={(e) => setVisualSolution(e.target.value)}
+                    placeholder="Descreva a solucao passo a passo..."
+                    className="w-full p-3 border rounded-lg bg-white dark:bg-gray-700 min-h-[80px]"
+                  />
+                </div>
+
+                <Button 
+                  onClick={addVisualKnowledgeEntry}
+                  disabled={addingVisual}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                >
+                  {addingVisual ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar ao Banco Visual
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Lista de conhecimentos visuais existentes */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">Exemplos Visuais Cadastrados ({visualKnowledge.length})</h3>
+              
+              {visualLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+              ) : visualKnowledge.length === 0 ? (
+                <div className="text-center py-8">
+                  <Eye className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                  <p className="text-gray-500">Nenhum exemplo visual cadastrado ainda.</p>
+                  <p className="text-sm text-gray-400 mt-2">Adicione fotos de problemas para treinar o bot.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {visualKnowledge.map((item) => (
+                    <div key={item._id} className="flex gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      {/* Imagem */}
+                      <img
+                        src={item.imageUrl}
+                        alt={item.defectType}
+                        className="w-32 h-32 object-cover rounded-lg border flex-shrink-0"
+                      />
+                      
+                      {/* Detalhes */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm font-semibold">
+                            {item.defectType}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-semibold text-blue-600">Diagnostico:</span>
+                            <p className="text-gray-700 dark:text-gray-300">{item.diagnosis}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-green-600">Solucao:</span>
+                            <p className="text-gray-700 dark:text-gray-300">{item.solution}</p>
+                          </div>
+                        </div>
+                        
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="mt-3 text-red-600 border-red-300 hover:bg-red-50"
+                            onClick={() => deleteVisualKnowledgeEntry(item._id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Deletar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Detalhes da Resina - CORRECAO 3 */}
+        {selectedResin && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">🧪 Detalhes da Resina: {selectedResin}</h3>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedResin(null); setResinDetails(null); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {resinDetailsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                  <span className="ml-2">Carregando detalhes...</span>
+                </div>
+              ) : resinDetails ? (
+                <div className="space-y-6">
+                  {/* Clientes que usam essa resina */}
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-500" />
+                      Clientes que usam {selectedResin} ({resinDetails.customersCount})
+                    </h4>
+                    {resinDetails.customers.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Nenhum cliente cadastrado com essa resina</p>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {resinDetails.customers.map((customer, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                                <User className="h-4 w-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{customer.name}</p>
+                                <p className="text-xs text-gray-500">{customer.email || customer.phone || 'Sem contato'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right text-xs text-gray-500">
+                              <p>{customer.printer || 'Impressora nao informada'}</p>
+                              {customer.registeredAt && <p>{new Date(customer.registeredAt).toLocaleDateString('pt-BR')}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Conversas relacionadas */}
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-green-500" />
+                      Conversas Relacionadas ({resinDetails.conversationsCount})
+                    </h4>
+                    {resinDetails.conversations.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Nenhuma conversa encontrada</p>
+                    ) : (
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {resinDetails.conversations.map((conv, idx) => (
+                          <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{conv.customerName}</span>
+                              <span className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString('pt-BR')}</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded text-sm">
+                                <strong>Duvida:</strong> {conv.userPrompt}
+                              </div>
+                              <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded text-sm">
+                                <strong>Resposta:</strong> {conv.botReply?.substring(0, 200)}{conv.botReply?.length > 200 ? '...' : ''}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">Erro ao carregar detalhes</p>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Historico do Cliente - CORRECAO 4 */}
+        {selectedClient && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">👤 Histórico do Cliente</h3>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedClient(null); setClientHistory(null); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {clientHistoryLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  <span className="ml-2">Carregando historico...</span>
+                </div>
+              ) : clientHistory ? (
+                <div className="space-y-6">
+                  {/* Info do Cliente */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">{clientHistory.client.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          {clientHistory.client.email && <span>{clientHistory.client.email}</span>}
+                          {clientHistory.client.phone && <span>{clientHistory.client.phone}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">Total de interacoes: {clientHistory.totalInteractions}</p>
+                  </div>
+
+                  {/* Registros do Cliente */}
+                  {clientHistory.registrations.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Resinas Utilizadas</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {clientHistory.registrations.map((reg, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm">
+                            {reg.resin} - {reg.printer}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Conversas do Cliente */}
+                  <div>
+                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-green-500" />
+                      Historico de Conversas ({clientHistory.conversations.length})
+                    </h4>
+                    {clientHistory.conversations.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Nenhuma conversa encontrada</p>
+                    ) : (
+                      <div className="space-y-3 max-h-80 overflow-y-auto">
+                        {clientHistory.conversations.map((conv, idx) => (
+                          <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-blue-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString('pt-BR')}</span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                conv.documentsFound > 0 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              }`}>
+                                {conv.documentsFound > 0 ? 'Resolvido pelo RAG' : 'Sem match RAG'}
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded">
+                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">DUVIDA PRINCIPAL</p>
+                                <p className="text-sm">{conv.prompt}</p>
+                              </div>
+                              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded">
+                                <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">RESPOSTA DO BOT</p>
+                                <p className="text-sm whitespace-pre-wrap">{conv.reply}</p>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className={`px-2 py-1 rounded ${
+                                  conv.documentsFound > 0 
+                                    ? 'bg-green-500 text-white' 
+                                    : 'bg-gray-300 text-gray-700'
+                                }`}>
+                                  Status: {conv.documentsFound > 0 ? 'Resolvido' : 'Nao resolvido'}
+                                </span>
+                                {conv.questionType && (
+                                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
+                                    Tipo: {conv.questionType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8">Erro ao carregar historico</p>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Edicao da Galeria */}
+        {editingGalleryEntry && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">Editar Entrada da Galeria</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setEditingGalleryEntry(null)
+                    setEditGalleryData({})
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Preview das imagens */}
+              <div className="flex gap-2 mb-4">
+                {editingGalleryEntry.images && editingGalleryEntry.images.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={img.url}
+                    alt={`Foto ${idx + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border"
+                  />
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                {/* Dados basicos */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Nome</label>
+                    <Input
+                      value={editGalleryData.name || ''}
+                      onChange={(e) => setEditGalleryData({...editGalleryData, name: e.target.value})}
+                      placeholder="Nome do cliente"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Resina</label>
+                    <Input
+                      value={editGalleryData.resin || ''}
+                      onChange={(e) => setEditGalleryData({...editGalleryData, resin: e.target.value})}
+                      placeholder="Resina utilizada"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Impressora</label>
+                    <Input
+                      value={editGalleryData.printer || ''}
+                      onChange={(e) => setEditGalleryData({...editGalleryData, printer: e.target.value})}
+                      placeholder="Modelo da impressora"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Comentario</label>
+                    <Input
+                      value={editGalleryData.comment || ''}
+                      onChange={(e) => setEditGalleryData({...editGalleryData, comment: e.target.value})}
+                      placeholder="Comentario opcional"
+                    />
+                  </div>
+                </div>
+
+                {/* Configuracoes de Impressao */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">Configuracoes de Impressao</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Altura Camada (mm)</label>
+                      <Input
+                        value={editGalleryData.layerHeight || ''}
+                        onChange={(e) => setEditGalleryData({...editGalleryData, layerHeight: e.target.value})}
+                        placeholder="0.05"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Camadas Base</label>
+                      <Input
+                        value={editGalleryData.baseLayers || ''}
+                        onChange={(e) => setEditGalleryData({...editGalleryData, baseLayers: e.target.value})}
+                        placeholder="6"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Tempo Exposicao (s)</label>
+                      <Input
+                        value={editGalleryData.exposureTime || ''}
+                        onChange={(e) => setEditGalleryData({...editGalleryData, exposureTime: e.target.value})}
+                        placeholder="2.5"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Tempo Exp. Base (s)</label>
+                      <Input
+                        value={editGalleryData.baseExposureTime || ''}
+                        onChange={(e) => setEditGalleryData({...editGalleryData, baseExposureTime: e.target.value})}
+                        placeholder="30"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Camadas Transicao</label>
+                      <Input
+                        value={editGalleryData.transitionLayers || ''}
+                        onChange={(e) => setEditGalleryData({...editGalleryData, transitionLayers: e.target.value})}
+                        placeholder="5"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Atraso UV (s)</label>
+                      <Input
+                        value={editGalleryData.uvOffDelay || ''}
+                        onChange={(e) => setEditGalleryData({...editGalleryData, uvOffDelay: e.target.value})}
+                        placeholder="0.5"
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Distancias */}
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3">Distancias (mm)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Elevacao Inferior (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.lowerLiftDistance1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerLiftDistance1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.lowerLiftDistance2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerLiftDistance2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Elevacao Normal (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.liftDistance1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, liftDistance1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.liftDistance2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, liftDistance2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Retracao Inferior (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.lowerRetractDistance1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerRetractDistance1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.lowerRetractDistance2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerRetractDistance2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Retracao Normal (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.retractDistance1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, retractDistance1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.retractDistance2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, retractDistance2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Velocidades */}
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <h4 className="font-semibold mb-3">Velocidades (mm/s)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Elevacao Inferior (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.lowerLiftSpeed1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerLiftSpeed1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.lowerLiftSpeed2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerLiftSpeed2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Elevacao Normal (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.liftSpeed1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, liftSpeed1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.liftSpeed2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, liftSpeed2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Retracao Inferior (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.lowerRetractSpeed1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerRetractSpeed1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.lowerRetractSpeed2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, lowerRetractSpeed2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Retracao Normal (1/2)</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editGalleryData.retractSpeed1 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, retractSpeed1: e.target.value})}
+                          placeholder="Valor 1"
+                          className="text-sm"
+                        />
+                        <Input
+                          value={editGalleryData.retractSpeed2 || ''}
+                          onChange={(e) => setEditGalleryData({...editGalleryData, retractSpeed2: e.target.value})}
+                          placeholder="Valor 2"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botoes */}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingGalleryEntry(null)
+                      setEditGalleryData({})
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={saveGalleryEdit}
+                    disabled={savingGalleryEdit}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {savingGalleryEdit ? 'Salvando...' : 'Salvar Alteracoes'}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
-
-// POST /api/gallery - Enviar nova foto para galeria
-app.post("/api/gallery", galleryUpload.array('images', 2), async (req, res) => {
-  try {
-    const { 
-      name, resin, printer, comment,
-      // Campos de configuracao de impressao
-      layerHeight, baseLayers, exposureTime, baseExposureTime,
-      transitionLayers, uvOffDelay,
-      lowerLiftDistance1, lowerLiftDistance2,
-      liftDistance1, liftDistance2,
-      liftSpeed1, liftSpeed2,
-      lowerRetractSpeed1, lowerRetractSpeed2,
-      retractSpeed1, retractSpeed2
-    } = req.body;
-    const imageFiles = req.files;
-
-    console.log(`📸 [GALERIA] Nova submissao de ${name || 'Anonimo'}`);
-
-    // Validacoes
-    if (!process.env.CLOUDINARY_CLOUD_NAME) {
-      return res.status(503).json({
-        success: false,
-        error: 'Servico de galeria nao configurado. Entre em contato com o suporte.'
-      });
-    }
-
-    if (!imageFiles || imageFiles.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Pelo menos uma foto e obrigatoria.'
-      });
-    }
-
-    if (!resin || !printer) {
-      return res.status(400).json({
-        success: false,
-        error: 'Resina e impressora sao obrigatorios.'
-      });
-    }
-
-    // Verificar limite de 2 fotos por configuracao
-    const galleryCollection = getGalleryCollection();
-    const existingCount = await galleryCollection.countDocuments({
-      resin: resin,
-      printer: printer,
-      status: { $in: ['pending', 'approved'] }
-    });
-
-    if (existingCount >= 2) {
-      return res.status(400).json({
-        success: false,
-        error: `Ja existem 2 fotos para a configuracao ${resin} + ${printer}. Limite atingido.`
-      });
-    }
-
-    // Upload das imagens para o Cloudinary
-    const uploadedImages = [];
-    for (const file of imageFiles) {
-      try {
-        const result = await uploadToCloudinary(file.buffer, file.mimetype);
-        uploadedImages.push({
-          url: result.secure_url,
-          publicId: result.public_id,
-          width: result.width,
-          height: result.height
-        });
-        console.log(`✅ Imagem enviada para Cloudinary: ${result.public_id}`);
-      } catch (uploadErr) {
-        console.error('❌ Erro no upload para Cloudinary:', uploadErr);
-        return res.status(500).json({
-          success: false,
-          error: 'Erro ao fazer upload da imagem. Tente novamente.'
-        });
-      }
-    }
-
-    // Salvar no MongoDB
-    const galleryEntry = {
-      name: name || 'Anonimo',
-      resin,
-      printer,
-      comment: comment || '',
-      images: uploadedImages,
-      // Parametros de configuracao de impressao
-      params: {
-        layerHeight: layerHeight || '',
-        baseLayers: baseLayers || '',
-        exposureTime: exposureTime || '',
-        baseExposureTime: baseExposureTime || '',
-        transitionLayers: transitionLayers || '',
-        uvOffDelay: uvOffDelay || '',
-        lowerLiftDistance: { value1: lowerLiftDistance1 || '', value2: lowerLiftDistance2 || '' },
-        liftDistance: { value1: liftDistance1 || '', value2: liftDistance2 || '' },
-        liftSpeed: { value1: liftSpeed1 || '', value2: liftSpeed2 || '' },
-        lowerRetractSpeed: { value1: lowerRetractSpeed1 || '', value2: lowerRetractSpeed2 || '' },
-        retractSpeed: { value1: retractSpeed1 || '', value2: retractSpeed2 || '' }
-      },
-      status: 'pending', // pending, approved, rejected
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const result = await galleryCollection.insertOne(galleryEntry);
-
-    console.log(`✅ [GALERIA] Entrada salva: ${result.insertedId}`);
-
-    res.json({
-      success: true,
-      message: 'Fotos enviadas com sucesso! Aguarde aprovacao do administrador.',
-      entryId: result.insertedId.toString()
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao salvar:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao enviar fotos. Tente novamente.'
-    });
-  }
-});
-
-// GET /api/gallery - Listar fotos aprovadas (publico)
-app.get("/api/gallery", async (req, res) => {
-  try {
-    const { page = 1, limit = 20, resin, printer } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const galleryCollection = getGalleryCollection();
-
-    // Filtros opcionais
-    const filter = { status: 'approved' };
-    if (resin) filter.resin = resin;
-    if (printer) filter.printer = printer;
-
-    const [entries, total] = await Promise.all([
-      galleryCollection
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit))
-        .toArray(),
-      galleryCollection.countDocuments(filter)
-    ]);
-
-    res.json({
-      success: true,
-      entries,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit))
-      }
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao listar:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET /api/gallery/pending - Listar fotos pendentes (admin)
-app.get("/api/gallery/pending", async (req, res) => {
-  try {
-    const { auth } = req.query;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const galleryCollection = getGalleryCollection();
-    const entries = await galleryCollection
-      .find({ status: 'pending' })
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.json({
-      success: true,
-      entries,
-      count: entries.length
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao listar pendentes:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET /api/gallery/all - Listar todas as fotos (admin)
-app.get("/api/gallery/all", async (req, res) => {
-  try {
-    const { auth } = req.query;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const galleryCollection = getGalleryCollection();
-    const entries = await galleryCollection
-      .find({})
-      .sort({ createdAt: -1 })
-      .limit(200)
-      .toArray();
-
-    res.json({
-      success: true,
-      entries,
-      count: entries.length
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao listar todas:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// PUT /api/gallery/:id/approve - Aprovar foto (admin)
-app.put("/api/gallery/:id/approve", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const galleryCollection = getGalleryCollection();
-    const { ObjectId } = await import('mongodb');
-
-    const result = await galleryCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          status: 'approved',
-          approvedAt: new Date(),
-          updatedAt: new Date()
-        }
-      }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ success: false, message: 'Entrada nao encontrada' });
-    }
-
-    console.log(`✅ [GALERIA] Foto aprovada: ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Foto aprovada com sucesso!'
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao aprovar:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// PUT /api/gallery/:id/reject - Rejeitar foto (admin)
-app.put("/api/gallery/:id/reject", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const galleryCollection = getGalleryCollection();
-    const { ObjectId } = await import('mongodb');
-
-    // Buscar entrada para deletar imagens do Cloudinary
-    const entry = await galleryCollection.findOne({ _id: new ObjectId(id) });
-
-    if (!entry) {
-      return res.status(404).json({ success: false, message: 'Entrada nao encontrada' });
-    }
-
-    // Deletar imagens do Cloudinary
-    if (entry.images && entry.images.length > 0) {
-      for (const img of entry.images) {
-        try {
-          await cloudinary.uploader.destroy(img.publicId);
-          console.log(`🗑️ Imagem deletada do Cloudinary: ${img.publicId}`);
-        } catch (delErr) {
-          console.error('⚠️ Erro ao deletar imagem do Cloudinary:', delErr);
-        }
-      }
-    }
-
-    // Atualizar status para rejeitado
-    await galleryCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          status: 'rejected',
-          rejectedAt: new Date(),
-          updatedAt: new Date()
-        }
-      }
-    );
-
-    console.log(`❌ [GALERIA] Foto rejeitada: ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Foto rejeitada e removida.'
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao rejeitar:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// DELETE /api/gallery/:id - Deletar foto (admin)
-app.delete("/api/gallery/:id", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const galleryCollection = getGalleryCollection();
-    const { ObjectId } = await import('mongodb');
-
-    // Buscar entrada para deletar imagens do Cloudinary
-    const entry = await galleryCollection.findOne({ _id: new ObjectId(id) });
-
-    if (!entry) {
-      return res.status(404).json({ success: false, message: 'Entrada nao encontrada' });
-    }
-
-    // Deletar imagens do Cloudinary
-    if (entry.images && entry.images.length > 0) {
-      for (const img of entry.images) {
-        try {
-          await cloudinary.uploader.destroy(img.publicId);
-          console.log(`🗑️ Imagem deletada do Cloudinary: ${img.publicId}`);
-        } catch (delErr) {
-          console.error('⚠️ Erro ao deletar imagem do Cloudinary:', delErr);
-        }
-      }
-    }
-
-    // Deletar do MongoDB
-    await galleryCollection.deleteOne({ _id: new ObjectId(id) });
-
-    console.log(`🗑️ [GALERIA] Entrada deletada: ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Foto deletada com sucesso.'
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao deletar:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// PUT /api/gallery/:id - Atualizar entrada da galeria (admin)
-app.put("/api/gallery/:id", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const galleryCollection = getGalleryCollection();
-    const entry = await galleryCollection.findOne({ _id: new ObjectId(id) });
-
-    if (!entry) {
-      return res.status(404).json({ success: false, message: 'Entrada nao encontrada' });
-    }
-
-    // Campos que podem ser atualizados
-    const {
-      name, resin, printer, comment,
-      layerHeight, baseLayers, exposureTime, baseExposureTime,
-      transitionLayers, uvOffDelay,
-      lowerLiftDistance1, lowerLiftDistance2,
-      liftDistance1, liftDistance2,
-      lowerRetractDistance1, lowerRetractDistance2,
-      retractDistance1, retractDistance2,
-      lowerLiftSpeed1, lowerLiftSpeed2,
-      liftSpeed1, liftSpeed2,
-      lowerRetractSpeed1, lowerRetractSpeed2,
-      retractSpeed1, retractSpeed2
-    } = req.body;
-
-    // Atualizar apenas os campos fornecidos
-    const updateData = {
-      updatedAt: new Date()
-    };
-
-    // Campos basicos
-    if (name !== undefined) updateData.name = name;
-    if (resin !== undefined) updateData.resin = resin;
-    if (printer !== undefined) updateData.printer = printer;
-    if (comment !== undefined) updateData.comment = comment;
-
-    // Configuracoes de impressao
-    if (layerHeight !== undefined) updateData.layerHeight = layerHeight;
-    if (baseLayers !== undefined) updateData.baseLayers = baseLayers;
-    if (exposureTime !== undefined) updateData.exposureTime = exposureTime;
-    if (baseExposureTime !== undefined) updateData.baseExposureTime = baseExposureTime;
-    if (transitionLayers !== undefined) updateData.transitionLayers = transitionLayers;
-    if (uvOffDelay !== undefined) updateData.uvOffDelay = uvOffDelay;
-
-    // Distancias de Elevacao
-    if (lowerLiftDistance1 !== undefined) updateData.lowerLiftDistance1 = lowerLiftDistance1;
-    if (lowerLiftDistance2 !== undefined) updateData.lowerLiftDistance2 = lowerLiftDistance2;
-    if (liftDistance1 !== undefined) updateData.liftDistance1 = liftDistance1;
-    if (liftDistance2 !== undefined) updateData.liftDistance2 = liftDistance2;
-
-    // Distancias de Retracao
-    if (lowerRetractDistance1 !== undefined) updateData.lowerRetractDistance1 = lowerRetractDistance1;
-    if (lowerRetractDistance2 !== undefined) updateData.lowerRetractDistance2 = lowerRetractDistance2;
-    if (retractDistance1 !== undefined) updateData.retractDistance1 = retractDistance1;
-    if (retractDistance2 !== undefined) updateData.retractDistance2 = retractDistance2;
-
-    // Velocidades de Elevacao Inferior
-    if (lowerLiftSpeed1 !== undefined) updateData.lowerLiftSpeed1 = lowerLiftSpeed1;
-    if (lowerLiftSpeed2 !== undefined) updateData.lowerLiftSpeed2 = lowerLiftSpeed2;
-
-    // Velocidades de Elevacao Normal
-    if (liftSpeed1 !== undefined) updateData.liftSpeed1 = liftSpeed1;
-    if (liftSpeed2 !== undefined) updateData.liftSpeed2 = liftSpeed2;
-
-    // Velocidades de Retracao Inferior
-    if (lowerRetractSpeed1 !== undefined) updateData.lowerRetractSpeed1 = lowerRetractSpeed1;
-    if (lowerRetractSpeed2 !== undefined) updateData.lowerRetractSpeed2 = lowerRetractSpeed2;
-
-    // Velocidades de Retracao Normal
-    if (retractSpeed1 !== undefined) updateData.retractSpeed1 = retractSpeed1;
-    if (retractSpeed2 !== undefined) updateData.retractSpeed2 = retractSpeed2;
-
-    await galleryCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updateData }
-    );
-
-    console.log(`✏️ [GALERIA] Entrada atualizada: ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Entrada atualizada com sucesso.'
-    });
-  } catch (err) {
-    console.error('❌ [GALERIA] Erro ao atualizar:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ===== FIM DOS ENDPOINTS DA GALERIA =====
-
-// ===== VISUAL RAG - BANCO DE CONHECIMENTO VISUAL =====
-// Permite admin treinar o bot com fotos de problemas + diagnostico + solucao
-
-// POST /api/visual-knowledge - Adicionar conhecimento visual (admin)
-app.post("/api/visual-knowledge", upload.single('image'), async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { defectType, diagnosis, solution } = req.body;
-    const imageFile = req.file;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    if (!imageFile) {
-      return res.status(400).json({ success: false, message: 'Imagem obrigatoria' });
-    }
-
-    if (!defectType || !diagnosis || !solution) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Tipo de defeito, diagnostico e solucao sao obrigatorios' 
-      });
-    }
-
-    console.log(`📸 [VISUAL-RAG] Processando imagem de treinamento: ${defectType}`);
-
-    // 1. Upload da imagem para Cloudinary
-    const cloudinaryResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'quanton3d/visual-knowledge',
-          resource_type: 'image',
-          transformation: [{ width: 800, height: 800, crop: 'limit' }]
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(imageFile.buffer);
-    });
-
-    const imageUrl = cloudinaryResult.secure_url;
-    const publicId = cloudinaryResult.public_id;
-
-    console.log(`☁️ [VISUAL-RAG] Imagem enviada para Cloudinary: ${publicId}`);
-
-    // 2. Analisar imagem com GPT-4o Vision para obter descricao estruturada
-    const base64Image = imageFile.buffer.toString('base64');
-    const imageDataUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
-
-    const model = process.env.OPENAI_MODEL || "gpt-4o";
-
-    const visionResponse = await openai.chat.completions.create({
-      model: model,
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: `Voce e um especialista em impressao 3D com RESINA UV (SLA/LCD/DLP) da Quanton3D.
-Analise esta imagem de TREINAMENTO e descreva o problema de forma estruturada.
-
-=== FORMATO DE SAIDA OBRIGATORIO (UMA INFORMACAO POR LINHA) ===
-
-Relacionada: SIM ou NAO
-Problema: <tipo do defeito>
-Confianca: ALTA, MEDIA ou BAIXA
-Descricao: <1-2 frases do que voce ve na foto>
-Causas: <1-2 causas provaveis ESPECIFICAS>
-Acoes: <1-2 acoes praticas ESPECIFICAS>`
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: `Analise esta imagem de treinamento. O admin classificou como: "${defectType}"` },
-            { type: "image_url", image_url: { url: imageDataUrl } }
-          ]
-        }
-      ],
-      max_tokens: 500
-    });
-
-    const visionText = visionResponse.choices[0].message.content;
-    console.log(`🔍 [VISUAL-RAG] Analise Vision: ${visionText.substring(0, 100)}...`);
-
-    // 3. Extrair campos estruturados
-    const extractField = (text, fieldName) => {
-      const regex = new RegExp(`${fieldName}:\\s*(.+)`, 'i');
-      const match = text.match(regex);
-      return match ? match[1].trim() : null;
-    };
-
-    const visionDescription = {
-      relacionada: extractField(visionText, 'Relacionada'),
-      problema: extractField(visionText, 'Problema') || defectType,
-      confianca: extractField(visionText, 'Confianca'),
-      descricao: extractField(visionText, 'Descricao'),
-      causas: extractField(visionText, 'Causas'),
-      acoes: extractField(visionText, 'Acoes'),
-      rawText: visionText
-    };
-
-    // 4. Adicionar ao banco de conhecimento visual
-    const result = await addVisualKnowledge(
-      imageUrl,
-      defectType,
-      diagnosis,
-      solution,
-      visionDescription
-    );
-
-    console.log(`✅ [VISUAL-RAG] Conhecimento visual adicionado: ${result.documentId}`);
-
-    res.json({
-      success: true,
-      message: 'Conhecimento visual adicionado com sucesso!',
-      documentId: result.documentId.toString(),
-      imageUrl,
-      defectType,
-      visionDescription
-    });
-  } catch (err) {
-    console.error('❌ [VISUAL-RAG] Erro ao adicionar conhecimento visual:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET /api/visual-knowledge - Listar conhecimentos visuais (admin)
-app.get("/api/visual-knowledge", async (req, res) => {
-  try {
-    const { auth } = req.query;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const documents = await listVisualKnowledge();
-
-    res.json({
-      success: true,
-      documents,
-      count: documents.length
-    });
-  } catch (err) {
-    console.error('❌ [VISUAL-RAG] Erro ao listar conhecimento visual:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// DELETE /api/visual-knowledge/:id - Deletar conhecimento visual (admin)
-app.delete("/api/visual-knowledge/:id", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    // Buscar documento para deletar imagem do Cloudinary
-    const collection = getVisualKnowledgeCollection();
-    const { ObjectId } = await import('mongodb');
-    const doc = await collection.findOne({ _id: new ObjectId(id) });
-
-    if (doc && doc.imageUrl) {
-      // Extrair publicId da URL do Cloudinary
-      const urlParts = doc.imageUrl.split('/');
-      const publicIdWithExt = urlParts.slice(-2).join('/');
-      const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
-      
-      try {
-        await cloudinary.uploader.destroy(publicId);
-        console.log(`🗑️ [VISUAL-RAG] Imagem deletada do Cloudinary: ${publicId}`);
-      } catch (delErr) {
-        console.error('⚠️ Erro ao deletar imagem do Cloudinary:', delErr);
-      }
-    }
-
-    const result = await deleteVisualKnowledge(id);
-
-    if (!result.success) {
-      return res.status(404).json({ success: false, message: 'Documento nao encontrado' });
-    }
-
-    console.log(`🗑️ [VISUAL-RAG] Conhecimento visual deletado: ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Conhecimento visual deletado com sucesso!'
-    });
-  } catch (err) {
-    console.error('❌ [VISUAL-RAG] Erro ao deletar conhecimento visual:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// GET /api/visual-knowledge/pending - Listar fotos pendentes para treinamento (admin)
-app.get("/api/visual-knowledge/pending", async (req, res) => {
-  try {
-    const { auth } = req.query;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    const collection = getVisualKnowledgeCollection();
-    const documents = await collection
-      .find({ status: 'pending' })
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.json({
-      success: true,
-      documents,
-      count: documents.length
-    });
-  } catch (err) {
-    console.error('❌ [VISUAL-RAG] Erro ao listar fotos pendentes:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// PUT /api/visual-knowledge/:id/approve - Aprovar foto pendente e adicionar conhecimento (admin)
-app.put("/api/visual-knowledge/:id/approve", async (req, res) => {
-  try {
-    const { auth } = req.query;
-    const { id } = req.params;
-    const { defectType, diagnosis, solution } = req.body;
-
-    if (auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Nao autorizado' });
-    }
-
-    if (!defectType || !diagnosis || !solution) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Tipo de defeito, diagnostico e solucao sao obrigatorios' 
-      });
-    }
-
-    const collection = getVisualKnowledgeCollection();
-    const { ObjectId } = await import('mongodb');
-    
-    // Buscar documento pendente
-    const doc = await collection.findOne({ _id: new ObjectId(id), status: 'pending' });
-    
-    if (!doc) {
-      return res.status(404).json({ success: false, message: 'Documento pendente nao encontrado' });
-    }
-
-    // Gerar embedding para o texto combinado
-    const combinedText = `${defectType} ${diagnosis} ${solution}`;
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-3-large",
-      input: combinedText
-    });
-    const embedding = embeddingResponse.data[0].embedding;
-
-    // Atualizar documento com conhecimento e status aprovado
-    const result = await collection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          status: 'approved',
-          defectType,
-          diagnosis,
-          solution,
-          embedding,
-          approvedAt: new Date()
-        }
-      }
-    );
-
-    if (result.modifiedCount === 0) {
-      return res.status(500).json({ success: false, message: 'Erro ao aprovar documento' });
-    }
-
-    console.log(`✅ [VISUAL-RAG] Foto pendente aprovada e treinada: ${id}`);
-
-    res.json({
-      success: true,
-      message: 'Conhecimento visual aprovado e adicionado com sucesso!'
-    });
-  } catch (err) {
-    console.error('❌ [VISUAL-RAG] Erro ao aprovar foto pendente:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// POST /api/visual-knowledge/pending - Adicionar foto pendente automaticamente (chamado pelo bot)
-app.post("/api/visual-knowledge/pending", upload.single('image'), async (req, res) => {
-  try {
-    const { userName, userPhone, lastUserMessage, autoAnalysis } = req.body;
-    const imageFile = req.file;
-
-    if (!imageFile) {
-      return res.status(400).json({ success: false, message: 'Imagem obrigatoria' });
-    }
-
-    console.log(`📸 [VISUAL-RAG] Salvando foto pendente para treinamento`);
-
-    // Upload da imagem para Cloudinary
-    const cloudinaryResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'quanton3d/visual-knowledge-pending',
-          resource_type: 'image',
-          transformation: [{ width: 800, height: 800, crop: 'limit' }]
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(imageFile.buffer);
-    });
-
-    const imageUrl = cloudinaryResult.secure_url;
-
-    // Salvar documento pendente no MongoDB
-    const collection = getVisualKnowledgeCollection();
-    const pendingDoc = {
-      imageUrl,
-      status: 'pending',
-      source: 'user',
-      userName: userName || 'Anonimo',
-      userPhone: userPhone || null,
-      lastUserMessage: lastUserMessage || null,
-      autoAnalysis: autoAnalysis || null,
-      defectType: null,
-      diagnosis: '',
-      solution: '',
-      embedding: null,
-      createdAt: new Date()
-    };
-
-    const result = await collection.insertOne(pendingDoc);
-
-    console.log(`✅ [VISUAL-RAG] Foto pendente salva: ${result.insertedId}`);
-
-    res.json({
-      success: true,
-      message: 'Foto salva para treinamento',
-      documentId: result.insertedId.toString()
-    });
-  } catch (err) {
-    console.error('❌ [VISUAL-RAG] Erro ao salvar foto pendente:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ===== FIM DO VISUAL RAG =====
-
-// ===== SISTEMA DE FEEDBACK E MELHORIA DE CONHECIMENTO =====
-// Adicionar no server.js - NOVAS ROTAS
-
-// Rota para adicionar conhecimento baseado em feedback
-app.post("/api/add-knowledge-from-feedback", async (req, res) => {
-  try {
-    const { auth, title, content, conversationId, originalQuestion, originalReply } = req.body;
-
-    // Autenticação
-    if (auth !== process.env.ADMIN_SECRET || auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
-
-    if (!title || !content) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Título e conteúdo são obrigatórios' 
-      });
-    }
-
-    console.log(`📚 [FEEDBACK] Adicionando conhecimento: ${title}`);
-
-    // Formatar conteúdo com metadados
-    const formattedContent = `${title}
-
-${content}
-
----
-ORIGEM: Feedback de conversa
-DATA: ${new Date().toISOString()}
-PERGUNTA ORIGINAL: ${originalQuestion || 'N/A'}
-RESPOSTA ANTERIOR (INCORRETA): ${originalReply ? originalReply.substring(0, 200) + '...' : 'N/A'}`;
-
-    // Adicionar ao RAG usando função existente
-    const result = await addDocument(title, formattedContent, 'admin_feedback');
-
-    console.log(`✅ [FEEDBACK] Conhecimento adicionado ao RAG: ${result.documentId}`);
-
-    // Marcar conversa como "melhorada" nas métricas
-    if (conversationId) {
-      const metricIndex = conversationMetrics.findIndex(
-        m => m.sessionId === conversationId || 
-             (m.message === originalQuestion && m.reply === originalReply)
-      );
-      
-      if (metricIndex !== -1) {
-        conversationMetrics[metricIndex].feedbackAdded = true;
-        conversationMetrics[metricIndex].feedbackDocumentId = result.documentId.toString();
-        conversationMetrics[metricIndex].feedbackAddedAt = new Date().toISOString();
-      }
-    }
-
-    res.json({
-      success: true,
-      message: 'Conhecimento adicionado com sucesso ao RAG!',
-      documentId: result.documentId.toString(),
-      title
-    });
-  } catch (err) {
-    console.error('❌ [FEEDBACK] Erro ao adicionar conhecimento:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao adicionar conhecimento',
-      message: err.message
-    });
-  }
-});
-
-// Rota para marcar conversa como "resposta ruim"
-app.put("/api/mark-bad-response/:index", async (req, res) => {
-  try {
-    const { auth, reason } = req.body;
-    const index = parseInt(req.params.index);
-
-    // Autenticação
-    if (auth !== process.env.ADMIN_SECRET || auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
-
-    if (index < 0 || index >= conversationMetrics.length) {
-      return res.status(404).json({ success: false, message: 'Conversa não encontrada' });
-    }
-
-    conversationMetrics[index].markedAsBad = true;
-    conversationMetrics[index].badResponseReason = reason || 'Não especificado';
-    conversationMetrics[index].markedAt = new Date().toISOString();
-
-    console.log(`⚠️ [FEEDBACK] Conversa ${index} marcada como ruim: ${reason}`);
-
-    res.json({
-      success: true,
-      message: 'Resposta marcada como ruim',
-      index
-    });
-  } catch (err) {
-    console.error('❌ [FEEDBACK] Erro ao marcar resposta:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Rota para obter estatísticas de feedback
-app.get("/api/feedback-stats", async (req, res) => {
-  try {
-    const { auth } = req.query;
-
-    // Autenticação
-    if (auth !== process.env.ADMIN_SECRET || auth !== 'quanton3d_admin_secret') {
-      return res.status(401).json({ success: false, message: 'Não autorizado' });
-    }
-
-    const totalConversations = conversationMetrics.length;
-    const conversationsWithFeedback = conversationMetrics.filter(c => c.feedbackAdded).length;
-    const badResponses = conversationMetrics.filter(c => c.markedAsBad).length;
-    const pendingReview = conversationMetrics.filter(
-      c => !c.feedbackAdded && !c.markedAsBad && c.documentsFound === 0
-    ).length;
-
-    const stats = {
-      total: totalConversations,
-      withFeedback: conversationsWithFeedback,
-      markedAsBad: badResponses,
-      pendingReview,
-      improvementRate: totalConversations > 0 
-        ? ((conversationsWithFeedback / totalConversations) * 100).toFixed(1)
-        : 0
-    };
-
-    res.json({
-      success: true,
-      stats
-    });
-  } catch (err) {
-    console.error('❌ [FEEDBACK] Erro ao obter estatísticas:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ===== ADICIONAR ESTAS ROTAS NO server.js =====
-// Cole este código ANTES da linha "const PORT = process.env.PORT || 3001;"
-// Configuração da porta Render
-const PORT = process.env.PORT || 3001;
-
-// Inicializar MongoDB e RAG antes de iniciar o servidor
-async function startServer() {
-  try {
-    console.log('🚀 Conectando ao MongoDB...');
-    await connectToMongo();
-    console.log('✅ MongoDB conectado com sucesso!');
-
-    console.log('🚀 Inicializando sistema RAG...');
-    await initializeRAG();
-    console.log('✅ RAG inicializado com sucesso!');
-
-    app.listen(PORT, () => {
-      console.log(`✅ Servidor Quanton3D IA rodando na porta ${PORT}`);
-      console.log('🤖 Bot com RAG + MongoDB ativado e pronto para uso!');
-    });
-  } catch (err) {
-    console.error('❌ Erro na inicialização:', err);
-    console.log('⚠️ Servidor iniciando com funcionalidade limitada...');
-    app.listen(PORT, () =>
-      console.log(`✅ Servidor Quanton3D IA rodando na porta ${PORT} (funcionalidade limitada)`)
-    );
-  }
-}
-
-startServer();
