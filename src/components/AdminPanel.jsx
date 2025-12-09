@@ -1,131 +1,77 @@
-import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ResponsiveBar } from "@nivo/bar";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuração Inicial</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+    h2 {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      font-weight: 500;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .btn-salvar {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Configuração Inicial</h2>
+    <form>
+      <div class="form-group">
+        <label for="nomeSistema">Nome do sistema</label>
+        <input type="text" class="form-control" id="nomeSistema" placeholder="Digite o nome do sistema" />
+      </div>
 
-// Componente que renderiza um gráfico de barras com base nos dados fornecidos
-const Overview = ({ data }) => {
-  return (
-    <div style={{ height: "300px" }}>
-      <ResponsiveBar
-        data={data}
-        keys={["value"]}
-        indexBy="name"
-        margin={{ top: 10, right: 10, bottom: 60, left: 40 }}
-        padding={0.3}
-        valueScale={{ type: "linear" }}
-        indexScale={{ type: "band", round: true }}
-        colors={{ scheme: "nivo" }}
-        axisBottom={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: 20,
-          legend: "",
-          legendPosition: "middle",
-          legendOffset: 32,
-        }}
-        labelSkipWidth={12}
-        labelSkipHeight={12}
-        labelTextColor={{ from: "color", modifiers: [["darker", 1.6]] }}
-        animate={true}
-        motionStiffness={90}
-        motionDamping={15}
-      />
-    </div>
-  );
-};
+      <div class="form-group">
+        <label for="fraseImpacto">Frase de impacto</label>
+        <input type="text" class="form-control" id="fraseImpacto" placeholder="Digite uma frase de impacto" />
+      </div>
 
-// Página principal do painel do administrador
-export default function AdminPanel() {
-  // Dados de exemplo para o gráfico
-  const data = [
-    { name: "Produto A", value: 100 },
-    { name: "Produto B", value: 200 },
-    { name: "Produto C", value: 150 },
-    { name: "Produto D", value: 80 },
-    { name: "Produto E", value: 120 },
-  ];
+      <div class="form-group">
+        <label for="urlLogo">URL da logo</label>
+        <input type="text" class="form-control" id="urlLogo" placeholder="Cole a URL da logo" />
+      </div>
 
-  return (
-    <div className="p-4">
-      <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="produtos">Produtos</TabsTrigger>
-          <TabsTrigger value="usuarios">Usuários</TabsTrigger>
-        </TabsList>
+      <div class="form-group">
+        <label for="urlFavicon">URL do favicon</label>
+        <input type="text" class="form-control" id="urlFavicon" placeholder="Cole a URL do favicon" />
+      </div>
 
-        {/* Aba do Dashboard */}
-        <TabsContent value="dashboard" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold">Total de Vendas</h3>
-                <p className="text-2xl font-bold">R$ 10.000</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold">Novos Clientes</h3>
-                <p className="text-2xl font-bold">150</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold">Produtos Ativos</h3>
-                <p className="text-2xl font-bold">120</p>
-              </CardContent>
-            </Card>
-          </div>
+      <div class="form-group">
+        <label for="versaoSistema">Versão do sistema</label>
+        <input type="text" class="form-control" id="versaoSistema" placeholder="Ex: 1.0.0" />
+      </div>
 
-          {/* Gráfico de visão geral */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="text-lg font-semibold mb-4">Visão Geral</h3>
-              <Overview data={data} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <div class="form-group">
+        <label for="contatoSuporte">Contato de suporte</label>
+        <input type="text" class="form-control" id="contatoSuporte" placeholder="Ex: (31) 99999-9999" />
+      </div>
 
-        {/* Aba de Produtos */}
-        <TabsContent value="produtos">
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="text-lg font-semibold mb-4">Gerenciar Produtos</h3>
-              {/* Conteúdo da aba de produtos vai aqui */}
-              <p>Aqui você pode adicionar, editar ou remover produtos.</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <div class="form-group">
+        <label for="mensagemBoasVindas">Mensagem de boas-vindas</label>
+        <input type="text" class="form-control" id="mensagemBoasVindas" placeholder="Digite a mensagem" />
+      </div>
 
-        {/* Aba de Usuários */}
-        <TabsContent value="usuarios">
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Permitir Cadastro</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Ativa ou desativa novos cadastros de usuários.
-                  </p>
-                </div>
-                <Switch />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Notificações</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Ativa notificações para novos usuários.
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+      <button type="submit" class="btn btn-primary btn-salvar">Salvar Configurações</button>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
