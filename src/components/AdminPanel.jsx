@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle } from 'lucide-react'
 
-// URL base da API
+// URL Base do Servidor
 const API_URL = 'https://quanton3d-bot-v2.onrender.com';
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
@@ -130,7 +130,7 @@ export function AdminPanel({ onClose }) {
   const [editGalleryData, setEditGalleryData] = useState({})
   const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
 
-  // Visual RAG
+  // Visual RAG states
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
   const [visualImage, setVisualImage] = useState(null)
@@ -142,7 +142,7 @@ export function AdminPanel({ onClose }) {
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
   
-  // Details Modals
+  // Details Modals (ESSENCIAIS PARA AS MÉTRICAS FUNCIONAREM)
   const [selectedResin, setSelectedResin] = useState(null)
   const [resinDetails, setResinDetails] = useState(null)
   const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
@@ -179,7 +179,7 @@ export function AdminPanel({ onClose }) {
     loadKnowledgeDocuments()
   }
 
-  // --- CARREGAMENTO DE DADOS ---
+  // --- CARREGAMENTO DE DADOS (ROTAS ORIGINAIS RESTAURADAS) ---
   const loadMetrics = async () => {
     setLoading(true)
     try {
@@ -195,8 +195,8 @@ export function AdminPanel({ onClose }) {
 
   const loadSuggestions = async () => {
     try {
-      // Rota unificada
-      const response = await fetch(`${API_URL}/api/suggestions?auth=quanton3d_admin_secret`)
+      // VOLTANDO PARA A ROTA ORIGINAL QUE FUNCIONA
+      const response = await fetch(`${API_URL}/suggestions?auth=quanton3d_admin_secret`)
       const data = await response.json()
       setSuggestions(data.suggestions || [])
     } catch (error) {
@@ -210,7 +210,7 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       setCustomRequests(data.requests || [])
     } catch (error) {
-      console.error('Erro ao carregar pedidos customizados:', error)
+      console.error('Erro ao carregar pedidos:', error)
     }
   }
 
@@ -220,7 +220,7 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       setContactMessages(data.messages || [])
     } catch (error) {
-      console.error('Erro ao carregar mensagens de contato:', error)
+      console.error('Erro ao carregar mensagens:', error)
     }
   }
 
@@ -256,7 +256,6 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- CRUD Texto ---
   const loadKnowledgeDocuments = async () => {
     setKnowledgeLoading(true)
     try {
@@ -264,12 +263,13 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       setKnowledgeDocuments(data.documents || [])
     } catch (error) {
-      console.error('Erro ao carregar documentos de conhecimento:', error)
+      console.error('Erro ao carregar documentos:', error)
     } finally {
       setKnowledgeLoading(false)
     }
   }
 
+  // --- CRUD Conhecimento Texto ---
   const deleteKnowledgeDocument = async (id) => {
     if (!isAdmin) {
       alert('Seu nivel de acesso nao permite excluir dados.')
@@ -282,7 +282,7 @@ export function AdminPanel({ onClose }) {
       })
       const data = await response.json()
       if (data.success) {
-        alert('Documento deletado!')
+        alert('Documento deletado com sucesso!')
         loadKnowledgeDocuments()
       } else {
         alert('Erro: ' + data.error)
@@ -308,7 +308,7 @@ export function AdminPanel({ onClose }) {
       })
       const data = await response.json()
       if (data.success) {
-        alert('Documento atualizado!')
+        alert('Documento atualizado com sucesso!')
         setEditingKnowledge(null)
         loadKnowledgeDocuments()
       } else {
@@ -337,11 +337,7 @@ export function AdminPanel({ onClose }) {
       const response = await fetch(`${API_URL}/api/visual-knowledge?auth=quanton3d_admin_secret`)
       const data = await response.json()
       setVisualKnowledge(data.documents || [])
-    } catch (error) {
-      console.error('Erro visual knowledge:', error)
-    } finally {
-      setVisualLoading(false)
-    }
+    } catch (error) { console.error(error) } finally { setVisualLoading(false) }
   }
 
   const loadPendingVisualPhotos = async () => {
@@ -350,11 +346,7 @@ export function AdminPanel({ onClose }) {
       const response = await fetch(`${API_URL}/api/visual-knowledge/pending?auth=quanton3d_admin_secret`)
       const data = await response.json()
       setPendingVisualPhotos(data.documents || [])
-    } catch (error) {
-      console.error('Erro pendentes:', error)
-    } finally {
-      setPendingVisualLoading(false)
-    }
+    } catch (error) { console.error(error) } finally { setPendingVisualLoading(false) }
   }
 
   const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
@@ -370,7 +362,7 @@ export function AdminPanel({ onClose }) {
       })
       const data = await response.json()
       if (data.success) {
-        alert('Conhecimento visual aprovado!')
+        alert('Conhecimento visual aprovado com sucesso!')
         loadPendingVisualPhotos()
         loadVisualKnowledge()
         return true
@@ -422,12 +414,8 @@ export function AdminPanel({ onClose }) {
       const data = await response.json()
       
       if (data.success) {
-        alert('Conhecimento visual adicionado!')
-        setVisualImage(null)
-        setVisualImagePreview(null)
-        setVisualDefectType('')
-        setVisualDiagnosis('')
-        setVisualSolution('')
+        alert('Foto adicionada ao cérebro visual do Bot!')
+        setVisualImage(null); setVisualImagePreview(null); setVisualDefectType(''); setVisualDiagnosis(''); setVisualSolution('');
         loadVisualKnowledge()
       } else {
         alert('Erro: ' + data.error)
@@ -457,12 +445,13 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- Detalhes (Métricas) ---
+  // --- FUNÇÕES DE DETALHES DAS MÉTRICAS (VOLTARAM!) ---
   const loadResinDetails = async (resin) => {
     setSelectedResin(resin)
     setResinDetailsLoading(true)
     setResinDetails(null)
     try {
+      // Usando a rota original que funcionava (/metrics/resin-details)
       const response = await fetch(`${API_URL}/metrics/resin-details?resin=${encodeURIComponent(resin)}&auth=quanton3d_admin_secret`)
       const data = await response.json()
       if (data.success) {
@@ -671,7 +660,9 @@ export function AdminPanel({ onClose }) {
             <Card className="p-6">
               <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {Object.entries(metrics.resinMentions).map(([resin, count]) => (
+                {Object.entries(metrics.resinMentions)
+                  .filter(([name]) => !['Outros', 'Outra', 'Outras'].includes(name))
+                  .map(([resin, count]) => (
                   <div key={resin} onClick={() => loadResinDetails(resin)} className="bg-blue-50 p-4 rounded-lg text-center cursor-pointer hover:bg-blue-100 transition-colors">
                     <p className="text-sm font-medium">{resin}</p>
                     <p className="text-2xl font-bold text-blue-600">{count}</p>
@@ -707,7 +698,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* SUGESTÕES */}
+        {/* SUGESTÕES (RESTAURADA E FUNCIONAL) */}
         {activeTab === 'suggestions' && (
           <div className="space-y-4">
             {suggestions.length === 0 ? (
@@ -776,7 +767,7 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-        {/* TREINAMENTO VISUAL */}
+        {/* TREINAMENTO VISUAL (COM UPLOAD CORRIGIDO) */}
         {activeTab === 'visual' && (
           <div className="space-y-6">
             {pendingVisualPhotos.length > 0 && (
@@ -798,3 +789,144 @@ export function AdminPanel({ onClose }) {
                     const file = e.target.files[0];
                     if(file) { setVisualImage(file); const r = new FileReader(); r.onload = () => setVisualImagePreview(r.result); r.readAsDataURL(file); }
                   }} />
+                  {visualImagePreview ? <img src={visualImagePreview} className="h-full object-contain" /> : <p className="text-gray-400">Clique para selecionar</p>}
+                </div>
+                <div className="space-y-2">
+                  <select className="w-full border rounded p-2" value={visualDefectType} onChange={e => setVisualDefectType(e.target.value)}>
+                    <option value="">Tipo de Defeito...</option>
+                    <option value="problema de LCD">LCD / Tela</option>
+                    <option value="descolamento da base">Descolamento</option>
+                    <option value="falha de suportes">Suportes</option>
+                    <option value="delaminacao">Delaminação</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                  <textarea className="w-full border rounded p-2 h-20" placeholder="Diagnóstico" value={visualDiagnosis} onChange={e => setVisualDiagnosis(e.target.value)} />
+                  <textarea className="w-full border rounded p-2 h-20" placeholder="Solução" value={visualSolution} onChange={e => setVisualSolution(e.target.value)} />
+                  <Button className="w-full bg-purple-600" onClick={addVisualKnowledgeEntry} disabled={addingVisual}>{addingVisual ? 'Enviando...' : 'Adicionar'}</Button>
+                </div>
+              </div>
+            </Card>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {visualKnowledge.map(item => (
+                 <div key={item._id} className="relative group rounded-xl overflow-hidden shadow-sm border aspect-square">
+                    <img src={item.imageUrl} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center text-white">
+                       <p className="font-bold text-sm mb-1">{item.defectType}</p>
+                       <p className="text-xs line-clamp-2 mb-2">{item.diagnosis}</p>
+                       {isAdmin && (
+                         <Button size="sm" variant="destructive" onClick={() => deleteVisualKnowledgeEntry(item._id)}>Excluir</Button>
+                       )}
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+        )}
+
+        {/* GALERIA (COM CAIXA AZUL DE PARÂMETROS) */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-4">
+            {galleryEntries.filter(e => e.status !== 'rejected').map(entry => (
+              <Card key={entry._id} className="p-4">
+                <div className="flex gap-4">
+                  <div className="flex gap-2 w-32">
+                    {entry.images && entry.images.map((img, i) => (
+                      <img key={i} src={img.url} className="w-16 h-16 object-cover rounded" />
+                    ))}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between">
+                      <span className="font-bold">{entry.name}</span>
+                      <span className={`px-2 rounded text-xs ${entry.status === 'pending' ? 'bg-yellow-100' : 'bg-green-100'}`}>{entry.status}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">{entry.resin} | {entry.printer}</p>
+                    {entry.comment && <p className="text-sm bg-gray-50 p-2 rounded mb-2">{entry.comment}</p>}
+                    
+                    {/* AQUI ESTÁ A CORREÇÃO DO MANUS (CAIXA AZUL) */}
+                    {(entry.layerHeight || entry.baseLayers || entry.exposureTime) && (
+                      <div className="bg-blue-50 p-3 rounded text-xs text-blue-800 grid grid-cols-2 gap-2">
+                        {entry.layerHeight && <div>Layer: {entry.layerHeight}</div>}
+                        {entry.baseLayers && <div>Base: {entry.baseLayers}</div>}
+                        {entry.exposureTime && <div>Exp: {entry.exposureTime}s</div>}
+                        {entry.baseExposureTime && <div>Base Exp: {entry.baseExposureTime}s</div>}
+                        {entry.liftSpeed1 && <div>Lift: {entry.liftSpeed1}/{entry.liftSpeed2}</div>}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 mt-2">
+                      {entry.status === 'pending' && (
+                        <>
+                          <Button size="sm" className="bg-green-600" onClick={() => approveGalleryEntry(entry._id)}>Aprovar</Button>
+                          {isAdmin && <Button size="sm" variant="outline" onClick={() => rejectGalleryEntry(entry._id)}>Rejeitar</Button>}
+                        </>
+                      )}
+                      {entry.status === 'approved' && isAdmin && (
+                        <Button size="sm" variant="destructive" onClick={() => rejectGalleryEntry(entry._id)}>Apagar</Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* MODALS DE DETALHES (FUNCIONANDO) */}
+        {selectedResin && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-2xl p-6 h-[80vh] overflow-y-auto">
+              <div className="flex justify-between mb-4"><h3 className="font-bold text-xl">{selectedResin}</h3><Button variant="ghost" onClick={() => setSelectedResin(null)}><X/></Button></div>
+              {resinDetailsLoading ? <Loader2 className="animate-spin mx-auto"/> : (
+                <div className="space-y-4">
+                  {resinDetails?.customers?.map((c, i) => (
+                    <div key={i} className="flex justify-between p-3 border rounded">
+                      <div><p className="font-bold">{c.name}</p><p className="text-xs text-gray-500">{c.email}</p></div>
+                      <p className="text-xs">{c.printer}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {selectedClient && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-2xl p-6 h-[80vh] overflow-y-auto">
+              <div className="flex justify-between mb-4"><h3 className="font-bold text-xl">Histórico do Cliente</h3><Button variant="ghost" onClick={() => setSelectedClient(null)}><X/></Button></div>
+              {clientHistoryLoading ? <Loader2 className="animate-spin mx-auto"/> : (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 p-4 rounded"><p className="font-bold">{clientHistory?.client?.name}</p><p>{clientHistory?.client?.email}</p></div>
+                  {clientHistory?.conversations?.map((conv, i) => (
+                    <div key={i} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <p className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString()}</p>
+                      <p className="font-bold text-sm mt-1">{conv.prompt}</p>
+                      <p className="text-sm text-gray-600 mt-1">{conv.reply}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Edição de Texto */}
+        {editingKnowledge && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+             <Card className="w-full max-w-lg p-6">
+                <h3 className="text-lg font-bold mb-4">Editar Texto</h3>
+                <Input className="mb-4" value={editKnowledgeTitle} onChange={e => setEditKnowledgeTitle(e.target.value)} />
+                <textarea className="w-full border rounded-lg p-2 h-40 mb-4" value={editKnowledgeContent} onChange={e => setEditKnowledgeContent(e.target.value)} />
+                <div className="flex justify-end gap-2">
+                   <Button variant="outline" onClick={() => setEditingKnowledge(null)}>Cancelar</Button>
+                   <Button onClick={saveEditKnowledge}>Salvar</Button>
+                </div>
+             </Card>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )
+}
