@@ -554,33 +554,44 @@ export function AdminPanel({ onClose }) {
     // Funcao para abrir modal de edicao da galeria
     const openEditGallery = (entry) => {
       setEditingGalleryEntry(entry)
+      // Ler dados de entry.params (estrutura do servidor) com fallback para campos antigos
+      const params = entry.params || {}
+      const lowerLiftDist = params.lowerLiftDistance || {}
+      const liftDist = params.liftDistance || {}
+      const lowerRetractDist = params.lowerRetractDistance || {}
+      const retractDist = params.retractDistance || {}
+      const lowerLiftSpd = params.lowerLiftSpeed || {}
+      const liftSpd = params.liftSpeed || {}
+      const lowerRetractSpd = params.lowerRetractSpeed || {}
+      const retractSpd = params.retractSpeed || {}
+      
       setEditGalleryData({
         name: entry.name || '',
         resin: entry.resin || '',
         printer: entry.printer || '',
         comment: entry.comment || '',
-        layerHeight: entry.layerHeight || '',
-        baseLayers: entry.baseLayers || '',
-        exposureTime: entry.exposureTime || '',
-        baseExposureTime: entry.baseExposureTime || '',
-        transitionLayers: entry.transitionLayers || '',
-        uvOffDelay: entry.uvOffDelay || '',
-        lowerLiftDistance1: entry.lowerLiftDistance1 || '',
-        lowerLiftDistance2: entry.lowerLiftDistance2 || '',
-        liftDistance1: entry.liftDistance1 || '',
-        liftDistance2: entry.liftDistance2 || '',
-        lowerRetractDistance1: entry.lowerRetractDistance1 || '',
-        lowerRetractDistance2: entry.lowerRetractDistance2 || '',
-        retractDistance1: entry.retractDistance1 || '',
-        retractDistance2: entry.retractDistance2 || '',
-        lowerLiftSpeed1: entry.lowerLiftSpeed1 || '',
-        lowerLiftSpeed2: entry.lowerLiftSpeed2 || '',
-        liftSpeed1: entry.liftSpeed1 || '',
-        liftSpeed2: entry.liftSpeed2 || '',
-        lowerRetractSpeed1: entry.lowerRetractSpeed1 || '',
-        lowerRetractSpeed2: entry.lowerRetractSpeed2 || '',
-        retractSpeed1: entry.retractSpeed1 || '',
-        retractSpeed2: entry.retractSpeed2 || ''
+        layerHeight: params.layerHeight || entry.layerHeight || '',
+        baseLayers: params.baseLayers || entry.baseLayers || '',
+        exposureTime: params.exposureTime || entry.exposureTime || '',
+        baseExposureTime: params.baseExposureTime || entry.baseExposureTime || '',
+        transitionLayers: params.transitionLayers || entry.transitionLayers || '',
+        uvOffDelay: params.uvOffDelay || entry.uvOffDelay || '',
+        lowerLiftDistance1: lowerLiftDist.value1 || entry.lowerLiftDistance1 || '',
+        lowerLiftDistance2: lowerLiftDist.value2 || entry.lowerLiftDistance2 || '',
+        liftDistance1: liftDist.value1 || entry.liftDistance1 || '',
+        liftDistance2: liftDist.value2 || entry.liftDistance2 || '',
+        lowerRetractDistance1: lowerRetractDist.value1 || entry.lowerRetractDistance1 || '',
+        lowerRetractDistance2: lowerRetractDist.value2 || entry.lowerRetractDistance2 || '',
+        retractDistance1: retractDist.value1 || entry.retractDistance1 || '',
+        retractDistance2: retractDist.value2 || entry.retractDistance2 || '',
+        lowerLiftSpeed1: lowerLiftSpd.value1 || entry.lowerLiftSpeed1 || '',
+        lowerLiftSpeed2: lowerLiftSpd.value2 || entry.lowerLiftSpeed2 || '',
+        liftSpeed1: liftSpd.value1 || entry.liftSpeed1 || '',
+        liftSpeed2: liftSpd.value2 || entry.liftSpeed2 || '',
+        lowerRetractSpeed1: lowerRetractSpd.value1 || entry.lowerRetractSpeed1 || '',
+        lowerRetractSpeed2: lowerRetractSpd.value2 || entry.lowerRetractSpeed2 || '',
+        retractSpeed1: retractSpd.value1 || entry.retractSpeed1 || '',
+        retractSpeed2: retractSpd.value2 || entry.retractSpeed2 || ''
       })
     }
 
@@ -1594,35 +1605,48 @@ export function AdminPanel({ onClose }) {
                         )}
 
                         {/* Configuracoes de Impressao */}
+                        {(() => {
+                          const params = entry.params || {}
+                          const lowerLiftDist = params.lowerLiftDistance || {}
+                          const liftDist = params.liftDistance || {}
+                          const lowerRetractDist = params.lowerRetractDistance || {}
+                          const retractDist = params.retractDistance || {}
+                          const lowerLiftSpd = params.lowerLiftSpeed || {}
+                          const liftSpd = params.liftSpeed || {}
+                          const lowerRetractSpd = params.lowerRetractSpeed || {}
+                          const retractSpd = params.retractSpeed || {}
+                          return (
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
                           <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2">Configuracoes de Impressao</p>
                           <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div><span className="text-gray-500">Altura Camada:</span> <span className="font-medium">{entry.layerHeight || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Camadas Base:</span> <span className="font-medium">{entry.baseLayers || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Tempo Exp.:</span> <span className="font-medium">{entry.exposureTime || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Tempo Exp. Base:</span> <span className="font-medium">{entry.baseExposureTime || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Camadas Trans.:</span> <span className="font-medium">{entry.transitionLayers || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Atraso UV:</span> <span className="font-medium">{entry.uvOffDelay || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Altura Camada:</span> <span className="font-medium">{params.layerHeight || entry.layerHeight || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Camadas Base:</span> <span className="font-medium">{params.baseLayers || entry.baseLayers || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Tempo Exp.:</span> <span className="font-medium">{params.exposureTime || entry.exposureTime || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Tempo Exp. Base:</span> <span className="font-medium">{params.baseExposureTime || entry.baseExposureTime || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Camadas Trans.:</span> <span className="font-medium">{params.transitionLayers || entry.transitionLayers || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Atraso UV:</span> <span className="font-medium">{params.uvOffDelay || entry.uvOffDelay || 'N/A'}</span></div>
                           </div>
                           
                           {/* Distancias */}
                           <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Distancias (mm)</p>
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{entry.lowerLiftDistance1 || 'N/A'} / {entry.lowerLiftDistance2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{entry.liftDistance1 || 'N/A'} / {entry.liftDistance2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{entry.lowerRetractDistance1 || 'N/A'} / {entry.lowerRetractDistance2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{entry.retractDistance1 || 'N/A'} / {entry.retractDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{lowerLiftDist.value1 || entry.lowerLiftDistance1 || 'N/A'} / {lowerLiftDist.value2 || entry.lowerLiftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{liftDist.value1 || entry.liftDistance1 || 'N/A'} / {liftDist.value2 || entry.liftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{lowerRetractDist.value1 || entry.lowerRetractDistance1 || 'N/A'} / {lowerRetractDist.value2 || entry.lowerRetractDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{retractDist.value1 || entry.retractDistance1 || 'N/A'} / {retractDist.value2 || entry.retractDistance2 || 'N/A'}</span></div>
                           </div>
                           
                           {/* Velocidades */}
                           <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Velocidades (mm/s)</p>
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{entry.lowerLiftSpeed1 || 'N/A'} / {entry.lowerLiftSpeed2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{entry.liftSpeed1 || 'N/A'} / {entry.liftSpeed2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{entry.lowerRetractSpeed1 || 'N/A'} / {entry.lowerRetractSpeed2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{entry.retractSpeed1 || 'N/A'} / {entry.retractSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{lowerLiftSpd.value1 || entry.lowerLiftSpeed1 || 'N/A'} / {lowerLiftSpd.value2 || entry.lowerLiftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{liftSpd.value1 || entry.liftSpeed1 || 'N/A'} / {liftSpd.value2 || entry.liftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{lowerRetractSpd.value1 || entry.lowerRetractSpeed1 || 'N/A'} / {lowerRetractSpd.value2 || entry.lowerRetractSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{retractSpd.value1 || entry.retractSpeed1 || 'N/A'} / {retractSpd.value2 || entry.retractSpeed2 || 'N/A'}</span></div>
                           </div>
                         </div>
+                          )
+                        })()}
                         
                         {entry.status === 'pending' && (
                           <div className="flex gap-2">
