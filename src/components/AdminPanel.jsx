@@ -558,9 +558,6 @@ export function AdminPanel({ onClose }) {
       const params = entry.params || {}
       const lowerLiftDist = params.lowerLiftDistance || {}
       const liftDist = params.liftDistance || {}
-      const lowerRetractDist = params.lowerRetractDistance || {}
-      const retractDist = params.retractDistance || {}
-      const lowerLiftSpd = params.lowerLiftSpeed || {}
       const liftSpd = params.liftSpeed || {}
       const lowerRetractSpd = params.lowerRetractSpeed || {}
       const retractSpd = params.retractSpeed || {}
@@ -580,12 +577,6 @@ export function AdminPanel({ onClose }) {
         lowerLiftDistance2: lowerLiftDist.value2 || entry.lowerLiftDistance2 || '',
         liftDistance1: liftDist.value1 || entry.liftDistance1 || '',
         liftDistance2: liftDist.value2 || entry.liftDistance2 || '',
-        lowerRetractDistance1: lowerRetractDist.value1 || entry.lowerRetractDistance1 || '',
-        lowerRetractDistance2: lowerRetractDist.value2 || entry.lowerRetractDistance2 || '',
-        retractDistance1: retractDist.value1 || entry.retractDistance1 || '',
-        retractDistance2: retractDist.value2 || entry.retractDistance2 || '',
-        lowerLiftSpeed1: lowerLiftSpd.value1 || entry.lowerLiftSpeed1 || '',
-        lowerLiftSpeed2: lowerLiftSpd.value2 || entry.lowerLiftSpeed2 || '',
         liftSpeed1: liftSpd.value1 || entry.liftSpeed1 || '',
         liftSpeed2: liftSpd.value2 || entry.liftSpeed2 || '',
         lowerRetractSpeed1: lowerRetractSpd.value1 || entry.lowerRetractSpeed1 || '',
@@ -1609,9 +1600,6 @@ export function AdminPanel({ onClose }) {
                           const params = entry.params || {}
                           const lowerLiftDist = params.lowerLiftDistance || {}
                           const liftDist = params.liftDistance || {}
-                          const lowerRetractDist = params.lowerRetractDistance || {}
-                          const retractDist = params.retractDistance || {}
-                          const lowerLiftSpd = params.lowerLiftSpeed || {}
                           const liftSpd = params.liftSpeed || {}
                           const lowerRetractSpd = params.lowerRetractSpeed || {}
                           const retractSpd = params.retractSpeed || {}
@@ -1627,22 +1615,18 @@ export function AdminPanel({ onClose }) {
                             <div><span className="text-gray-500">Atraso UV:</span> <span className="font-medium">{params.uvOffDelay || entry.uvOffDelay || 'N/A'}</span></div>
                           </div>
                           
-                          {/* Distancias */}
-                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Distancias (mm)</p>
+                          {/* Distancias de Elevacao */}
+                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Distancias de Elevacao (mm)</p>
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{lowerLiftDist.value1 || entry.lowerLiftDistance1 || 'N/A'} / {lowerLiftDist.value2 || entry.lowerLiftDistance2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{liftDist.value1 || entry.liftDistance1 || 'N/A'} / {liftDist.value2 || entry.liftDistance2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{lowerRetractDist.value1 || entry.lowerRetractDistance1 || 'N/A'} / {lowerRetractDist.value2 || entry.lowerRetractDistance2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{retractDist.value1 || entry.retractDistance1 || 'N/A'} / {retractDist.value2 || entry.retractDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Inferior:</span> <span className="font-medium">{lowerLiftDist.value1 || entry.lowerLiftDistance1 || 'N/A'} / {lowerLiftDist.value2 || entry.lowerLiftDistance2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Normal:</span> <span className="font-medium">{liftDist.value1 || entry.liftDistance1 || 'N/A'} / {liftDist.value2 || entry.liftDistance2 || 'N/A'}</span></div>
                           </div>
                           
                           {/* Velocidades */}
                           <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">Velocidades (mm/s)</p>
                           <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div><span className="text-gray-500">Elev. Inferior:</span> <span className="font-medium">{lowerLiftSpd.value1 || entry.lowerLiftSpeed1 || 'N/A'} / {lowerLiftSpd.value2 || entry.lowerLiftSpeed2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Elev. Normal:</span> <span className="font-medium">{liftSpd.value1 || entry.liftSpeed1 || 'N/A'} / {liftSpd.value2 || entry.liftSpeed2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Inferior:</span> <span className="font-medium">{lowerRetractSpd.value1 || entry.lowerRetractSpeed1 || 'N/A'} / {lowerRetractSpd.value2 || entry.lowerRetractSpeed2 || 'N/A'}</span></div>
-                            <div><span className="text-gray-500">Retr. Normal:</span> <span className="font-medium">{retractSpd.value1 || entry.retractSpeed1 || 'N/A'} / {retractSpd.value2 || entry.retractSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Elevacao:</span> <span className="font-medium">{liftSpd.value1 || entry.liftSpeed1 || 'N/A'} / {liftSpd.value2 || entry.liftSpeed2 || 'N/A'}</span></div>
+                            <div><span className="text-gray-500">Retracao:</span> <span className="font-medium">{retractSpd.value1 || entry.retractSpeed1 || 'N/A'} / {retractSpd.value2 || entry.retractSpeed2 || 'N/A'}</span></div>
                           </div>
                         </div>
                           )
