@@ -65,7 +65,7 @@ const supportTopics = [
     {
         title: "Parceiros",
         key: "parceiros",
-        guideUrl: "/guias/parceiros-quanton3d.html"
+        guideUrl: "/guias/parceiros-dinamico.html"
     },
     {
         title: "Chamadas de Vídeo",

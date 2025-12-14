@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake } from 'lucide-react'
+import { PartnersManager } from './PartnersManager.jsx'
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
@@ -98,7 +99,7 @@ export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [accessLevel, setAccessLevel] = useState(null) // 'admin' | 'support' | null
   const [password, setPassword] = useState('')
-    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual'
+    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
     const [metrics, setMetrics] = useState(null)
     const [suggestions, setSuggestions] = useState([])
     const [loading, setLoading] = useState(false)
@@ -726,6 +727,14 @@ export function AdminPanel({ onClose }) {
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Treinamento Visual ({visualKnowledge.length})
+                  </Button>
+                  <Button 
+                    onClick={() => setActiveTab('partners')}
+                    variant={activeTab === 'partners' ? 'default' : 'outline'}
+                    className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Handshake className="h-4 w-4 mr-2" />
+                    Parceiros
                   </Button>
                 </div>
 
@@ -2393,6 +2402,11 @@ export function AdminPanel({ onClose }) {
               </div>
             </Card>
           </div>
+        )}
+
+        {/* Partners Tab */}
+        {activeTab === 'partners' && (
+          <PartnersManager />
         )}
       </div>
     </div>
