@@ -44,24 +44,24 @@ export function PrivacyModal() {
           initial={{ scale: 0.9, y: 20 }}
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.9, y: 20 }}
-          className="w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          className="w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col"
         >
           <Card className="bg-white dark:bg-gray-900 shadow-2xl border-4 border-blue-500">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 md:p-6 text-white flex-shrink-0">
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <Shield className="h-8 w-8" />
+                <div className="h-12 w-12 md:h-16 md:w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Shield className="h-6 w-6 md:h-8 md:w-8" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold">Termos de Uso e Privacidade</h2>
-                  <p className="text-blue-100 mt-1">Quanton3D - Resinas UV SLA</p>
+                  <h2 className="text-xl md:text-3xl font-bold">Termos de Uso e Privacidade</h2>
+                  <p className="text-blue-100 mt-1 text-sm md:text-base">Quanton3D - Resinas UV SLA</p>
                 </div>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1" style={{ maxHeight: 'calc(85vh - 200px)' }}>
               <div className="space-y-6">
                 {/* Política de Privacidade */}
                 <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-6">
@@ -152,22 +152,22 @@ export function PrivacyModal() {
             </div>
 
             {/* Footer - Botões */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 border-t">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 md:p-6 border-t flex-shrink-0">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center md:text-left">
                   Ao aceitar, você concorda com nossos termos de uso e política de privacidade.
                 </p>
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3 w-full md:w-auto">
                   <Button
                     variant="outline"
                     onClick={handleDecline}
-                    className="px-6"
+                    className="flex-1 md:flex-none px-4 md:px-6 text-sm"
                   >
                     Recusar
                   </Button>
                   <Button
                     onClick={handleAccept}
-                    className="px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="flex-1 md:flex-none px-4 md:px-8 text-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
                     Aceitar e Continuar
                   </Button>
