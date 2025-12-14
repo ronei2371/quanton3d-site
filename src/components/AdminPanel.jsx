@@ -189,7 +189,10 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch('https://quanton3d-bot-v2.onrender.com/suggestions?auth=quanton3d_admin_secret')
       const data = await response.json()
-      setSuggestions(data.suggestions || [])
+      // Filtrar apenas sugestões SEM imagem (texto puro)
+      // Sugestões COM imagem devem ir para Treinamento Visual
+      const textOnlySuggestions = (data.suggestions || []).filter(s => !s.imageUrl)
+      setSuggestions(textOnlySuggestions)
     } catch (error) {
       console.error('Erro ao carregar sugestões:', error)
     }

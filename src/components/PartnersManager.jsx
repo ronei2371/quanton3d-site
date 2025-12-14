@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Plus, Edit3, Trash2, Save, X, Upload, Image as ImageIcon, Phone, Mail, Link as LinkIcon, User, AlertCircle, Check } from 'lucide-react'
 
+const API_BASE = 'https://quanton3d-bot-v2.onrender.com/api'
+const AUTH_PARAM = '?auth=quanton3d_admin_secret'
+
 export function PartnersManager() {
   const [partners, setPartners] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,10 +48,10 @@ export function PartnersManager() {
   const loadPartners = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/.netlify/functions/partners')
+      const response = await fetch(`${API_BASE}/partners${AUTH_PARAM}`)
       if (!response.ok) throw new Error('Erro ao carregar parceiros')
       const data = await response.json()
-      setPartners(data)
+      setPartners(data.partners || [])
     } catch (err) {
       setError('Erro ao carregar parceiros: ' + err.message)
     } finally {
@@ -140,26 +143,32 @@ export function PartnersManager() {
     setImagePreviewUrls(newPreviews)
   }
 
-  // Upload images to server
+  // Upload images usando o mesmo sistema da galeria
   const uploadImages = async () => {
     if (imageFiles.length === 0) return formData.images
 
     setUploadingImages(true)
+    const uploadedUrls = []
+
     try {
-      const formDataUpload = new FormData()
-      imageFiles.forEach(file => {
-        formDataUpload.append('images', file)
-      })
+      for (const file of imageFiles) {
+        const formDataUpload = new FormData()
+        formDataUpload.append('image', file)
 
-      const response = await fetch('/.netlify/functions/upload-partner-image', {
-        method: 'POST',
-        body: formDataUpload
-      })
+        const response = await fetch(`${API_BASE}/partners/upload-image${AUTH_PARAM}`, {
+          method: 'POST',
+          body: formDataUpload
+        })
 
-      if (!response.ok) throw new Error('Erro ao fazer upload das imagens')
-      
-      const data = await response.json()
-      return [...formData.images, ...data.images.map(img => img.url)]
+        if (!response.ok) throw new Error('Erro ao fazer upload da imagem')
+        
+        const data = await response.json()
+        if (data.imageUrl) {
+          uploadedUrls.push(data.imageUrl)
+        }
+      }
+
+      return [...formData.images, ...uploadedUrls]
     } catch (err) {
       throw new Error('Erro no upload de imagens: ' + err.message)
     } finally {
@@ -193,14 +202,14 @@ export function PartnersManager() {
       let response
       if (editingPartner) {
         // Atualizar
-        response = await fetch(`/.netlify/functions/partners?id=${editingPartner}`, {
+        response = await fetch(`${API_BASE}/partners/${editingPartner}${AUTH_PARAM}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(dataToSave)
         })
       } else {
         // Criar
-        response = await fetch('/.netlify/functions/partners', {
+        response = await fetch(`${API_BASE}/partners${AUTH_PARAM}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(dataToSave)
@@ -224,7 +233,7 @@ export function PartnersManager() {
     if (!confirm('Tem certeza que deseja excluir este parceiro?')) return
 
     try {
-      const response = await fetch(`/.netlify/functions/partners?id=${partnerId}`, {
+      const response = await fetch(`${API_BASE}/partners/${partnerId}${AUTH_PARAM}`, {
         method: 'DELETE'
       })
 
