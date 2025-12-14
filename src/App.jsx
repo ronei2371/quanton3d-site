@@ -148,17 +148,7 @@ function App() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => setIsTechSupportModalOpen(true)}>
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                    <Cpu className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2 text-black">Suporte Técnico Completo</h3>
-                    <p className="text-black">
-                      Assistência especializada em impressão 3D SLA/DLP
-                    </p>
-                  </div>
-                </div>
+
                 <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => setIsQualityModalOpen(true)}>
                   <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="h-6 w-6 text-white" />

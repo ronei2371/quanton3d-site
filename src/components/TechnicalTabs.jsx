@@ -5,38 +5,19 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card.jsx';
 // Importa os ícones
-import { CheckCircle, XCircle, Phone, User, Settings, Droplet, Layers, Beaker } from 'lucide-react'; 
+import { CheckCircle, XCircle, Phone, User, Settings, Droplet, Layers, Beaker, Wrench } from 'lucide-react'; 
 
 // Conteúdo Completo (Baseado na sua lista de tarefas)
 const supportTopics = [
     {
         title: "Nivelamento de Plataforma",
         key: "nivelamento",
-        content: `
-            <h4 class="font-bold text-lg mb-2 text-blue-600">Guia Rápido de Nivelamento (Passo a Passo)</h4>
-            <ol class="list-decimal list-inside space-y-2">
-                <li><strong>Preparação:</strong> Limpe a tela LCD e a base de construção.</li>
-                <li><strong>Posicionamento:</strong> Solte os parafusos da base de construção e use a função 'Home' da impressora.</li>
-                <li><strong>Calibração:</strong> Coloque uma folha de papel (sulfite) dobrada duas vezes sobre a tela LCD.</li>
-                <li><strong>Ajuste:</strong> Pressione 'Z=0'. A placa de construção deve prender levemente o papel.</li>
-                <li><strong>Teste:</strong> Aperte os parafusos da base em cruz, removendo o papel. A placa não deve se mover.</li>
-            </ol>
-            <p class="mt-4 text-sm text-gray-600">⚠️ Erros de nivelamento causam falhas de adesão. Refaça a cada 10 impressões.</p>
-        `,
+        guideUrl: "/guias/guia-nivelamento.html"
     },
     {
         title: "Configuração de Fatiadores",
         key: "fatiadores",
-        content: `
-            <h4 class="font-bold text-lg mb-2 text-purple-600">Parâmetros Essenciais no Chitubox/Lychee</h4>
-            <ul class="list-disc list-inside space-y-2">
-                <li><strong>Altura de Camada:</strong> 0.05mm é o padrão de fábrica.</li>
-                <li><strong>Camadas Menores (0.025mm):</strong> Aumentam a qualidade e o tempo de impressão.</li>
-                <li><strong>Relação Camada x Exposição:</strong> Camadas mais finas (0.025mm) exigem MENOS tempo de exposição por camada. Camadas mais grossas (0.1mm) exigem MAIS tempo.</li>
-                <li><strong>Tempo de Exposição Base:</strong> Deve ser de 8 a 10 vezes maior que o tempo de exposição normal (para garantir a adesão).</li>
-                <li><strong>Otimização de Parâmetros:</strong> Para resinas com *alta rigidez*, use velocidades de elevação (Lift Speed) mais lentas para evitar quebra da peça.</li>
-            </ul>
-        `,
+        guideUrl: "/guias/guia-configuracao-fatiadores.html"
     },
     {
         title: "Diagnóstico de Problemas",
@@ -69,16 +50,71 @@ const supportTopics = [
             </div>
         `,
     },
-    { title: "Calibração de Resina", key: "calibracao", content: `<p>Conteúdo de Calibração será adicionado em breve.</p>` },
-    { title: "Posicionamento de Suportes", key: "posicionamento", content: `<p>Conteúdo de Posicionamento de Suportes será adicionado em breve.</p>` },
-    { title: "Otimização de Parâmetros", key: "otimizacao", content: `<p>Conteúdo de Otimização de Parâmetros será adicionado em breve.</p>` },
-    { title: "Chamadas de Vídeo", key: "chamadas", content: `<p>Conteúdo de Chamadas de Vídeo será adicionado em breve.</p>` },
+    { 
+        title: "Calibração de Resina", 
+        key: "calibracao", 
+        guideUrl: "/guias/guia-calibracao-quanton3d.html"
+    },
+    { 
+        title: "Posicionamento de Suportes", 
+        key: "posicionamento", 
+        guideUrl: "/guias/guia-posicionamento-suportes.html"
+    },
+    { 
+        title: "Manutenção de Máquina", 
+        key: "manutencao", 
+        guideUrl: "/guias/guia-manutencao-impressora.html"
+    },
+    {
+        title: "Otimização de Parâmetros",
+        key: "otimizacao",
+        content: `
+            <h4 class="font-bold text-lg mb-2 text-purple-600">Otimização Avançada de Parâmetros</h4>
+            <p class="text-sm text-gray-700 mb-4">
+                Ajustes finos para impressões profissionais de alta qualidade.
+            </p>
+            <ul class="list-disc list-inside space-y-2">
+                <li><strong>Lift Speed:</strong> Para resinas com alta rigidez, use velocidades mais lentas (60-80mm/min)</li>
+                <li><strong>Anti-aliasing:</strong> Ative para suavizar bordas e melhorar detalhes</li>
+                <li><strong>Tempo de Repouso:</strong> Aumente para 3-5s em impressões grandes</li>
+                <li><strong>Potência do LED:</strong> Ajuste entre 70-100% conforme a resina</li>
+            </ul>
+        `
+    },
+    {
+        title: "Chamadas de Vídeo",
+        key: "chamadas",
+        content: `
+            <h4 class="font-bold text-lg mb-2 text-blue-600">Suporte por Vídeo Chamada</h4>
+            <p class="text-sm text-gray-700 mb-4">
+                Agende uma chamada de vídeo com nossos especialistas para resolver problemas complexos.
+            </p>
+            <div class="space-y-2">
+                <a href="https://wa.me/553132716935?text=Gostaria%20de%20agendar%20uma%20chamada%20de%20v%C3%ADdeo" target="_blank" class="flex items-center gap-3 bg-green-500 text-white p-3 rounded-lg font-semibold hover:bg-green-600 transition">
+                    <Phone size={20} /> Agendar via WhatsApp
+                </a>
+                <p class="text-xs text-gray-600 mt-2">
+                    Disponível de segunda a sexta, das 9h às 18h
+                </p>
+            </div>
+        `
+    },
 ];
 
 
 export default function TechnicalTabs() {
     const [activeTab, setActiveTab] = useState(supportTopics[0].key);
-    const activeContent = supportTopics.find(topic => topic.key === activeTab)?.content;
+    const activeTopic = supportTopics.find(topic => topic.key === activeTab);
+
+    const handleButtonClick = (topic) => {
+        if (topic.guideUrl) {
+            // Abre o guia HTML em nova aba
+            window.open(topic.guideUrl, '_blank');
+        } else {
+            // Mostra o conteúdo inline
+            setActiveTab(topic.key);
+        }
+    };
 
     return (
         <section id="suporte-tecnico" className="container mx-auto px-4 py-20">
@@ -89,9 +125,9 @@ export default function TechnicalTabs() {
                 {supportTopics.map(topic => (
                     <button
                         key={topic.key}
-                        onClick={() => setActiveTab(topic.key)}
+                        onClick={() => handleButtonClick(topic)}
                         className={`neon-button px-5 py-3 text-sm ${
-                            activeTab === topic.key 
+                            activeTab === topic.key && !topic.guideUrl
                                 ? 'neon-button-active' 
                                 : ''
                         }`}
@@ -101,13 +137,15 @@ export default function TechnicalTabs() {
                 ))}
             </div>
 
-            {/* Conteúdo - Fundo transparente com moleculas visiveis */}
-            <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl bg-white/70 backdrop-blur-sm border border-blue-200">
-                <div 
-                    dangerouslySetInnerHTML={{ __html: activeContent }} 
-                    className="prose max-w-none [&_*]:text-black [&_h4]:text-black [&_p]:text-black [&_li]:text-black [&_strong]:text-black" 
-                />
-            </Card>
+            {/* Conteúdo - Fundo transparente com moleculas visiveis - Só mostra se não for guia externo */}
+            {activeTopic && !activeTopic.guideUrl && (
+                <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl bg-white/70 backdrop-blur-sm border border-blue-200">
+                    <div 
+                        dangerouslySetInnerHTML={{ __html: activeTopic.content }} 
+                        className="prose max-w-none [&_*]:text-black [&_h4]:text-black [&_p]:text-black [&_li]:text-black [&_strong]:text-black" 
+                    />
+                </Card>
+            )}
         </section>
     );
 }
