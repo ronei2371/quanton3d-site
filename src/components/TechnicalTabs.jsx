@@ -63,6 +63,11 @@ const supportTopics = [
         guideUrl: "/guias/guia-otimizacao-parametros.html"
     },
     {
+        title: "Parceiros",
+        key: "parceiros",
+        guideUrl: "/guias/parceiros-quanton3d.html"
+    },
+    {
         title: "Chamadas de Vídeo",
         key: "chamadas",
         content: `
