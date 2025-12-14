@@ -13,6 +13,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [suggestionText, setSuggestionText] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
@@ -72,6 +73,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    setError(null); // Limpar erro anterior
     
     try {
       let response;
@@ -97,7 +99,21 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         });
       }
       
-      if (!response.ok) { throw new Error('Ocorreu um erro ao conectar com a IA.'); }
+      if (!response.ok) {
+        // Tratamento de erros específicos
+        let errorMsg = 'Ocorreu um erro ao conectar com a IA.';
+        
+        if (response.status === 429) {
+          errorMsg = '⚠️ Muitas mensagens enviadas! Por favor, aguarde um momento antes de enviar novamente.';
+        } else if (response.status === 503) {
+          errorMsg = '⚠️ Servidor temporiamente ocupado. Tente novamente em alguns segundos.';
+        } else if (response.status === 500) {
+          errorMsg = '⚠️ Erro no servidor. Nossa equipe foi notificada. Tente novamente em instantes.';
+        }
+        
+        throw new Error(errorMsg);
+      }
+      
       const data = await response.json();
       const botText = data.reply || 'Não consegui processar sua resposta.';
       const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
@@ -108,8 +124,21 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       setLastBotReply(botText);
     } catch (error) {
       console.error('Erro na API:', error);
-      const errorMessage = { id: Date.now() + 1, sender: 'bot', text: 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.' };
+      
+      // Definir erro no estado para exibir componente de erro
+      setError(error.message || 'Erro ao processar sua mensagem.');
+      
+      // Também adicionar mensagem de erro no chat
+      const errorMessage = { 
+        id: Date.now() + 1, 
+        sender: 'bot', 
+        text: error.message || 'Ocorreu um erro ao conectar com a IA. Tente novamente em instantes.',
+        isError: true
+      };
       setMessages((prev) => [...prev, errorMessage]);
+      
+      // Limpar erro após 5 segundos
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -400,10 +429,18 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
         {/* Sem overlay - circuitos sempre visiveis */}
         <div className="space-y-4 relative z-10">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <motion.div 
+              key={msg.id} 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
               <div
                 className={`p-3 rounded-lg max-w-[80%] shadow-md ${
-                  msg.sender === 'user'
+                  msg.isError
+                    ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+                    : msg.sender === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                 }`}
@@ -411,20 +448,26 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
                 {msg.image && (
                   <img src={msg.image} alt="Imagem enviada" className="w-full rounded-lg mb-2" />
                 )}
+                {msg.isError && <span className="mr-2">⚠️</span>}
                 {msg.text}
               </div>
-            </div>
+            </motion.div>
           ))}
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white shadow-md">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start"
+            >
+              <div className="p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-800 shadow-md">
                 <div className="flex gap-2 items-center">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">Quanton3D está pensando...</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
           <div ref={endOfMessagesRef} />
         </div>
@@ -498,6 +541,33 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           </div>
         )}
         
+        {/* Mensagem de Erro */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-red-500 text-lg">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                    {error}
+                  </p>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-xs text-red-600 dark:text-red-400 underline mt-1 hover:text-red-800 dark:hover:text-red-200"
+                  >
+                    Dispensar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         {/* Input de Chat */}
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
@@ -525,10 +595,22 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
           />
           <button
             type="submit"
-            className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-400 shadow-md transition-all hover:scale-105"
-            disabled={isLoading}
+            className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md transition-all hover:scale-105 disabled:hover:scale-100"
+            disabled={isLoading || (!inputValue.trim() && !selectedImage)}
           >
-            <Send size={20} />
+            {isLoading ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </motion.div>
+            ) : (
+              <Send size={20} />
+            )}
           </button>
         </form>
       </div>
