@@ -60,18 +60,7 @@ const supportTopics = [
     {
         title: "Otimização de Parâmetros",
         key: "otimizacao",
-        content: `
-            <h4 class="font-bold text-lg mb-2 text-purple-600">Otimização Avançada de Parâmetros</h4>
-            <p class="text-sm text-gray-700 mb-4">
-                Ajustes finos para impressões profissionais de alta qualidade.
-            </p>
-            <ul class="list-disc list-inside space-y-2">
-                <li><strong>Lift Speed:</strong> Para resinas com alta rigidez, use velocidades mais lentas (60-80mm/min)</li>
-                <li><strong>Anti-aliasing:</strong> Ative para suavizar bordas e melhorar detalhes</li>
-                <li><strong>Tempo de Repouso:</strong> Aumente para 3-5s em impressões grandes</li>
-                <li><strong>Potência do LED:</strong> Ajuste entre 70-100% conforme a resina</li>
-            </ul>
-        `
+        guideUrl: "/guias/guia-otimizacao-parametros.html"
     },
     {
         title: "Chamadas de Vídeo",
