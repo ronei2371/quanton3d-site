@@ -22,15 +22,7 @@ const supportTopics = [
     {
         title: "Diagnóstico de Problemas",
         key: "diagnostico",
-        content: `
-            <h4 class="font-bold text-lg mb-2 text-orange-600">Problemas Comuns e Soluções Rápidas</h4>
-            <ul class="list-disc list-inside space-y-2">
-                <li><strong>Peça não adere à plataforma:</strong> Nivelamento incorreto ou tempo de exposição base muito baixo.</li>
-                <li><strong>Linhas Horizontais (Stair-stepping):</strong> Velocidade de elevação muito rápida ou eixos descalibrados.</li>
-                <li><strong>Peça com bolhas/furos:</strong> Resina agitada com muita força ou tempo de repouso (rest time) insuficiente.</li>
-                <li><strong>Suportes quebrando:</strong> Suportes muito finos ou tempo de exposição baixo.</li>
-            </ul>
-        `,
+        guideUrl: "/guias/guia-diagnostico-problemas.html"
     },
     {
         title: "Atendimento Prioritário",
