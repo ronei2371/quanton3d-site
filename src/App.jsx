@@ -57,7 +57,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundImage: 'url(/assets/background-molecules.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+    <div className="min-h-screen" style={{ backgroundImage: 'url(/images/hero-background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       
       <PrivacyModal />
       <WelcomeModal />
@@ -101,67 +101,61 @@ function App() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-5xl font-bold mb-6 leading-tight text-black">
+            <h2 className="text-5xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
               Resinas UV SLA de
-              <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 Alta Performance
               </span>
             </h2>
-            <p className="text-xl text-black mb-8">
+            <p className="text-xl text-white drop-shadow-md mb-8">
               Fabricação especializada de resinas UV para impressão 3D SLA/DLP. 
               Soluções customizadas para odontologia, medicina, indústria e muito mais.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <Button 
+                  className="neon-button text-lg flex items-center gap-2 flex-1"
+                  onClick={handleOpenContact} 
+                >
+                  Fale Conosco
+                  <ChevronRight className="ml-1 h-5 w-5" />
+                </Button>
+                <Button 
+                  className="neon-button text-lg flex items-center gap-2 flex-1"
+                  onClick={() => setIsAboutModalOpen(true)}
+                >
+                  Saiba Mais
+                </Button>
+              </div>
               <Button 
-                className="neon-button text-lg flex items-center gap-2"
-                onClick={handleOpenContact} 
+                className="neon-button text-lg flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                onClick={handleOpenCustomForm}
               >
-                Fale Conosco
-                <ChevronRight className="ml-1 h-5 w-5" />
+                <Beaker className="h-5 w-5" />
+                Formulação Customizada
               </Button>
               <Button 
-                className="neon-button text-lg flex items-center gap-2"
-                onClick={() => setIsAboutModalOpen(true)}
+                className="neon-button text-lg flex items-center gap-2 bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600"
+                onClick={() => setIsQualityModalOpen(true)}
               >
-                Saiba Mais
+                <Sparkles className="h-5 w-5" />
+                Alta Qualidade
               </Button>
             </div>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative"
+            className="relative flex justify-center items-center"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-3xl blur-3xl opacity-20"></div>
-            <Card className="relative p-8 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl border-2 border-blue-200 dark:border-blue-900">
-              <div className="space-y-6">
-                <div className="flex items-start gap-4 cursor-pointer" onClick={handleOpenCustomForm}>
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                    <Beaker className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2 text-black">Formulação Customizada</h3>
-                    <p className="text-black">
-                      Desenvolvemos resinas específicas para sua aplicação
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors" onClick={() => setIsQualityModalOpen(true)}>
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2 text-black">Alta Qualidade</h3>
-                    <p className="text-black">
-                      FISPQs, certificados e controle rigoroso de qualidade
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl opacity-30"></div>
+            <img 
+              src="/images/ai-robot.jpg" 
+              alt="IA Quanton3D" 
+              className="relative w-full max-w-md h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50"
+            />
           </motion.div>
         </div>
       </section>
