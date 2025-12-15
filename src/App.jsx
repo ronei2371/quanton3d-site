@@ -1,5 +1,6 @@
 // Arquivo: quanton3d-site/src/App.jsx
 // (Código FINAL que conserta o cabeçalho, robô, lógica e a leitura de dados)
+// REDESIGN COMPLETO - Build: 2025-12-15 00:48 UTC
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
