@@ -95,74 +95,89 @@ function App() {
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
+        <div className="flex flex-col items-center text-center gap-12">
+          {/* Título */}
+          <motion.h2
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
+            className="text-5xl font-bold leading-tight text-white drop-shadow-lg"
           >
-            <h2 className="text-5xl font-bold mb-6 leading-tight text-white drop-shadow-lg">
-              Resinas UV SLA de
-              <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Alta Performance
-              </span>
-            </h2>
-            <p className="text-xl text-white drop-shadow-md mb-8">
-              Fabricação especializada de resinas UV para impressão 3D SLA/DLP. 
-              Soluções customizadas para odontologia, medicina, indústria e muito mais.
-            </p>
-            <div className="flex flex-col gap-3">
-              <div className="flex gap-3">
-                <Button 
-                  className="neon-button text-lg flex items-center gap-2 flex-1"
-                  onClick={handleOpenContact} 
-                >
-                  Fale Conosco
-                  <ChevronRight className="ml-1 h-5 w-5" />
-                </Button>
-                <Button 
-                  className="neon-button text-lg flex items-center gap-2 flex-1"
-                  onClick={() => setIsAboutModalOpen(true)}
-                >
-                  Saiba Mais
-                </Button>
-              </div>
-              <Button 
-                className="neon-button text-lg flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                onClick={handleOpenCustomForm}
-              >
-                <Beaker className="h-5 w-5" />
-                Formulação Customizada
-              </Button>
-              <Button 
-                className="neon-button text-lg flex items-center gap-2 bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600"
-                onClick={() => setIsQualityModalOpen(true)}
-              >
-                <Sparkles className="h-5 w-5" />
-                Alta Qualidade
-              </Button>
-            </div>
-          </motion.div>
+            Resinas UV SLA de
+            <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Alta Performance
+            </span>
+          </motion.h2>
 
+          {/* Novo Robô */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative flex flex-col justify-center items-center gap-4"
+            className="relative mb-16"
             onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}
             style={{ cursor: 'pointer' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl opacity-30"></div>
             <img 
-              src="/images/ai-robot.jpg" 
+              src="/images/ai-robot-new.jpg" 
               alt="IA Quanton3D" 
-              className="relative w-64 h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50 hover:scale-105 transition-transform duration-300"
+              className="relative w-72 h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50 hover:scale-105 transition-transform duration-300"
             />
-            <div className="relative bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse">
-              <p className="text-center font-bold text-lg">
-                Olá! Sou a IA da Quanton3D.<br/>
-                Estou aqui para te ajudar! 🤖
+            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse whitespace-nowrap">
+              <p className="text-center font-bold text-base">
+                Olá! Sou a IA da Quanton3D. Estou aqui para te ajudar! 🤖
               </p>
+            </div>
+          </motion.div>
+
+          {/* Botões Unificados (Hero + Suporte Técnico) */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="w-full max-w-6xl"
+          >
+            <div className="flex flex-wrap justify-center gap-4">
+              {/* Botões do Hero */}
+              <Button 
+                className="neon-button text-base px-6 py-3"
+                onClick={handleOpenContact} 
+              >
+                Fale Conosco
+              </Button>
+              <Button 
+                className="neon-button text-base px-6 py-3"
+                onClick={() => setIsAboutModalOpen(true)}
+              >
+                Saiba Mais
+              </Button>
+              <Button 
+                className="neon-button text-base px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                onClick={handleOpenCustomForm}
+              >
+                <Beaker className="h-5 w-5 mr-2" />
+                Formulação Customizada
+              </Button>
+              <Button 
+                className="neon-button text-base px-6 py-3 bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600"
+                onClick={() => setIsQualityModalOpen(true)}
+              >
+                <Sparkles className="h-5 w-5 mr-2" />
+                Alta Qualidade
+              </Button>
+              
+              {/* Botões de Suporte Técnico (integrados aqui) */}
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-nivelamento.html', '_blank')}>Nivelamento de Plataforma</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-configuracao-fatiadores.html', '_blank')}>Configuração de Fatiadores</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-diagnostico-problemas.html', '_blank')}>Diagnóstico de Problemas</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Atendimento Prioritário</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-calibracao-quanton3d.html', '_blank')}>Calibração de Resina</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-posicionamento-suportes.html', '_blank')}>Posicionamento de Suportes</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-manutencao-impressora.html', '_blank')}>Manutenção de Máquina</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-otimizacao-parametros.html', '_blank')}>Otimização de Parâmetros</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.location.href='#parceiros'}>Parceiros</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Chamadas de Vídeo</Button>
             </div>
           </motion.div>
         </div>
@@ -171,8 +186,8 @@ function App() {
       {/* Resin Cards Section (TAREFA 1) - REMOVIDO: Duplicidade com modal Alta Qualidade */}
       {/* <ResinCards /> */}
 
-      {/* Technical Tabs Section (TAREFA 2) */}
-      <TechnicalTabs /> 
+      {/* Technical Tabs Section (TAREFA 2) - REMOVIDO: Botões unificados na seção hero */}
+      {/* <TechnicalTabs /> */} 
 
       {/* Galeria de Fotos - Movida para cima */}
       <section className="container mx-auto px-4 py-12">
