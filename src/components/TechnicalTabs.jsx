@@ -104,7 +104,7 @@ export default function TechnicalTabs() {
 
     return (
         <section id="suporte-tecnico" className="container mx-auto px-4 py-20">
-            <h2 className="text-3xl font-bold text-center mb-10 text-black">Suporte Técnico Especializado</h2>
+            <h2 className="text-3xl font-bold text-center mb-10 text-white drop-shadow-lg">Suporte Técnico Especializado</h2>
             
             {/* Abas/Botões - Estilo Neon Cyberpunk */}
             <div className="flex flex-wrap justify-center gap-4 mb-8">

@@ -148,14 +148,22 @@ function App() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative flex justify-center items-center"
+            className="relative flex flex-col justify-center items-center gap-4"
+            onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}
+            style={{ cursor: 'pointer' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl opacity-30"></div>
             <img 
               src="/images/ai-robot.jpg" 
               alt="IA Quanton3D" 
-              className="relative w-full max-w-md h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50"
+              className="relative w-64 h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50 hover:scale-105 transition-transform duration-300"
             />
+            <div className="relative bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse">
+              <p className="text-center font-bold text-lg">
+                Olá! Sou a IA da Quanton3D.<br/>
+                Estou aqui para te ajudar! 🤖
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -166,13 +174,10 @@ function App() {
       {/* Technical Tabs Section (TAREFA 2) */}
       <TechnicalTabs /> 
 
-      {/* Parameters Selector Section (TAREFA 3) */}
-      <ParametersSelector />
-
-      {/* Galeria de Fotos - Abaixo dos Parametros */}
+      {/* Galeria de Fotos - Movida para cima */}
       <section className="container mx-auto px-4 py-12">
         <div className="flex flex-col items-center gap-4">
-          <h3 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h3 className="text-2xl font-bold text-center text-white drop-shadow-lg">
             Colabore com sua experiência de configurações
           </h3>
           <Button 
@@ -182,11 +187,14 @@ function App() {
             <Camera className="h-7 w-7" />
             Galeria de Fotos
           </Button>
-          <p className="text-base text-black text-center max-w-xl">
+          <p className="text-base text-white drop-shadow-md text-center max-w-xl">
             Veja as impressões de outros clientes e compartilhe sua peça com os parâmetros que você utilizou.
           </p>
         </div>
       </section>
+
+      {/* Parameters Selector Section (TAREFA 3) */}
+      <ParametersSelector />
 
       {/* Documents Section */}
       <DocumentsSection />
