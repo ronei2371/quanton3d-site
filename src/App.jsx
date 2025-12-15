@@ -95,27 +95,14 @@ function App() {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="flex flex-col items-center text-center gap-12">
-          {/* Título */}
-          <motion.h2
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-5xl font-bold leading-tight text-white drop-shadow-lg"
-          >
-            Resinas UV SLA de
-            <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Alta Performance
-            </span>
-          </motion.h2>
-
-          {/* Novo Robô */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="flex items-start gap-8">
+          {/* Novo Robô - POSICIONADO À ESQUERDA */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative mb-16"
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="relative flex-shrink-0 ml-8"
             onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}
             style={{ cursor: 'pointer' }}
           >
@@ -123,22 +110,29 @@ function App() {
             <img 
               src="/images/ai-robot-new.jpg" 
               alt="IA Quanton3D" 
-              className="relative w-72 h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50 hover:scale-105 transition-transform duration-300"
+              className="relative w-64 h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50 hover:scale-105 transition-transform duration-300"
             />
-            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse whitespace-nowrap">
-              <p className="text-center font-bold text-base">
-                Olá! Sou a IA da Quanton3D. Estou aqui para te ajudar! 🤖
+            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse whitespace-nowrap text-sm">
+              <p className="text-center font-bold">
+                Clique para falar comigo! 🤖
               </p>
             </div>
           </motion.div>
 
-          {/* Botões Unificados (Hero + Suporte Técnico) */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="w-full max-w-6xl"
-          >
+          {/* Área de conteúdo à direita */}
+          <div className="flex-1"></div>
+        </div>
+      </section>
+
+      {/* Seção de Botões */}
+      <section className="container mx-auto px-4 py-8">
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="w-full max-w-6xl mx-auto"
+        >
             <div className="flex flex-wrap justify-center gap-4">
               {/* Botões do Hero */}
               <Button 
@@ -180,8 +174,7 @@ function App() {
               <Button className="neon-button text-base px-6 py-3" onClick={() => window.location.href='#parceiros'}>Parceiros</Button>
               <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Chamadas de Vídeo</Button>
             </div>
-          </motion.div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Resin Cards Section (TAREFA 1) - REMOVIDO: Duplicidade com modal Alta Qualidade */}
@@ -191,7 +184,7 @@ function App() {
       {/* <TechnicalTabs /> */} 
 
       {/* Galeria de Fotos - Movida para cima */}
-      <section className="container mx-auto px-4 py-12">
+      <section className="container mx-auto px-4 py-6">
         <div className="flex flex-col items-center gap-4">
           <h3 className="text-2xl font-bold text-center text-white drop-shadow-lg">
             Colabore com sua experiência de configurações

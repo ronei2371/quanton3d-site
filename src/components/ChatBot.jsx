@@ -324,8 +324,17 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full"
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full relative"
             >
+              {/* Botão X para fechar */}
+              <button
+                onClick={() => setShowUserForm(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                type="button"
+              >
+                <X size={24} />
+              </button>
+              
               <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
                 👋 Olá! Vamos nos conhecer?
               </h3>

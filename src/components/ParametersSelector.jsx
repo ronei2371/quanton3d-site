@@ -36,7 +36,7 @@ export default function ParametersSelector() {
   };
 
   return (
-    <section id="informacoes-tecnicas" className="container mx-auto px-4 py-20">
+    <section id="informacoes-tecnicas" className="container mx-auto px-4 py-8">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}

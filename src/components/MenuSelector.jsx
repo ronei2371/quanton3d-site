@@ -29,46 +29,7 @@ export function MenuSelector({ onSelect, isChatOpen, isModalOpen, setIsModalOpen
 
   return (
     <>
-      {/* ===== ROBÔ MAIOR + MENSAGEM ("Estou aqui se precisar!") ===== */}
-      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50">
-        
-        {/* A Mensagem */}
-        <AnimatePresence>
-          {showText && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="absolute bottom-5 right-[140px] w-max bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg"
-            >
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Estou aqui se precisar!</p>
-              <div className="absolute right-[-5px] top-1/2 w-3 h-3 bg-white dark:bg-gray-800 transform rotate-45 -translate-y-1/2"></div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* O Robô (MUITO Maior com Animação) */}
-        <motion.button
-          onClick={onOpenChat}
-          className="bg-transparent border-none p-0 rounded-full shadow-lg flex items-center justify-center"
-          aria-label="Abrir chat de dúvidas"
-          style={{ width: '160px', height: '160px' }}
-          animate={{ 
-            y: [0, -10, 0],
-            rotate: [0, 3, -3, 0]
-          }}
-          transition={{ 
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          whileHover={{ scale: 1.15 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <img src="/assets/robot-salute.png" alt="Assistente" className="w-full h-full object-contain drop-shadow-2xl" />
-        </motion.button>
-      </div>
-      {/* ===== FIM DA MELHORIA ===== */}
+      {/* ROBÔ DO CANTO REMOVIDO - Agora só o robô principal na esquerda */}
 
 
       {/* O Modal "SELECIONE UMA OPÇÃO" (Continua igual) */}
