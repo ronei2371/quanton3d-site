@@ -171,7 +171,7 @@ function App() {
               <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-posicionamento-suportes.html', '_blank')}>Posicionamento de Suportes</Button>
               <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-manutencao-impressora.html', '_blank')}>Manutenção de Máquina</Button>
               <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-otimizacao-parametros.html', '_blank')}>Otimização de Parâmetros</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.location.href='#parceiros'}>Parceiros</Button>
+              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/parceiros-quanton3d.html', '_blank')}>Parceiros</Button>
               <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Chamadas de Vídeo</Button>
             </div>
         </motion.div>
