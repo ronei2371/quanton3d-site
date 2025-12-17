@@ -144,7 +144,7 @@ export function AdminPanel({ onClose }) {
     const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
 
   // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
-  const ADMIN_PASSWORD = 'quanton3d2024'
+  const ADMIN_PASSWORD = 'Rmartins1201'
   const TEAM_SECRET = 'suporte_quanton_2025'
   
   // Helpers para verificar nivel de acesso

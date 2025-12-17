@@ -10,7 +10,7 @@ export function AdminPanel({ onClose }) {
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
 
-  const ADMIN_PASSWORD = 'quanton3d2024' // Senha simples - você pode mudar
+  const ADMIN_PASSWORD = 'Rmartins1201' // Senha simples - você pode mudar
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
