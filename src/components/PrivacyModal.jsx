@@ -37,14 +37,20 @@ export function PrivacyModal() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-        style={{ pointerEvents: 'all' }}
+        className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md"
+        style={{ 
+          pointerEvents: 'all',
+          paddingBottom: 'max(8px, env(safe-area-inset-bottom))'
+        }}
       >
         <motion.div
-          initial={{ scale: 0.9, y: 20 }}
+          initial={{ scale: 0.95, y: 20 }}
           animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 20 }}
-          className="w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col"
+          exit={{ scale: 0.95, y: 20 }}
+          className="w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col"
+          style={{
+            maxHeight: 'calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px)'
+          }}
         >
           <Card className="bg-white dark:bg-gray-900 shadow-2xl border-4 border-blue-500">
             {/* Header */}
@@ -61,7 +67,7 @@ export function PrivacyModal() {
             </div>
 
             {/* Content */}
-            <div className="p-4 md:p-6 overflow-y-auto flex-1" style={{ maxHeight: 'calc(85vh - 200px)' }}>
+            <div className="p-3 sm:p-4 md:p-6 overflow-y-auto flex-1" style={{ maxHeight: 'calc(70vh - 120px)', minHeight: '100px' }}>
               <div className="space-y-6">
                 {/* Política de Privacidade */}
                 <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-6">
@@ -151,25 +157,28 @@ export function PrivacyModal() {
               </div>
             </div>
 
-            {/* Footer - Botões */}
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 md:p-6 border-t flex-shrink-0">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
-                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 text-center md:text-left">
+            {/* Footer - Botões - SEMPRE VISÍVEL */}
+            <div 
+              className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 md:p-6 border-t flex-shrink-0"
+              style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+            >
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 md:gap-4">
+                <p className="text-xs text-gray-600 dark:text-gray-400 text-center sm:text-left hidden sm:block">
                   Ao aceitar, você concorda com nossos termos de uso e política de privacidade.
                 </p>
-                <div className="flex gap-2 md:gap-3 w-full md:w-auto">
+                <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                   <Button
                     variant="outline"
                     onClick={handleDecline}
-                    className="flex-1 md:flex-none px-4 md:px-6 text-sm"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 md:px-6 py-2.5 text-sm min-h-[44px]"
                   >
                     Recusar
                   </Button>
                   <Button
                     onClick={handleAccept}
-                    className="flex-1 md:flex-none px-4 md:px-8 text-sm bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="flex-1 sm:flex-none px-4 sm:px-6 md:px-8 py-2.5 text-sm min-h-[44px] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
-                    Aceitar e Continuar
+                    Aceitar
                   </Button>
                 </div>
               </div>

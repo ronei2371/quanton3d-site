@@ -157,6 +157,12 @@ export function AdminPanel({ onClose }) {
     const [conversationDateFilter, setConversationDateFilter] = useState('all') // 'all' | 'today' | 'yesterday' | 'last_week' | 'last_month'
     // Estado para expandir/colapsar seção de clientes (TAREFA 2)
     const [showAllClients, setShowAllClients] = useState(false)
+    // Estado para filtro de data nos clientes cadastrados
+    const [clientsDateFilter, setClientsDateFilter] = useState('all') // 'all' | 'today' | 'this_week' | 'this_month'
+    // Estado para modal de tópicos (drill-down)
+    const [selectedTopic, setSelectedTopic] = useState(null)
+    const [topicConversations, setTopicConversations] = useState([])
+    const [topicLoading, setTopicLoading] = useState(false)
 
   // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
   const ADMIN_PASSWORD = 'Rmartins1201'
@@ -629,6 +635,63 @@ export function AdminPanel({ onClose }) {
         alert('Erro ao atualizar entrada da galeria')
       } finally {
         setSavingGalleryEdit(false)
+      }
+    }
+
+    // Funcao para filtrar clientes por data de cadastro
+    const getFilteredClients = () => {
+      if (!metrics?.registrations?.users) return []
+      const users = metrics.registrations.users
+      if (clientsDateFilter === 'all') return users
+      
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const thisWeekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000))
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      
+      return users.filter(user => {
+        const regDate = new Date(user.registeredAt)
+        switch (clientsDateFilter) {
+          case 'today':
+            return regDate >= today
+          case 'this_week':
+            return regDate >= thisWeekStart
+          case 'this_month':
+            return regDate >= thisMonthStart
+          default:
+            return true
+        }
+      })
+    }
+
+    // Funcao para carregar conversas de um topico especifico
+    const loadTopicConversations = async (topic) => {
+      setSelectedTopic(topic)
+      setTopicLoading(true)
+      setTopicConversations([])
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/topic-details?topic=${encodeURIComponent(topic)}&auth=quanton3d_admin_secret`)
+        const data = await response.json()
+        if (data.success) {
+          setTopicConversations(data.conversations || [])
+        } else {
+          // Fallback: filtrar conversas locais se o endpoint nao existir
+          const filtered = metrics?.conversations?.recent?.filter(conv => 
+            conv.message?.toLowerCase().includes(topic.toLowerCase()) ||
+            conv.reply?.toLowerCase().includes(topic.toLowerCase())
+          ) || []
+          setTopicConversations(filtered)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar conversas do topico:', error)
+        // Fallback: filtrar conversas locais
+        const filtered = metrics?.conversations?.recent?.filter(conv => 
+          conv.message?.toLowerCase().includes(topic.toLowerCase()) ||
+          conv.reply?.toLowerCase().includes(topic.toLowerCase())
+        ) || []
+        setTopicConversations(filtered)
+      } finally {
+        setTopicLoading(false)
       }
     }
 
@@ -1124,50 +1187,76 @@ export function AdminPanel({ onClose }) {
                             )}
                           </Card>
 
-                          {/* Topicos Mais Acessados */}
+                          {/* Topicos Mais Acessados - CLICÁVEL */}
                           <Card className="p-6">
                             <h3 className="text-xl font-bold mb-4">🔥 Tópicos Mais Acessados</h3>
+                            <p className="text-xs text-gray-500 mb-3">Clique em um tópico para ver as conversas relacionadas</p>
                             {!metrics.topTopics || metrics.topTopics.length === 0 ? (
                               <p className="text-gray-500 text-center py-8">Nenhum tópico registrado ainda</p>
                             ) : (
                               <div className="flex flex-wrap gap-2">
                                 {metrics.topTopics.map((item, index) => (
-                                  <span 
-                                    key={index} 
-                                    className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                                  <button 
+                                    key={index}
+                                    onClick={() => loadTopicConversations(item.topic)}
+                                    className={`px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer hover:opacity-80 hover:scale-105 transition-all ${
                                       index < 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
                                       index < 6 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200' :
                                       index < 10 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
                                       'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                                     }`}
-                                    title={`${item.count} menções`}
+                                    title={`Clique para ver ${item.count} conversas sobre "${item.topic}"`}
                                   >
                                     {item.topic} ({item.count})
-                                  </span>
+                                  </button>
                                 ))}
                               </div>
                             )}
                           </Card>
                         </div>
 
-                        {/* Clientes Cadastrados - TAREFA 2: Collapsible */}
+                        {/* Clientes Cadastrados - COM FILTRO DE DATA */}
             <Card className="p-6">
-              <div 
-                className="flex items-center justify-between cursor-pointer"
-                onClick={() => setShowAllClients(!showAllClients)}
-              >
-                <h3 className="text-xl font-bold">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
-                <Button variant="ghost" size="sm">
-                  {showAllClients ? '▲ Recolher' : '▼ Expandir Lista'}
-                </Button>
+              <div className="flex items-center justify-between mb-4">
+                <div 
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => setShowAllClients(!showAllClients)}
+                >
+                  <h3 className="text-xl font-bold">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
+                  <Button variant="ghost" size="sm">
+                    {showAllClients ? '▲' : '▼'}
+                  </Button>
+                </div>
+                {showAllClients && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <select
+                      value={clientsDateFilter}
+                      onChange={(e) => setClientsDateFilter(e.target.value)}
+                      className="px-2 py-1 text-sm border rounded-lg bg-white dark:bg-gray-800"
+                    >
+                      <option value="all">Todos</option>
+                      <option value="today">Hoje</option>
+                      <option value="this_week">Esta Semana</option>
+                      <option value="this_month">Este Mês</option>
+                    </select>
+                  </div>
+                )}
               </div>
               {showAllClients && (
                 <>
-                  {metrics.registrations.users.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8 mt-4">Nenhum cadastro realizado ainda</p>
+                  {getFilteredClients().length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">
+                      {clientsDateFilter === 'all' 
+                        ? 'Nenhum cadastro realizado ainda' 
+                        : 'Nenhum cadastro encontrado para este período'}
+                    </p>
                   ) : (
-                    <div className="space-y-3 mt-4 max-h-96 overflow-y-auto">
-                      {metrics.registrations.users.map((user, index) => (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      <p className="text-sm text-gray-500 mb-2">
+                        Mostrando {getFilteredClients().length} de {metrics.registrations.total} clientes
+                      </p>
+                      {getFilteredClients().map((user, index) => (
                         <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
                             <User className="h-5 w-5 text-white" />
@@ -1182,9 +1271,21 @@ export function AdminPanel({ onClose }) {
                               <span className="truncate">{user.email}</span>
                             </div>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            {new Date(user.registeredAt).toLocaleDateString('pt-BR')}
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(user.registeredAt).toLocaleDateString('pt-BR')}
+                            </span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-xs h-6 px-2"
+                              onClick={() => loadClientHistory(user.email || user.phone)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver Histórico
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2285,6 +2386,55 @@ export function AdminPanel({ onClose }) {
                 </div>
               ) : (
                 <p className="text-gray-500 text-center py-8">Erro ao carregar detalhes</p>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Modal de Conversas do Topico - DRILL-DOWN */}
+        {selectedTopic && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">🔥 Conversas sobre: {selectedTopic}</h3>
+                <Button variant="ghost" size="sm" onClick={() => { setSelectedTopic(null); setTopicConversations([]); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {topicLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                  <span className="ml-2">Carregando conversas...</span>
+                </div>
+              ) : topicConversations.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Nenhuma conversa encontrada para este tópico</p>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Encontradas {topicConversations.length} conversas relacionadas a "{selectedTopic}"
+                  </p>
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                    {topicConversations.map((conv, idx) => (
+                      <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-sm">{conv.userName || conv.customerName || 'Cliente'}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(conv.timestamp).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
+                            <p className="text-sm"><strong>Pergunta:</strong> {conv.message || conv.userPrompt}</p>
+                          </div>
+                          <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded">
+                            <p className="text-sm whitespace-pre-wrap"><strong>Resposta:</strong> {conv.reply || conv.botReply}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </Card>
           </div>
