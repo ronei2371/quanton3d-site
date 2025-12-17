@@ -107,11 +107,17 @@ function App() {
             style={{ cursor: 'pointer' }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl opacity-30"></div>
-            <img 
-              src="/images/ai-robot-new.jpg" 
-              alt="IA Quanton3D" 
-              className="relative w-64 h-auto rounded-3xl shadow-2xl border-4 border-blue-400/50 hover:scale-105 transition-transform duration-300"
-            />
+            <div className="relative w-64 rounded-3xl shadow-2xl border-4 border-blue-400/50 overflow-hidden hover:scale-105 transition-transform duration-300">
+              <video
+                src="/images/ai-robot-animated.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+              />
+            </div>
             <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse whitespace-nowrap text-sm">
               <p className="text-center font-bold">
                 Clique para falar comigo! 🤖
