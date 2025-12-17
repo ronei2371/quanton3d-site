@@ -153,6 +153,10 @@ export function AdminPanel({ onClose }) {
     const [newPrinterModel, setNewPrinterModel] = useState('')
     const [editingProfile, setEditingProfile] = useState(null)
     const [profileFormData, setProfileFormData] = useState({})
+    // Estados para filtro de data nas conversas (TAREFA 5)
+    const [conversationDateFilter, setConversationDateFilter] = useState('all') // 'all' | 'today' | 'yesterday' | 'last_week' | 'last_month'
+    // Estado para expandir/colapsar seção de clientes (TAREFA 2)
+    const [showAllClients, setShowAllClients] = useState(false)
 
   // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
   const ADMIN_PASSWORD = 'Rmartins1201'
@@ -626,6 +630,35 @@ export function AdminPanel({ onClose }) {
       } finally {
         setSavingGalleryEdit(false)
       }
+    }
+
+    // Funcao para filtrar conversas por data (TAREFA 5)
+    const getFilteredConversations = () => {
+      if (!metrics?.conversations?.recent) return []
+      const conversations = metrics.conversations.recent
+      if (conversationDateFilter === 'all') return conversations
+      
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+      const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+      
+      return conversations.filter(conv => {
+        const convDate = new Date(conv.timestamp)
+        switch (conversationDateFilter) {
+          case 'today':
+            return convDate >= today
+          case 'yesterday':
+            return convDate >= yesterday && convDate < today
+          case 'last_week':
+            return convDate >= lastWeek
+          case 'last_month':
+            return convDate >= lastMonth
+          default:
+            return true
+        }
+      })
     }
 
     // Funcoes para gerenciamento de parametros de impressao
@@ -1117,45 +1150,80 @@ export function AdminPanel({ onClose }) {
                           </Card>
                         </div>
 
-                        {/* Clientes Cadastrados */}
+                        {/* Clientes Cadastrados - TAREFA 2: Collapsible */}
             <Card className="p-6">
-              <h3 className="text-xl font-bold mb-4">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
-              {metrics.registrations.users.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhum cadastro realizado ainda</p>
-              ) : (
-                <div className="space-y-3">
-                  {metrics.registrations.users.map((user, index) => (
-                    <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{user.name}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {user.phone}
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setShowAllClients(!showAllClients)}
+              >
+                <h3 className="text-xl font-bold">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
+                <Button variant="ghost" size="sm">
+                  {showAllClients ? '▲ Recolher' : '▼ Expandir Lista'}
+                </Button>
+              </div>
+              {showAllClients && (
+                <>
+                  {metrics.registrations.users.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8 mt-4">Nenhum cadastro realizado ainda</p>
+                  ) : (
+                    <div className="space-y-3 mt-4 max-h-96 overflow-y-auto">
+                      {metrics.registrations.users.map((user, index) => (
+                        <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                            <User className="h-5 w-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{user.name}</p>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {user.phone}
+                              </span>
+                              <span className="truncate">{user.email}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {new Date(user.registeredAt).toLocaleDateString('pt-BR')}
                           </span>
-                          <span className="truncate">{user.email}</span>
                         </div>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(user.registeredAt).toLocaleDateString('pt-BR')}
-                      </span>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </Card>
 
-            {/* Conversas Recentes */}
+            {/* Conversas Recentes - TAREFA 5: Date Filter */}
             <Card className="p-6">
-              <h3 className="text-xl font-bold mb-4">💬 Últimas Conversas</h3>
-              {metrics.conversations.recent.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhuma conversa registrada ainda</p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">💬 Últimas Conversas</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Filtrar:</span>
+                  <select
+                    value={conversationDateFilter}
+                    onChange={(e) => setConversationDateFilter(e.target.value)}
+                    className="px-3 py-1.5 text-sm border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">Todas</option>
+                    <option value="today">Hoje</option>
+                    <option value="yesterday">Ontem</option>
+                    <option value="last_week">Última Semana</option>
+                    <option value="last_month">Último Mês</option>
+                  </select>
+                </div>
+              </div>
+              {getFilteredConversations().length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  {conversationDateFilter === 'all' 
+                    ? 'Nenhuma conversa registrada ainda' 
+                    : 'Nenhuma conversa encontrada para este período'}
+                </p>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {metrics.conversations.recent.slice(0, 20).map((conv, index) => (
+                  <p className="text-sm text-gray-500 mb-2">
+                    Mostrando {Math.min(getFilteredConversations().length, 20)} de {getFilteredConversations().length} conversas
+                  </p>
+                  {getFilteredConversations().slice(0, 20).map((conv, index) => (
                     <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-sm">{conv.userName}</span>
