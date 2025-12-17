@@ -1,38 +1,116 @@
-// Arquivo: quanton3d-site/src/components/ParametersSelector.jsx
-// Este é o componente ATUALIZADO que faz os dropdowns funcionarem.
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
-// ===== MUDANÇA CRÍTICA: Corrigindo o caminho de importação =====
-// Isso deve forçar o Netlify a ler o arquivo de dados
-import { resinList, printerList, parameters } from '../data/parametersData.js'; 
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
 
 export default function ParametersSelector() {
+  const [resins, setResins] = useState([]);
+  const [printers, setPrinters] = useState([]);
   const [selectedResin, setSelectedResin] = useState('');
   const [selectedPrinter, setSelectedPrinter] = useState('');
   const [result, setResult] = useState(null);
-  
-  const handleSelectResin = (e) => {
-    setSelectedResin(e.target.value);
-    setSelectedPrinter('');
-    setResult(null); 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchResins();
+  }, []);
+
+  useEffect(() => {
+    if (selectedResin) {
+      fetchPrinters(selectedResin);
+    } else {
+      setPrinters([]);
+    }
+  }, [selectedResin]);
+
+  const fetchResins = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/params/resins`);
+      const data = await response.json();
+      if (data.success) {
+        setResins(data.resins);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar resinas:', err);
+      setError('Erro ao carregar resinas');
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const handleSelectPrinter = (e) => {
-    const printer = e.target.value;
-    setSelectedPrinter(printer);
-    
-    const key = `${selectedResin}_${printer}`;
-    const foundParams = parameters[key];
-    
-    if (foundParams) {
-      setResult(foundParams);
-    } else if (selectedResin && printer) {
+
+  const fetchPrinters = async (resinId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/params/printers?resinId=${resinId}`);
+      const data = await response.json();
+      if (data.success) {
+        setPrinters(data.printers);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar impressoras:', err);
+      setError('Erro ao carregar impressoras');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProfile = async (resinId, printerId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/params/profiles?resinId=${resinId}&printerId=${printerId}`);
+      const data = await response.json();
+      if (data.success && data.profiles.length > 0) {
+        const profile = data.profiles[0];
+        if (profile.status === 'coming_soon') {
+          setResult('coming_soon');
+        } else {
+          setResult(profile);
+        }
+      } else {
+        setResult('not_found');
+      }
+    } catch (err) {
+      console.error('Erro ao carregar perfil:', err);
       setResult('not_found');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectResin = (e) => {
+    const resinId = e.target.value;
+    setSelectedResin(resinId);
+    setSelectedPrinter('');
+    setResult(null);
+  };
+
+  const handleSelectPrinter = (e) => {
+    const printerId = e.target.value;
+    setSelectedPrinter(printerId);
+
+    if (selectedResin && printerId) {
+      fetchProfile(selectedResin, printerId);
     } else {
       setResult(null);
     }
+  };
+
+  const getResinName = () => {
+    const resin = resins.find(r => r.id === selectedResin);
+    return resin ? resin.name : selectedResin;
+  };
+
+  const getPrinterName = () => {
+    const printer = printers.find(p => p.id === selectedPrinter);
+    return printer ? `${printer.brand} ${printer.model}` : selectedPrinter;
+  };
+
+  const formatValue = (value, unit = '') => {
+    if (value === null || value === undefined) return '-';
+    return `${value}${unit}`;
   };
 
   return (
@@ -61,10 +139,11 @@ export default function ParametersSelector() {
             onChange={handleSelectResin}
             value={selectedResin}
             className="w-full p-3 border-2 border-blue-400/30 rounded-lg bg-white/90 dark:bg-gray-800/90 dark:text-white font-semibold focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 transition-all"
+            disabled={loading && resins.length === 0}
           >
-            <option value="">Escolha uma resina...</option>
-            {resinList.map(resin => (
-              <option key={resin} value={resin}>{resin}</option>
+            <option value="">{loading && resins.length === 0 ? 'Carregando...' : 'Escolha uma resina...'}</option>
+            {resins.map(resin => (
+              <option key={resin.id} value={resin.id}>{resin.name}</option>
             ))}
           </select>
         </Card>
@@ -79,17 +158,18 @@ export default function ParametersSelector() {
             onChange={handleSelectPrinter}
             value={selectedPrinter}
             className="w-full p-3 border-2 border-purple-400/30 rounded-lg bg-white/90 dark:bg-gray-800/90 dark:text-white font-semibold focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all"
-            disabled={!selectedResin} // Desabilitado até a resina ser escolhida
+            disabled={!selectedResin || loading}
           >
-            <option value="">{selectedResin ? 'Escolha uma impressora...' : 'Selecione uma resina primeiro'}</option>
-            {printerList.map(printer => (
-              <option key={printer} value={printer}>{printer}</option>
+            <option value="">
+              {!selectedResin ? 'Selecione uma resina primeiro' : loading ? 'Carregando...' : 'Escolha uma impressora...'}
+            </option>
+            {printers.map(printer => (
+              <option key={printer.id} value={printer.id}>{printer.brand} {printer.model}</option>
             ))}
           </select>
         </Card>
       </div>
       
-      {/* --- Resultados (Continua o mesmo código) --- */}
       {result && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -104,40 +184,68 @@ export default function ParametersSelector() {
                 Por favor, use os parâmetros gerais ou entre em contato com nosso suporte técnico.
               </p>
             </Card>
+          ) : result === 'coming_soon' ? (
+            <Card className="p-8 text-center max-w-4xl mx-auto bg-yellow-500/10 backdrop-blur-md border-2 border-yellow-400/50 shadow-xl">
+              <h3 className="text-xl font-bold text-yellow-300">Em Breve</h3>
+              <p className="text-yellow-200 mt-2">
+                Os parâmetros para esta combinação estão sendo calibrados.
+                Em breve teremos as recomendações disponíveis.
+              </p>
+            </Card>
           ) : (
             <Card className="p-8 max-w-4xl mx-auto bg-white/10 backdrop-blur-md border-2 border-cyan-400/50 shadow-2xl">
               <h3 className="text-2xl font-bold mb-6 text-center text-white drop-shadow-lg">
-                Parâmetros para: {selectedResin} + {selectedPrinter}
+                Parâmetros para: {getResinName()} + {getPrinterName()}
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
                   <p className="text-sm text-cyan-300">Altura de Camada</p>
-                  <p className="text-xl font-bold text-white">{result.camada}</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.layerHeightMm, 'mm')}</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
-                  <p className="text-sm text-cyan-300">Exposição</p>
-                  <p className="text-xl font-bold text-white">{result.exposicao}</p>
+                  <p className="text-sm text-cyan-300">Tempo de Exposição</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.exposureTimeS, 's')}</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
                   <p className="text-sm text-cyan-300">Exposição Base</p>
-                  <p className="text-xl font-bold text-white">{result.exposicaoBase}</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.baseExposureTimeS, 's')}</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
                   <p className="text-sm text-cyan-300">Camadas de Base</p>
-                  <p className="text-xl font-bold text-white">{result.camadasBase}</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.baseLayers)}</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
-                  <p className="text-sm text-cyan-300">Lift Distance</p>
-                  <p className="text-xl font-bold text-white">{result.liftDistance}</p>
+                  <p className="text-sm text-cyan-300">Retardo UV</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.uvOffDelayS, 's')}</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
-                  <p className="text-sm text-cyan-300">Lift Speed</p>
-                  <p className="text-xl font-bold text-white">{result.liftSpeed}</p>
+                  <p className="text-sm text-cyan-300">Descanso Antes Elevação</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.restBeforeLiftS, 's')}</p>
                 </div>
+                <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
+                  <p className="text-sm text-cyan-300">Descanso Após Elevação</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.restAfterLiftS, 's')}</p>
+                </div>
+                <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
+                  <p className="text-sm text-cyan-300">Descanso Após Retração</p>
+                  <p className="text-xl font-bold text-white">{formatValue(result.params?.restAfterRetractS, 's')}</p>
+                </div>
+                {result.params?.uvPower && (
+                  <div className="text-center p-4 bg-white/5 rounded-lg border border-cyan-400/30">
+                    <p className="text-sm text-cyan-300">Potência UV</p>
+                    <p className="text-xl font-bold text-white">{formatValue(result.params?.uvPower)}</p>
+                  </div>
+                )}
               </div>
             </Card>
           )}
         </motion.div>
+      )}
+
+      {error && (
+        <div className="mt-4 text-center text-red-400">
+          {error}
+        </div>
       )}
     </section>
   );

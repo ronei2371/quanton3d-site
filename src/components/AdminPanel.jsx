@@ -142,6 +142,17 @@ export function AdminPanel({ onClose }) {
     const [editingGalleryEntry, setEditingGalleryEntry] = useState(null)
     const [editGalleryData, setEditGalleryData] = useState({})
     const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
+    // Estados para gerenciamento de parametros de impressao
+    const [paramsResins, setParamsResins] = useState([])
+    const [paramsPrinters, setParamsPrinters] = useState([])
+    const [paramsProfiles, setParamsProfiles] = useState([])
+    const [paramsLoading, setParamsLoading] = useState(false)
+    const [paramsStats, setParamsStats] = useState(null)
+    const [newResinName, setNewResinName] = useState('')
+    const [newPrinterBrand, setNewPrinterBrand] = useState('')
+    const [newPrinterModel, setNewPrinterModel] = useState('')
+    const [editingProfile, setEditingProfile] = useState(null)
+    const [profileFormData, setProfileFormData] = useState({})
 
   // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
   const ADMIN_PASSWORD = 'Rmartins1201'
@@ -617,6 +628,212 @@ export function AdminPanel({ onClose }) {
       }
     }
 
+    // Funcoes para gerenciamento de parametros de impressao
+    const loadParamsData = async () => {
+      setParamsLoading(true)
+      try {
+        const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
+          fetch('https://quanton3d-bot-v2.onrender.com/params/resins'),
+          fetch('https://quanton3d-bot-v2.onrender.com/params/printers'),
+          fetch('https://quanton3d-bot-v2.onrender.com/params/profiles'),
+          fetch('https://quanton3d-bot-v2.onrender.com/params/stats')
+        ])
+        const [resinsData, printersData, profilesData, statsData] = await Promise.all([
+          resinsRes.json(),
+          printersRes.json(),
+          profilesRes.json(),
+          statsRes.json()
+        ])
+        if (resinsData.success) setParamsResins(resinsData.resins || [])
+        if (printersData.success) setParamsPrinters(printersData.printers || [])
+        if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
+        if (statsData.success) setParamsStats(statsData.stats || null)
+      } catch (error) {
+        console.error('Erro ao carregar parametros:', error)
+      } finally {
+        setParamsLoading(false)
+      }
+    }
+
+    const addResin = async () => {
+      if (!newResinName.trim()) {
+        alert('Digite o nome da resina')
+        return
+      }
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/params/resins?auth=quanton3d_admin_secret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newResinName.trim() })
+        })
+        const data = await response.json()
+        if (data.success) {
+          setNewResinName('')
+          loadParamsData()
+          alert('Resina adicionada com sucesso!')
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao adicionar resina:', error)
+        alert('Erro ao adicionar resina')
+      }
+    }
+
+    const deleteResin = async (resinId) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/params/resins/${resinId}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadParamsData()
+          alert('Resina deletada com sucesso!')
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar resina:', error)
+        alert('Erro ao deletar resina')
+      }
+    }
+
+    const addPrinter = async () => {
+      if (!newPrinterBrand.trim() || !newPrinterModel.trim()) {
+        alert('Digite a marca e o modelo da impressora')
+        return
+      }
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/params/printers?auth=quanton3d_admin_secret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
+        })
+        const data = await response.json()
+        if (data.success) {
+          setNewPrinterBrand('')
+          setNewPrinterModel('')
+          loadParamsData()
+          alert('Impressora adicionada com sucesso!')
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao adicionar impressora:', error)
+        alert('Erro ao adicionar impressora')
+      }
+    }
+
+    const deletePrinter = async (printerId) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/params/printers/${printerId}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadParamsData()
+          alert('Impressora deletada com sucesso!')
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar impressora:', error)
+        alert('Erro ao deletar impressora')
+      }
+    }
+
+    const openEditProfile = (profile) => {
+      setEditingProfile(profile)
+      setProfileFormData({
+        resinId: profile.resinId || '',
+        printerId: profile.printerId || '',
+        status: profile.status || 'active',
+        layerHeightMm: profile.params?.layerHeightMm || '',
+        exposureTimeS: profile.params?.exposureTimeS || '',
+        baseExposureTimeS: profile.params?.baseExposureTimeS || '',
+        baseLayers: profile.params?.baseLayers || '',
+        uvOffDelayS: profile.params?.uvOffDelayS || '',
+        restBeforeLiftS: profile.params?.restBeforeLiftS || '',
+        restAfterLiftS: profile.params?.restAfterLiftS || '',
+        restAfterRetractS: profile.params?.restAfterRetractS || '',
+        uvPower: profile.params?.uvPower || ''
+      })
+    }
+
+    const saveProfile = async () => {
+      if (!profileFormData.resinId || !profileFormData.printerId) {
+        alert('Selecione a resina e a impressora')
+        return
+      }
+      try {
+        const response = await fetch('https://quanton3d-bot-v2.onrender.com/params/profiles?auth=quanton3d_admin_secret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resinId: profileFormData.resinId,
+            printerId: profileFormData.printerId,
+            status: profileFormData.status || 'active',
+            params: {
+              layerHeightMm: profileFormData.layerHeightMm || null,
+              exposureTimeS: profileFormData.exposureTimeS || null,
+              baseExposureTimeS: profileFormData.baseExposureTimeS || null,
+              baseLayers: profileFormData.baseLayers || null,
+              uvOffDelayS: profileFormData.uvOffDelayS || null,
+              restBeforeLiftS: profileFormData.restBeforeLiftS || null,
+              restAfterLiftS: profileFormData.restAfterLiftS || null,
+              restAfterRetractS: profileFormData.restAfterRetractS || null,
+              uvPower: profileFormData.uvPower || null
+            }
+          })
+        })
+        const data = await response.json()
+        if (data.success) {
+          setEditingProfile(null)
+          setProfileFormData({})
+          loadParamsData()
+          alert('Perfil salvo com sucesso!')
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao salvar perfil:', error)
+        alert('Erro ao salvar perfil')
+      }
+    }
+
+    const deleteProfile = async (profileId) => {
+      if (!isAdmin) {
+        alert('Seu nivel de acesso nao permite excluir dados.')
+        return
+      }
+      if (!confirm('Tem certeza que deseja deletar este perfil?')) return
+      try {
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/params/profiles/${profileId}?auth=quanton3d_admin_secret`, {
+          method: 'DELETE'
+        })
+        const data = await response.json()
+        if (data.success) {
+          loadParamsData()
+          alert('Perfil deletado com sucesso!')
+        } else {
+          alert('Erro: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao deletar perfil:', error)
+        alert('Erro ao deletar perfil')
+      }
+    }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
@@ -738,6 +955,14 @@ export function AdminPanel({ onClose }) {
                   >
                     <Handshake className="h-4 w-4 mr-2" />
                     Parceiros
+                  </Button>
+                  <Button 
+                    onClick={() => { setActiveTab('params'); loadParamsData(); }}
+                    variant={activeTab === 'params' ? 'default' : 'outline'}
+                    className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+                  >
+                    <Beaker className="h-4 w-4 mr-2" />
+                    Gerenciar Parametros
                   </Button>
                 </div>
 
@@ -2410,6 +2635,331 @@ export function AdminPanel({ onClose }) {
         {/* Partners Tab */}
         {activeTab === 'partners' && (
           <PartnersManager />
+        )}
+
+        {/* Params Tab - Gerenciar Parametros de Impressao */}
+        {activeTab === 'params' && (
+          <div className="space-y-6">
+            {paramsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <span className="ml-2">Carregando parametros...</span>
+              </div>
+            ) : (
+              <>
+                {/* Stats Cards */}
+                {paramsStats && (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total de Resinas</p>
+                      <p className="text-2xl font-bold text-blue-600">{paramsStats.totalResins || 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total de Impressoras</p>
+                      <p className="text-2xl font-bold text-green-600">{paramsStats.totalPrinters || 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Perfis Ativos</p>
+                      <p className="text-2xl font-bold text-purple-600">{paramsStats.activeProfiles || 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Perfis Em Breve</p>
+                      <p className="text-2xl font-bold text-yellow-600">{paramsStats.comingSoonProfiles || 0}</p>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Resinas Section */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold mb-4">Resinas</h3>
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      placeholder="Nome da nova resina..."
+                      value={newResinName}
+                      onChange={(e) => setNewResinName(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Button onClick={addResin} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {paramsResins.map((resin) => (
+                      <div key={resin.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                        <span className="text-sm truncate">{resin.name}</span>
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => deleteResin(resin.id)}
+                            className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Impressoras Section */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold mb-4">Impressoras</h3>
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      placeholder="Marca..."
+                      value={newPrinterBrand}
+                      onChange={(e) => setNewPrinterBrand(e.target.value)}
+                      className="max-w-[150px]"
+                    />
+                    <Input
+                      placeholder="Modelo..."
+                      value={newPrinterModel}
+                      onChange={(e) => setNewPrinterModel(e.target.value)}
+                      className="max-w-[200px]"
+                    />
+                    <Button onClick={addPrinter} className="bg-green-600 hover:bg-green-700">
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {paramsPrinters.map((printer) => (
+                      <div key={printer.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                        <span className="text-sm truncate">{printer.brand} {printer.model}</span>
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => deletePrinter(printer.id)}
+                            className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Perfis Section */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold mb-4">Perfis de Impressao ({paramsProfiles.length})</h3>
+                  <div className="mb-4">
+                    <Button 
+                      onClick={() => {
+                        setEditingProfile({})
+                        setProfileFormData({ status: 'active' })
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Novo Perfil
+                    </Button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Resina</th>
+                          <th className="text-left p-2">Impressora</th>
+                          <th className="text-left p-2">Status</th>
+                          <th className="text-left p-2">Camada</th>
+                          <th className="text-left p-2">Exposicao</th>
+                          <th className="text-left p-2">Acoes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paramsProfiles.slice(0, 50).map((profile) => (
+                          <tr key={profile.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="p-2">{profile.resinName}</td>
+                            <td className="p-2">{profile.brand} {profile.model}</td>
+                            <td className="p-2">
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                profile.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {profile.status === 'active' ? 'Ativo' : 'Em Breve'}
+                              </span>
+                            </td>
+                            <td className="p-2">{profile.params?.layerHeightMm || '-'}</td>
+                            <td className="p-2">{profile.params?.exposureTimeS || '-'}</td>
+                            <td className="p-2">
+                              <div className="flex gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => openEditProfile(profile)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                </Button>
+                                {isAdmin && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => deleteProfile(profile.id)}
+                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {paramsProfiles.length > 50 && (
+                      <p className="text-sm text-gray-500 mt-2">Mostrando 50 de {paramsProfiles.length} perfis</p>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Modal de Edicao de Perfil */}
+                {editingProfile && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                      <h3 className="text-xl font-bold mb-4">
+                        {editingProfile.id ? 'Editar Perfil' : 'Novo Perfil'}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Resina</label>
+                          <select
+                            value={profileFormData.resinId || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, resinId: e.target.value})}
+                            className="w-full p-2 border rounded mt-1"
+                          >
+                            <option value="">Selecione...</option>
+                            {paramsResins.map((r) => (
+                              <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Impressora</label>
+                          <select
+                            value={profileFormData.printerId || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, printerId: e.target.value})}
+                            className="w-full p-2 border rounded mt-1"
+                          >
+                            <option value="">Selecione...</option>
+                            {paramsPrinters.map((p) => (
+                              <option key={p.id} value={p.id}>{p.brand} {p.model}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Status</label>
+                          <select
+                            value={profileFormData.status || 'active'}
+                            onChange={(e) => setProfileFormData({...profileFormData, status: e.target.value})}
+                            className="w-full p-2 border rounded mt-1"
+                          >
+                            <option value="active">Ativo</option>
+                            <option value="coming_soon">Em Breve</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Altura de Camada (mm)</label>
+                          <Input
+                            value={profileFormData.layerHeightMm || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, layerHeightMm: e.target.value})}
+                            placeholder="0.05"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Tempo de Exposicao (s)</label>
+                          <Input
+                            value={profileFormData.exposureTimeS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, exposureTimeS: e.target.value})}
+                            placeholder="2.5"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Exposicao Base (s)</label>
+                          <Input
+                            value={profileFormData.baseExposureTimeS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, baseExposureTimeS: e.target.value})}
+                            placeholder="30"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Camadas de Base</label>
+                          <Input
+                            value={profileFormData.baseLayers || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, baseLayers: e.target.value})}
+                            placeholder="5"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Retardo UV (s)</label>
+                          <Input
+                            value={profileFormData.uvOffDelayS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, uvOffDelayS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Descanso Antes Elevacao (s)</label>
+                          <Input
+                            value={profileFormData.restBeforeLiftS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, restBeforeLiftS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Descanso Apos Elevacao (s)</label>
+                          <Input
+                            value={profileFormData.restAfterLiftS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, restAfterLiftS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Descanso Apos Retracao (s)</label>
+                          <Input
+                            value={profileFormData.restAfterRetractS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, restAfterRetractS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Potencia UV</label>
+                          <Input
+                            value={profileFormData.uvPower || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, uvPower: e.target.value})}
+                            placeholder="100%"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-6">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setEditingProfile(null)
+                            setProfileFormData({})
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button onClick={saveProfile} className="bg-blue-600 hover:bg-blue-700">
+                          Salvar Perfil
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
