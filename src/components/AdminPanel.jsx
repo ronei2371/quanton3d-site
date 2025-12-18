@@ -164,6 +164,20 @@ export function AdminPanel({ onClose }) {
     const [topicConversations, setTopicConversations] = useState([])
     const [topicLoading, setTopicLoading] = useState(false)
 
+  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+  const ADMIN_AUTH_TOKEN = 'quanton3d_admin_secret'
+
+  const buildAdminUrl = (path, params = {}) => {
+    const url = new URL(path, API_BASE_URL)
+    url.searchParams.set('auth', ADMIN_AUTH_TOKEN)
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value)
+      }
+    })
+    return url.toString()
+  }
+
   // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
   const ADMIN_PASSWORD = 'Rmartins1201'
   const TEAM_SECRET = 'suporte_quanton_2025'
@@ -196,7 +210,7 @@ export function AdminPanel({ onClose }) {
   const loadMetrics = async () => {
     setLoading(true)
     try {
-      const response = await fetch('https://quanton3d-bot-v2.onrender.com/metrics?auth=quanton3d_admin_secret')
+      const response = await fetch(buildAdminUrl('/metrics'))
       const data = await response.json()
       setMetrics(data.metrics)
     } catch (error) {
@@ -208,7 +222,7 @@ export function AdminPanel({ onClose }) {
 
   const loadSuggestions = async () => {
     try {
-      const response = await fetch('https://quanton3d-bot-v2.onrender.com/suggestions?auth=quanton3d_admin_secret')
+      const response = await fetch(buildAdminUrl('/suggestions'))
       const data = await response.json()
       // Filtrar apenas sugestões SEM imagem (texto puro)
       // Sugestões COM imagem devem ir para Treinamento Visual
@@ -221,7 +235,7 @@ export function AdminPanel({ onClose }) {
 
   const loadCustomRequests = async () => {
     try {
-      const response = await fetch('https://quanton3d-bot-v2.onrender.com/custom-requests?auth=quanton3d_admin_secret')
+      const response = await fetch(buildAdminUrl('/custom-requests'))
       const data = await response.json()
       setCustomRequests(data.requests || [])
     } catch (error) {
@@ -231,7 +245,7 @@ export function AdminPanel({ onClose }) {
 
         const loadContactMessages = async () => {
           try {
-            const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/contact?auth=quanton3d_admin_secret')
+            const response = await fetch(buildAdminUrl('/api/contact'))
             const data = await response.json()
             setContactMessages(data.messages || [])
           } catch (error) {
@@ -241,7 +255,7 @@ export function AdminPanel({ onClose }) {
 
         const toggleMessageResolved = async (messageId, currentResolved) => {
           try {
-            const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/contact/${messageId}?auth=quanton3d_admin_secret`, {
+            const response = await fetch(buildAdminUrl(`/api/contact/${messageId}`), {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ resolved: !currentResolved })
@@ -261,7 +275,7 @@ export function AdminPanel({ onClose }) {
         const loadGalleryEntries = async () => {
       setGalleryLoading(true)
       try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/gallery/all?auth=quanton3d_admin_secret')
+        const response = await fetch(buildAdminUrl('/api/gallery/all'))
         const data = await response.json()
         setGalleryEntries(data.entries || [])
       } catch (error) {
@@ -275,7 +289,7 @@ export function AdminPanel({ onClose }) {
     const loadKnowledgeDocuments = async () => {
       setKnowledgeLoading(true)
       try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/knowledge?auth=quanton3d_admin_secret')
+        const response = await fetch(buildAdminUrl('/api/knowledge'))
         const data = await response.json()
         setKnowledgeDocuments(data.documents || [])
       } catch (error) {
@@ -292,7 +306,7 @@ export function AdminPanel({ onClose }) {
       }
       if (!confirm('Tem certeza que deseja deletar este documento? Esta acao nao pode ser desfeita.')) return
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/knowledge/${id}?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/api/knowledge/${id}`), {
           method: 'DELETE'
         })
         const data = await response.json()
@@ -321,7 +335,7 @@ export function AdminPanel({ onClose }) {
         return
       }
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/knowledge/${editingKnowledge._id}?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/api/knowledge/${editingKnowledge._id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: editKnowledgeTitle, content: editKnowledgeContent })
@@ -352,43 +366,43 @@ export function AdminPanel({ onClose }) {
     }
 
     // Visual RAG functions
-    const loadVisualKnowledge = async () => {
-      setVisualLoading(true)
-      try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge?auth=quanton3d_admin_secret')
-        const data = await response.json()
-        setVisualKnowledge(data.documents || [])
-      } catch (error) {
-        console.error('Erro ao carregar conhecimento visual:', error)
-      } finally {
+      const loadVisualKnowledge = async () => {
+        setVisualLoading(true)
+        try {
+          const response = await fetch(buildAdminUrl('/api/visual-knowledge'))
+          const data = await response.json()
+          setVisualKnowledge(data.documents || [])
+        } catch (error) {
+          console.error('Erro ao carregar conhecimento visual:', error)
+        } finally {
         setVisualLoading(false)
       }
     }
 
-    const loadPendingVisualPhotos = async () => {
-      setPendingVisualLoading(true)
-      try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/pending?auth=quanton3d_admin_secret')
-        const data = await response.json()
-        setPendingVisualPhotos(data.documents || [])
-      } catch (error) {
-        console.error('Erro ao carregar fotos pendentes:', error)
-      } finally {
+      const loadPendingVisualPhotos = async () => {
+        setPendingVisualLoading(true)
+        try {
+          const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'))
+          const data = await response.json()
+          setPendingVisualPhotos(data.documents || [])
+        } catch (error) {
+          console.error('Erro ao carregar fotos pendentes:', error)
+        } finally {
         setPendingVisualLoading(false)
       }
     }
 
     const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
-      if (!defectType || !diagnosis || !solution) {
-        alert('Preencha todos os campos antes de aprovar')
-        return false
-      }
-      try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}/approve?auth=quanton3d_admin_secret`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ defectType, diagnosis, solution })
-        })
+        if (!defectType || !diagnosis || !solution) {
+          alert('Preencha todos os campos antes de aprovar')
+          return false
+        }
+        try {
+          const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ defectType, diagnosis, solution })
+          })
         const data = await response.json()
         if (data.success) {
           alert('Conhecimento visual aprovado com sucesso!')
@@ -407,16 +421,16 @@ export function AdminPanel({ onClose }) {
     }
 
     const deletePendingVisual = async (id) => {
-      if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite excluir dados.')
-        return
-      }
-      if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
-      try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
-          method: 'DELETE'
-        })
-        const data = await response.json()
+        if (!isAdmin) {
+          alert('Seu nivel de acesso nao permite excluir dados.')
+          return
+        }
+        if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
+        try {
+          const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+            method: 'DELETE'
+          })
+          const data = await response.json()
         if (data.success) {
           loadPendingVisualPhotos()
         } else {
@@ -434,18 +448,18 @@ export function AdminPanel({ onClose }) {
         return
       }
 
-      setAddingVisual(true)
-      try {
-        const formData = new FormData()
-        formData.append('image', visualImage)
-        formData.append('defectType', visualDefectType)
-        formData.append('diagnosis', visualDiagnosis)
-        formData.append('solution', visualSolution)
+        setAddingVisual(true)
+        try {
+          const formData = new FormData()
+          formData.append('image', visualImage)
+          formData.append('defectType', visualDefectType)
+          formData.append('diagnosis', visualDiagnosis)
+          formData.append('solution', visualSolution)
 
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/api/visual-knowledge?auth=quanton3d_admin_secret', {
-          method: 'POST',
-          body: formData
-        })
+          const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+            method: 'POST',
+            body: formData
+          })
         const data = await response.json()
         
         if (data.success) {
@@ -468,17 +482,17 @@ export function AdminPanel({ onClose }) {
     }
 
     const deleteVisualKnowledgeEntry= async (id) => {
-      if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite excluir dados.')
-        return
-      }
-      if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
-      
-      try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/visual-knowledge/${id}?auth=quanton3d_admin_secret`, {
-          method: 'DELETE'
-        })
-        const data = await response.json()
+        if (!isAdmin) {
+          alert('Seu nivel de acesso nao permite excluir dados.')
+          return
+        }
+        if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
+
+        try {
+          const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+            method: 'DELETE'
+          })
+          const data = await response.json()
         
         if (data.success) {
           loadVisualKnowledge()
@@ -492,22 +506,22 @@ export function AdminPanel({ onClose }) {
     }
 
     // CORRECAO 3: Carregar detalhes de clientes por resina
-    const loadResinDetails = async (resin) => {
-      const resinName = resin?.trim()
-      if (!resinName) {
-        alert('Selecione uma resina válida para ver os detalhes')
-        return
-      }
-      setSelectedResin(resinName)
-      setResinDetailsLoading(true)
-      setResinDetails(null)
-      try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/resin-details?resin=${encodeURIComponent(resinName)}&auth=quanton3d_admin_secret`)
-        const data = await response.json()
-        if (data.success) {
-          setResinDetails(data)
-        } else {
-          alert('Erro ao carregar detalhes: ' + data.error)
+      const loadResinDetails = async (resin) => {
+        const resinName = resin?.trim()
+        if (!resinName) {
+          alert('Selecione uma resina válida para ver os detalhes')
+          return
+        }
+        setSelectedResin(resinName)
+        setResinDetailsLoading(true)
+        setResinDetails(null)
+        try {
+          const response = await fetch(buildAdminUrl('/metrics/resin-details', { resin: resinName }))
+          const data = await response.json()
+          if (data.success) {
+            setResinDetails(data)
+          } else {
+            alert('Erro ao carregar detalhes: ' + data.error)
           setSelectedResin(null)
         }
       } catch (error) {
@@ -525,7 +539,7 @@ export function AdminPanel({ onClose }) {
       setClientHistoryLoading(true)
       setClientHistory(null)
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/client-history?clientKey=${encodeURIComponent(clientKey)}&auth=quanton3d_admin_secret`)
+        const response = await fetch(buildAdminUrl('/metrics/client-history', { clientKey }))
         const data = await response.json()
         if (data.success) {
           setClientHistory(data)
@@ -544,7 +558,7 @@ export function AdminPanel({ onClose }) {
 
     const approveGalleryEntry = async (id) => {
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/approve?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/api/gallery/${id}/approve`), {
           method: 'PUT'
         })
         const data = await response.json()
@@ -566,7 +580,7 @@ export function AdminPanel({ onClose }) {
       }
       if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${id}/reject?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/api/gallery/${id}/reject`), {
           method: 'PUT'
         })
         const data = await response.json()
@@ -621,7 +635,7 @@ export function AdminPanel({ onClose }) {
       if (!editingGalleryEntry) return
       setSavingGalleryEdit(true)
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/api/gallery/${editingGalleryEntry._id}?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/api/gallery/${editingGalleryEntry._id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(editGalleryData)
@@ -670,17 +684,17 @@ export function AdminPanel({ onClose }) {
     }
 
     // Funcao para carregar conversas de um topico especifico
-    const loadTopicConversations = async (topic) => {
-      setSelectedTopic(topic)
-      setTopicLoading(true)
-      setTopicConversations([])
-      try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/topic-details?topic=${encodeURIComponent(topic)}&auth=quanton3d_admin_secret`)
-        const data = await response.json()
-        if (data.success) {
-          setTopicConversations(data.conversations || [])
-        } else {
-          // Fallback: filtrar conversas locais se o endpoint nao existir
+      const loadTopicConversations = async (topic) => {
+        setSelectedTopic(topic)
+        setTopicLoading(true)
+        setTopicConversations([])
+        try {
+          const response = await fetch(buildAdminUrl('/metrics/topic-details', { topic }))
+          const data = await response.json()
+          if (data.success) {
+            setTopicConversations(data.conversations || [])
+          } else {
+            // Fallback: filtrar conversas locais se o endpoint nao existir
           const filtered = metrics?.conversations?.recent?.filter(conv => 
             conv.message?.toLowerCase().includes(topic.toLowerCase()) ||
             conv.reply?.toLowerCase().includes(topic.toLowerCase())
@@ -733,12 +747,11 @@ export function AdminPanel({ onClose }) {
     const loadParamsData = async () => {
       setParamsLoading(true)
       try {
-        const authQuery = 'auth=quanton3d_admin_secret'
         const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-          fetch(`https://quanton3d-bot-v2.onrender.com/params/resins?${authQuery}`),
-          fetch(`https://quanton3d-bot-v2.onrender.com/params/printers?${authQuery}`),
-          fetch(`https://quanton3d-bot-v2.onrender.com/params/profiles?${authQuery}`),
-          fetch(`https://quanton3d-bot-v2.onrender.com/params/stats?${authQuery}`)
+          fetch(buildAdminUrl('/params/resins')),
+          fetch(buildAdminUrl('/params/printers')),
+          fetch(buildAdminUrl('/params/profiles')),
+          fetch(buildAdminUrl('/params/stats'))
         ])
         const [resinsData, printersData, profilesData, statsData] = await Promise.all([
           resinsRes.json(),
@@ -763,7 +776,7 @@ export function AdminPanel({ onClose }) {
         return
       }
       try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/params/resins?auth=quanton3d_admin_secret', {
+        const response = await fetch(buildAdminUrl('/params/resins'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newResinName.trim() })
@@ -789,7 +802,7 @@ export function AdminPanel({ onClose }) {
       }
       if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/params/resins/${resinId}?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), {
           method: 'DELETE'
         })
         const data = await response.json()
@@ -811,7 +824,7 @@ export function AdminPanel({ onClose }) {
         return
       }
       try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/params/printers?auth=quanton3d_admin_secret', {
+        const response = await fetch(buildAdminUrl('/params/printers'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
@@ -838,7 +851,7 @@ export function AdminPanel({ onClose }) {
       }
       if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/params/printers/${printerId}?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/params/printers/${printerId}`), {
           method: 'DELETE'
         })
         const data = await response.json()
@@ -878,7 +891,7 @@ export function AdminPanel({ onClose }) {
         return
       }
       try {
-        const response = await fetch('https://quanton3d-bot-v2.onrender.com/params/profiles?auth=quanton3d_admin_secret', {
+        const response = await fetch(buildAdminUrl('/params/profiles'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -920,7 +933,7 @@ export function AdminPanel({ onClose }) {
       }
       if (!confirm('Tem certeza que deseja deletar este perfil?')) return
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/params/profiles/${profileId}?auth=quanton3d_admin_secret`, {
+        const response = await fetch(buildAdminUrl(`/params/profiles/${profileId}`), {
           method: 'DELETE'
         })
         const data = await response.json()
@@ -1384,18 +1397,18 @@ export function AdminPanel({ onClose }) {
                 </div>
                 <Button
                   onClick={async () => {
-                    if (!knowledgeTitle.trim() || !knowledgeContent.trim()) {
-                      alert('Preencha título e conteúdo!')
-                      return
-                    }
-                    setAddingKnowledge(true)
-                    try {
-                      const response = await fetch('https://quanton3d-bot-v2.onrender.com/add-knowledge?auth=quanton3d_admin_secret', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          title: knowledgeTitle,
-                          content: knowledgeContent
+                      if (!knowledgeTitle.trim() || !knowledgeContent.trim()) {
+                        alert('Preencha título e conteúdo!')
+                        return
+                      }
+                      setAddingKnowledge(true)
+                      try {
+                        const response = await fetch(buildAdminUrl('/add-knowledge'), {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            title: knowledgeTitle,
+                            content: knowledgeContent
                         })
                       })
                       const data = await response.json()
@@ -1818,7 +1831,7 @@ export function AdminPanel({ onClose }) {
                               className="flex-1 bg-green-600 hover:bg-green-700"
                               onClick={async () => {
                                 try {
-                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}?auth=quanton3d_admin_secret`, {
+                                  const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestion.id}`), {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
@@ -1857,16 +1870,16 @@ export function AdminPanel({ onClose }) {
                         </div>
                       ) : (
                         <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}?auth=quanton3d_admin_secret`, {
-                                  method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' }
-                                })
-                                const data = await response.json()
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestion.id}`), {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' }
+                                  })
+                                  const data = await response.json()
                                 if (data.success) {
                                   setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
                                 } else {
@@ -1891,18 +1904,18 @@ export function AdminPanel({ onClose }) {
                             <Edit3 className="h-4 w-4 mr-2" />
                             Editar Resposta
                           </Button>
-                          {isAdmin && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="flex-1"
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}?auth=quanton3d_admin_secret`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' }
-                                  })
-                                  const data = await response.json()
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={async () => {
+                                  try {
+                                  const response = await fetch(buildAdminUrl(`/reject-suggestion/${suggestion.id}`), {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' }
+                                    })
+                                    const data = await response.json()
                                   if (data.success) {
                                     setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
                                   } else {
