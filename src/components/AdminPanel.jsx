@@ -105,6 +105,8 @@ export function AdminPanel({ onClose }) {
     const [loading, setLoading] = useState(false)
     const [knowledgeTitle, setKnowledgeTitle] = useState('')
     const [knowledgeContent, setKnowledgeContent] = useState('')
+    const [knowledgeTags, setKnowledgeTags] = useState('general')
+    const [knowledgeSource, setKnowledgeSource] = useState('admin-panel')
     const [addingKnowledge, setAddingKnowledge] = useState(false)
     const [knowledgeDocuments, setKnowledgeDocuments] = useState([])
     const [knowledgeLoading, setKnowledgeLoading] = useState(false)
@@ -113,6 +115,8 @@ export function AdminPanel({ onClose }) {
     const [editingKnowledge, setEditingKnowledge] = useState(null)
     const [editKnowledgeTitle, setEditKnowledgeTitle] = useState('')
     const [editKnowledgeContent, setEditKnowledgeContent] = useState('')
+    const [editKnowledgeTags, setEditKnowledgeTags] = useState('general')
+    const [editKnowledgeSource, setEditKnowledgeSource] = useState('admin-panel')
     const [customRequests, setCustomRequests] = useState([])
     const [editingSuggestion, setEditingSuggestion] = useState(null)
     const [editedText, setEditedText] = useState('')
@@ -176,6 +180,21 @@ export function AdminPanel({ onClose }) {
       }
     })
     return url.toString()
+  }
+
+  const parseTagsString = (value, fallback = 'general') => {
+    const tags = (value || '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    return tags.length > 0 ? tags : [fallback]
+  }
+
+  const normalizeSource = (value) => (value && value.trim()) || 'admin-panel'
+
+  const getDocTags = (doc) => {
+    if (Array.isArray(doc?.tags) && doc.tags.length > 0) return doc.tags
+    return ['general']
   }
 
   // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
@@ -326,6 +345,8 @@ export function AdminPanel({ onClose }) {
       setEditingKnowledge(doc)
       setEditKnowledgeTitle(doc.title || '')
       setEditKnowledgeContent(doc.content || '')
+      setEditKnowledgeTags(getDocTags(doc).join(', '))
+      setEditKnowledgeSource(normalizeSource(doc.source))
     }
 
     const saveEditKnowledge = async () => {
@@ -335,10 +356,17 @@ export function AdminPanel({ onClose }) {
         return
       }
       try {
+        const tags = parseTagsString(editKnowledgeTags)
+        const source = normalizeSource(editKnowledgeSource)
         const response = await fetch(buildAdminUrl(`/api/knowledge/${editingKnowledge._id}`), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: editKnowledgeTitle, content: editKnowledgeContent })
+          body: JSON.stringify({
+            title: editKnowledgeTitle,
+            content: editKnowledgeContent,
+            tags,
+            source
+          })
         })
         const data = await response.json()
         if (data.success) {
@@ -1387,6 +1415,23 @@ export function AdminPanel({ onClose }) {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-2">Tags (separe por vírgula)</label>
+                  <Input
+                    placeholder="ex: impressao, abs-like, parametros"
+                    value={knowledgeTags}
+                    onChange={(e) => setKnowledgeTags(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Mínimo de uma tag; usamos "general" por padrão.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Fonte (opcional)</label>
+                  <Input
+                    placeholder="ex: admin-panel, documento interno, link"
+                    value={knowledgeSource}
+                    onChange={(e) => setKnowledgeSource(e.target.value)}
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-2">Conteúdo</label>
                   <textarea
                     className="w-full min-h-[200px] p-3 border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
@@ -1395,12 +1440,14 @@ export function AdminPanel({ onClose }) {
                     onChange={(e) => setKnowledgeContent(e.target.value)}
                   />
                 </div>
-                <Button
+                  <Button
                   onClick={async () => {
                       if (!knowledgeTitle.trim() || !knowledgeContent.trim()) {
                         alert('Preencha título e conteúdo!')
                         return
                       }
+                      const tags = parseTagsString(knowledgeTags)
+                      const source = normalizeSource(knowledgeSource)
                       setAddingKnowledge(true)
                       try {
                         const response = await fetch(buildAdminUrl('/add-knowledge'), {
@@ -1408,7 +1455,9 @@ export function AdminPanel({ onClose }) {
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
                             title: knowledgeTitle,
-                            content: knowledgeContent
+                            content: knowledgeContent,
+                            tags,
+                            source
                         })
                       })
                       const data = await response.json()
@@ -1416,6 +1465,8 @@ export function AdminPanel({ onClose }) {
                         alert('✅ Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
                         setKnowledgeTitle('')
                         setKnowledgeContent('')
+                        setKnowledgeTags('general')
+                        setKnowledgeSource('admin-panel')
                       } else {
                         alert('❌ Erro: ' + data.error)
                       }
@@ -1507,8 +1558,18 @@ export function AdminPanel({ onClose }) {
                                                     <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                                                       {doc.content ? doc.content.substring(0, 150) + (doc.content.length > 150 ? '...' : '') : 'Sem conteudo'}
                                                     </p>
-                                                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                                                      {doc.source && <span className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded">{doc.source}</span>}
+                                                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-400">
+                                                      {getDocTags(doc).map((tag) => (
+                                                        <span
+                                                          key={`${doc._id || 'doc'}-${tag}`}
+                                                          className="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-200"
+                                                        >
+                                                          {tag}
+                                                        </span>
+                                                      ))}
+                                                      <span className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded text-blue-800 dark:text-blue-100">
+                                                        {normalizeSource(doc.source)}
+                                                      </span>
                                                       {doc.createdAt && <span>{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</span>}
                                                     </div>
                                                   </div>
@@ -1559,6 +1620,22 @@ export function AdminPanel({ onClose }) {
                                                     value={editKnowledgeTitle}
                                                     onChange={(e) => setEditKnowledgeTitle(e.target.value)}
                                                     placeholder="Titulo do conhecimento"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-sm font-medium mb-2">Tags (separe por vírgula)</label>
+                                                  <Input
+                                                    value={editKnowledgeTags}
+                                                    onChange={(e) => setEditKnowledgeTags(e.target.value)}
+                                                    placeholder="ex: impressao, abs-like, parametros"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-sm font-medium mb-2">Fonte (opcional)</label>
+                                                  <Input
+                                                    value={editKnowledgeSource}
+                                                    onChange={(e) => setEditKnowledgeSource(e.target.value)}
+                                                    placeholder="ex: admin-panel, documento interno, link"
                                                   />
                                                 </div>
                                                 <div>
