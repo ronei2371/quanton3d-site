@@ -493,11 +493,16 @@ export function AdminPanel({ onClose }) {
 
     // CORRECAO 3: Carregar detalhes de clientes por resina
     const loadResinDetails = async (resin) => {
-      setSelectedResin(resin)
+      const resinName = resin?.trim()
+      if (!resinName) {
+        alert('Selecione uma resina válida para ver os detalhes')
+        return
+      }
+      setSelectedResin(resinName)
       setResinDetailsLoading(true)
       setResinDetails(null)
       try {
-        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/resin-details?resin=${encodeURIComponent(resin)}&auth=quanton3d_admin_secret`)
+        const response = await fetch(`https://quanton3d-bot-v2.onrender.com/metrics/resin-details?resin=${encodeURIComponent(resinName)}&auth=quanton3d_admin_secret`)
         const data = await response.json()
         if (data.success) {
           setResinDetails(data)
@@ -728,11 +733,12 @@ export function AdminPanel({ onClose }) {
     const loadParamsData = async () => {
       setParamsLoading(true)
       try {
+        const authQuery = 'auth=quanton3d_admin_secret'
         const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-          fetch('https://quanton3d-bot-v2.onrender.com/params/resins'),
-          fetch('https://quanton3d-bot-v2.onrender.com/params/printers'),
-          fetch('https://quanton3d-bot-v2.onrender.com/params/profiles'),
-          fetch('https://quanton3d-bot-v2.onrender.com/params/stats')
+          fetch(`https://quanton3d-bot-v2.onrender.com/params/resins?${authQuery}`),
+          fetch(`https://quanton3d-bot-v2.onrender.com/params/printers?${authQuery}`),
+          fetch(`https://quanton3d-bot-v2.onrender.com/params/profiles?${authQuery}`),
+          fetch(`https://quanton3d-bot-v2.onrender.com/params/stats?${authQuery}`)
         ])
         const [resinsData, printersData, profilesData, statsData] = await Promise.all([
           resinsRes.json(),
@@ -1384,11 +1390,10 @@ export function AdminPanel({ onClose }) {
                     }
                     setAddingKnowledge(true)
                     try {
-                      const response = await fetch('https://quanton3d-bot-v2.onrender.com/add-knowledge', {
+                      const response = await fetch('https://quanton3d-bot-v2.onrender.com/add-knowledge?auth=quanton3d_admin_secret', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                          auth: 'quanton3d_admin_secret',
                           title: knowledgeTitle,
                           content: knowledgeContent
                         })
@@ -1813,11 +1818,10 @@ export function AdminPanel({ onClose }) {
                               className="flex-1 bg-green-600 hover:bg-green-700"
                               onClick={async () => {
                                 try {
-                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}`, {
+                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}?auth=quanton3d_admin_secret`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                      auth: 'quanton3d_admin_secret',
                                       editedAnswer: editedText
                                     })
                                   })
@@ -1858,10 +1862,9 @@ export function AdminPanel({ onClose }) {
                             className="flex-1 bg-green-600 hover:bg-green-700"
                             onClick={async () => {
                               try {
-                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}`, {
+                                const response = await fetch(`https://quanton3d-bot-v2.onrender.com/approve-suggestion/${suggestion.id}?auth=quanton3d_admin_secret`, {
                                   method: 'PUT',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                  headers: { 'Content-Type': 'application/json' }
                                 })
                                 const data = await response.json()
                                 if (data.success) {
@@ -1895,10 +1898,9 @@ export function AdminPanel({ onClose }) {
                               className="flex-1"
                               onClick={async () => {
                                 try {
-                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}`, {
+                                  const response = await fetch(`https://quanton3d-bot-v2.onrender.com/reject-suggestion/${suggestion.id}?auth=quanton3d_admin_secret`, {
                                     method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ auth: 'quanton3d_admin_secret' })
+                                    headers: { 'Content-Type': 'application/json' }
                                   })
                                   const data = await response.json()
                                   if (data.success) {
