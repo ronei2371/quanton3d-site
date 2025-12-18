@@ -1,7 +1,7 @@
 export function authAdmin({ req, res }) {
   const authHeader = req.headers['authorization'] || ''
   const [scheme, token] = authHeader.split(' ')
-  const adminToken = process.env.ADMIN_API_TOKEN || 'changeme'
+  const adminToken = process.env.ADMIN_API_TOKEN
 
   if (!adminToken) {
     console.error('[AUTH-ADMIN] ADMIN_API_TOKEN is not configured')
