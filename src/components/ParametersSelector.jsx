@@ -1,8 +1,87 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
+import { parameters } from '@/data/parametersData';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
+
+const normalizeValue = (value) => (
+  value
+    ?.toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+);
+
+const localEntries = Object.entries(parameters).map(([key, params]) => {
+  const [resinName, ...printerParts] = key.split('_');
+  return {
+    resinName,
+    printerName: printerParts.join('_'),
+    params,
+  };
+});
+
+const localResinNames = Array.from(new Set(localEntries.map((entry) => entry.resinName))).sort((a, b) => (
+  a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+));
+
+const getLocalPrintersForResin = (resinName) => {
+  const normalizedResin = normalizeValue(resinName);
+  const printers = localEntries
+    .filter((entry) => normalizeValue(entry.resinName) === normalizedResin)
+    .map((entry) => entry.printerName);
+
+  return Array.from(new Set(printers)).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+};
+
+const getLocalProfile = (resinName, printerName) => {
+  const normalizedResin = normalizeValue(resinName);
+  const normalizedPrinter = normalizeValue(printerName);
+  const match = localEntries.find(
+    (entry) =>
+      normalizeValue(entry.resinName) === normalizedResin &&
+      normalizeValue(entry.printerName) === normalizedPrinter,
+  );
+
+  if (!match) return null;
+
+  return {
+    params: {
+      layerHeightMm: match.params.camada,
+      exposureTimeS: match.params.exposicao,
+      baseExposureTimeS: match.params.exposicaoBase,
+      baseLayers: match.params.camadasBase,
+      liftDistanceMm: match.params.liftDistance,
+      liftSpeedMmMin: match.params.liftSpeed,
+      retractSpeedMmMin: match.params.retractSpeed,
+      uvOffDelayS: match.params.uvOffDelay,
+    },
+  };
+};
+
+const normalizeResins = (items = []) => (
+  items.map((resin) => {
+    if (typeof resin === 'string') {
+      return { id: resin, name: resin };
+    }
+    const id = resin.id ?? resin._id ?? resin.name ?? resin.label;
+    const name = resin.name ?? resin.label ?? resin.id ?? resin._id;
+    return { ...resin, id, name };
+  })
+);
+
+const normalizePrinters = (items = []) => (
+  items.map((printer) => {
+    if (typeof printer === 'string') {
+      return { id: printer, name: printer, label: printer };
+    }
+    const label = printer.label ?? printer.name ?? [printer.brand, printer.model].filter(Boolean).join(' ').trim();
+    const id = printer.id ?? printer._id ?? printer.name ?? printer.model ?? label;
+    return { ...printer, id, label };
+  })
+);
 
 export default function ParametersSelector() {
   const [resins, setResins] = useState([]);
@@ -12,6 +91,7 @@ export default function ParametersSelector() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [dataSource, setDataSource] = useState('api');
 
   useEffect(() => {
     fetchResins();
@@ -31,23 +111,37 @@ export default function ParametersSelector() {
       const response = await fetch(`${API_URL}/params/resins`);
       const data = await response.json();
       if (data.success) {
-        setResins(data.resins);
+        const normalizedResins = normalizeResins(data.resins);
+        if (normalizedResins.length > 0) {
+          setResins(normalizedResins);
+          setDataSource('api');
+          return;
+        }
       }
+      setResins(normalizeResins(localResinNames));
+      setDataSource('local');
     } catch (err) {
       console.error('Erro ao carregar resinas:', err);
       setError('Erro ao carregar resinas');
+      setResins(normalizeResins(localResinNames));
+      setDataSource('local');
     } finally {
       setLoading(false);
     }
   };
 
   const fetchPrinters = async (resinId) => {
+    if (dataSource === 'local') {
+      setPrinters(normalizePrinters(getLocalPrintersForResin(resinId)));
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/params/printers?resinId=${resinId}`);
       const data = await response.json();
       if (data.success) {
-        setPrinters(data.printers);
+        setPrinters(normalizePrinters(data.printers));
       }
     } catch (err) {
       console.error('Erro ao carregar impressoras:', err);
@@ -58,6 +152,12 @@ export default function ParametersSelector() {
   };
 
   const fetchProfile = async (resinId, printerId) => {
+    if (dataSource === 'local') {
+      const localProfile = getLocalProfile(resinId, printerId);
+      setResult(localProfile ?? 'not_found');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/params/profiles?resinId=${resinId}&printerId=${printerId}`);
@@ -100,12 +200,16 @@ export default function ParametersSelector() {
 
   const getResinName = () => {
     const resin = resins.find(r => r.id === selectedResin);
-    return resin ? resin.name : selectedResin;
+    return resin?.name ?? resin?.label ?? selectedResin;
   };
+
+  const getPrinterLabel = (printer) => (
+    printer?.label ?? printer?.name ?? [printer?.brand, printer?.model].filter(Boolean).join(' ').trim()
+  );
 
   const getPrinterName = () => {
     const printer = printers.find(p => p.id === selectedPrinter);
-    return printer ? `${printer.brand} ${printer.model}` : selectedPrinter;
+    return getPrinterLabel(printer) || selectedPrinter;
   };
 
   const formatValue = (value, unit = '') => {
@@ -143,7 +247,7 @@ export default function ParametersSelector() {
           >
             <option value="">{loading && resins.length === 0 ? 'Carregando...' : 'Escolha uma resina...'}</option>
             {resins.map(resin => (
-              <option key={resin.id} value={resin.id}>{resin.name}</option>
+              <option key={resin.id} value={resin.id}>{resin.name ?? resin.label}</option>
             ))}
           </select>
         </Card>
@@ -164,7 +268,7 @@ export default function ParametersSelector() {
               {!selectedResin ? 'Selecione uma resina primeiro' : loading ? 'Carregando...' : 'Escolha uma impressora...'}
             </option>
             {printers.map(printer => (
-              <option key={printer.id} value={printer.id}>{printer.brand} {printer.model}</option>
+              <option key={printer.id} value={printer.id}>{getPrinterLabel(printer)}</option>
             ))}
           </select>
         </Card>
