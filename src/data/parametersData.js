@@ -56,37 +56,37 @@ export const printerList = [
 
 export const parameters = {
   "Alchemist_HALOT SKY": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_HALOTE ONE": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "35",
-    camadasBase: "1.9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_LD-002H": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_LD-002R": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "55",
-    camadasBase: "6.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -95,7 +95,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -104,34 +104,34 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "55",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_MARS 2 PRO": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "30",
-    camadasBase: "1.55",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_MARS 3 PRO": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "25",
-    camadasBase: "1.55",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_MARS 3 ULTRA": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "20",
-    camadasBase: "1.55",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -140,7 +140,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "25",
-    camadasBase: "1.9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -149,7 +149,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "60",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -158,7 +158,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -167,7 +167,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -176,7 +176,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "35",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -185,16 +185,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -203,7 +203,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.45",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -212,7 +212,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -221,7 +221,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "50",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -230,43 +230,43 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "25",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_SATURN": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "20",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_SATURN 2": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "20",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Alchemist_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "18",
-    camadasBase: "1.35",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -275,7 +275,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "70",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -284,7 +284,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -293,7 +293,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "38",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -302,7 +302,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -311,16 +311,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Alinhadores_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "33",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -329,7 +329,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -338,7 +338,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -347,7 +347,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "50",
-    camadasBase: "4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -356,25 +356,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Alinhadores_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Alinhadores_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -383,7 +383,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "4.2 s",
     exposicaoBase: "70",
-    camadasBase: "0.05",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -392,7 +392,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "120",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -401,34 +401,34 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6.5s",
     exposicaoBase: "100",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable 2_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable 2_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable 2_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -437,7 +437,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "4.5s",
     exposicaoBase: "0",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -446,16 +446,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "4.8",
     exposicaoBase: "80.000",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable_MINI 4K": {
-    camada: "0.05s",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "80",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -464,7 +464,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "80",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -473,7 +473,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "60.000",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -482,16 +482,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.5s",
     exposicaoBase: "60.000",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -500,25 +500,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "80",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Castable_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -545,7 +545,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -554,7 +554,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "3.0",
     exposicaoBase: "40",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -563,7 +563,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.5",
     exposicaoBase: "30",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -572,7 +572,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.8",
     exposicaoBase: "30",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -590,7 +590,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -599,31 +599,31 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "70",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Dental_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Dental_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Dental_SATURN 4 ULTRA": {
-    camada: "0,05mm",
+    camada: "0.05mm",
     exposicao: "1.50",
     exposicaoBase: "35",
     camadasBase: "5",
@@ -635,7 +635,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "0",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -644,7 +644,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "8",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -653,7 +653,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "7",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -662,7 +662,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "12",
-    camadasBase: "4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -671,7 +671,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "7",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -689,7 +689,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "8",
-    camadasBase: "1.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -698,7 +698,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "8",
-    camadasBase: "1.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -707,16 +707,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "7",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Gengiva_MINI 4K": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "10",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -734,7 +734,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -743,7 +743,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "8",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -752,7 +752,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -761,16 +761,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Gengiva_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -779,7 +779,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -788,7 +788,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -797,7 +797,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "10",
-    camadasBase: "3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -806,7 +806,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -815,7 +815,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "8",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -824,52 +824,52 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "8",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Gengiva_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Gengiva_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Washable_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Washable_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Athom Washable_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -878,7 +878,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.7",
     exposicaoBase: "35",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -887,7 +887,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.8",
     exposicaoBase: "38",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -896,7 +896,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.7",
     exposicaoBase: "21",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -905,7 +905,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "55",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -914,7 +914,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.4",
     exposicaoBase: "21",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -923,7 +923,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6.1",
     exposicaoBase: "60",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -950,7 +950,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.7",
     exposicaoBase: "33",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -959,7 +959,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.1",
     exposicaoBase: "40",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -968,7 +968,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6.5",
     exposicaoBase: "55",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -986,7 +986,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.6",
     exposicaoBase: "35",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -995,7 +995,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.75",
     exposicaoBase: "25",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1004,16 +1004,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.7",
     exposicaoBase: "25",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Iron_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "1.5",
     exposicaoBase: "20",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1022,7 +1022,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.7",
     exposicaoBase: "25",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1040,7 +1040,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6.5",
     exposicaoBase: "55",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1049,7 +1049,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.7",
     exposicaoBase: "25",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1058,7 +1058,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.6",
     exposicaoBase: "30",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1067,25 +1067,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.9",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Iron_SATURN 3": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "1.5",
     exposicaoBase: "20",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Iron_SATURN 3 ULTRA": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "1.15",
     exposicaoBase: "15",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1094,7 +1094,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "45",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1103,7 +1103,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "45",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1112,7 +1112,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "30",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1121,7 +1121,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "6.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1130,7 +1130,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "45",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1139,7 +1139,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1148,7 +1148,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "30",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1157,7 +1157,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1166,7 +1166,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1175,7 +1175,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1184,7 +1184,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "55",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1193,7 +1193,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1202,7 +1202,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1211,7 +1211,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "30",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1220,16 +1220,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "LowSmell_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1238,7 +1238,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "35",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1247,7 +1247,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "35",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1256,7 +1256,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "55",
-    camadasBase: "6.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1265,7 +1265,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "30",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1274,7 +1274,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1283,25 +1283,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "45",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "LowSmell_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "LowSmell_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "22",
-    camadasBase: "1.18",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1310,7 +1310,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1319,7 +1319,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "40",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1328,7 +1328,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1337,7 +1337,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1346,7 +1346,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1355,7 +1355,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1364,7 +1364,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1373,7 +1373,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1382,7 +1382,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.85",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1391,7 +1391,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "40",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1400,7 +1400,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "60",
-    camadasBase: "8.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1409,7 +1409,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "35",
-    camadasBase: "2.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1418,7 +1418,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "45",
-    camadasBase: "2.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1427,7 +1427,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "2.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1436,16 +1436,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "30",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Poseidon_PHOTON MONO M5S": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1454,7 +1454,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1463,7 +1463,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1472,7 +1472,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1481,7 +1481,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "2.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1490,7 +1490,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "35",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1499,25 +1499,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "40",
-    camadasBase: "2.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Poseidon_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Poseidon_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.4",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1526,7 +1526,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.5",
     exposicaoBase: "45",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1535,7 +1535,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.5",
     exposicaoBase: "45",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1553,7 +1553,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "65",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1562,7 +1562,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.1",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1571,7 +1571,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "70",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1589,7 +1589,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.9",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1598,7 +1598,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.9",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1607,7 +1607,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.5",
     exposicaoBase: "40",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1616,7 +1616,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "70",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1625,7 +1625,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.9",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1634,7 +1634,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.1",
     exposicaoBase: "45",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1643,7 +1643,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2",
     exposicaoBase: "35",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1652,16 +1652,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.9",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Pyroblast+_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "2",
     exposicaoBase: "25",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1670,7 +1670,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "1.9",
     exposicaoBase: "35",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1679,7 +1679,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2",
     exposicaoBase: "40",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1688,7 +1688,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "70",
-    camadasBase: "10",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1697,7 +1697,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2",
     exposicaoBase: "35",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1706,7 +1706,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2",
     exposicaoBase: "40",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1715,25 +1715,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "2.5",
     exposicaoBase: "35",
-    camadasBase: "7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Pyroblast+_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "1.8",
     exposicaoBase: "25",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Pyroblast+_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "1.3",
     exposicaoBase: "22",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1742,7 +1742,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "45",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1751,7 +1751,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1760,7 +1760,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1769,7 +1769,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1778,7 +1778,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "40",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1787,7 +1787,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1796,7 +1796,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1805,7 +1805,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1814,7 +1814,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1823,7 +1823,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "35",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1832,7 +1832,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "55",
-    camadasBase: "6.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1841,7 +1841,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1850,7 +1850,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1859,7 +1859,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1868,16 +1868,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "RPG 4K_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1886,7 +1886,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "35",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1895,7 +1895,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1904,7 +1904,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "55",
-    camadasBase: "6.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1913,7 +1913,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1922,7 +1922,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1931,25 +1931,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "RPG 4K_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "RPG 4K_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "0",
     exposicaoBase: "00",
-    camadasBase: "0",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1958,7 +1958,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "30",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1967,7 +1967,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1976,7 +1976,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "25",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1985,7 +1985,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "55",
-    camadasBase: "5.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -1994,7 +1994,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.55",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2003,7 +2003,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "60",
-    camadasBase: "6",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2012,7 +2012,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "30",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2021,7 +2021,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2030,7 +2030,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "25",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2039,7 +2039,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.65",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2048,7 +2048,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "50",
-    camadasBase: "6.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2057,7 +2057,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2066,7 +2066,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "35",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2075,7 +2075,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "30",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2084,16 +2084,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "30",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Spark_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2102,7 +2102,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2111,7 +2111,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "30",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2120,7 +2120,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "55",
-    camadasBase: "6.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2129,7 +2129,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2138,7 +2138,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "25",
-    camadasBase: "1.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2147,25 +2147,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.75",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Spark_SATURN 3": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Spark_SATURN 3 ULTRA": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "1.35",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2174,7 +2174,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2183,7 +2183,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "2.5",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2192,7 +2192,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "5",
     exposicaoBase: "35",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2201,7 +2201,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2210,7 +2210,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "40",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2219,7 +2219,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "80",
-    camadasBase: "8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2228,7 +2228,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2237,7 +2237,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.95",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2246,7 +2246,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2255,7 +2255,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "40",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2264,7 +2264,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2273,7 +2273,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2282,7 +2282,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "45",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2291,7 +2291,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "38",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2300,16 +2300,16 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "35",
-    camadasBase: "1.9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Spin+_PHOTON MONO M5S": {
-    camada: "0.00mm",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "20",
-    camadasBase: "2.1",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2318,7 +2318,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "40",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2327,7 +2327,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "35",
-    camadasBase: "1.7",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2336,7 +2336,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "10",
     exposicaoBase: "65",
-    camadasBase: "9",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2345,7 +2345,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "38",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2354,7 +2354,7 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "8",
     exposicaoBase: "35",
-    camadasBase: "1.8",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
@@ -2363,25 +2363,25 @@ export const parameters = {
     camada: "0.05mm",
     exposicao: "7",
     exposicaoBase: "40",
-    camadasBase: "2.2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Spin+_SATURN 3": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "25",
-    camadasBase: "2",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
   },
   "Spin+_SATURN 3 ULTRA": {
-    camada: "0,05",
+    camada: "0.05mm",
     exposicao: "6",
     exposicaoBase: "22",
-    camadasBase: "1.3",
+    camadasBase: "5",
     liftDistance: "0",
     liftSpeed: "0",
     retractSpeed: "0s"
