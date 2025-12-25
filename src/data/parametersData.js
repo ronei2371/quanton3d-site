@@ -2387,3 +2387,8 @@ export const parameters = {
     retractSpeed: "0s"
   },
 };
+
+// Sanitização extra: garante que todas as resinas tenham 5 camadas de base
+Object.values(parameters).forEach((profile) => {
+  profile.camadasBase = "5";
+});
