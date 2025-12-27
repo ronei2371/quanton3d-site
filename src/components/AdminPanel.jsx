@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake } from 'lucide-react'
+import { X, Check, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake } from 'lucide-react'
 import { toast } from 'sonner'
 import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
+import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
@@ -103,7 +104,8 @@ export function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
-  const [suggestions, setSuggestions] = useState([])
+  const [suggestionsCount, setSuggestionsCount] = useState(0)
+  const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0)
   const [loading, setLoading] = useState(false)
   const [knowledgeTitle, setKnowledgeTitle] = useState('')
   const [knowledgeContent, setKnowledgeContent] = useState('')
@@ -120,8 +122,6 @@ export function AdminPanel({ onClose }) {
   const [editKnowledgeTags, setEditKnowledgeTags] = useState('general')
   const [editKnowledgeSource, setEditKnowledgeSource] = useState('admin-panel')
   const [customRequests, setCustomRequests] = useState([])
-  const [editingSuggestion, setEditingSuggestion] = useState(null)
-  const [editedText, setEditedText] = useState('')
   const [contactMessages, setContactMessages] = useState([])
   const [galleryEntries, setGalleryEntries] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(false)
@@ -190,8 +190,8 @@ export function AdminPanel({ onClose }) {
     setLoading(true)
     try {
       setMetricsRefreshKey((key) => key + 1)
+      setSuggestionsRefreshKey((key) => key + 1)
       await Promise.all([
-        loadSuggestions(),
         loadCustomRequests(),
         loadContactMessages(),
         loadGalleryEntries(),
@@ -219,19 +219,6 @@ export function AdminPanel({ onClose }) {
       }
       await refreshAllData()
     }
-
-  const loadSuggestions = async () => {
-    try {
-      const response = await fetch(buildAdminUrl('/suggestions'))
-      const data = await response.json()
-      // Filtrar apenas sugestões SEM imagem (texto puro)
-      // Sugestões COM imagem devem ir para Treinamento Visual
-      const textOnlySuggestions = (data.suggestions || []).filter(s => !s.imageUrl)
-      setSuggestions(textOnlySuggestions)
-    } catch (error) {
-      console.error('Erro ao carregar sugestões:', error)
-    }
-  }
 
   const loadCustomRequests = async () => {
     try {
@@ -893,7 +880,7 @@ export function AdminPanel({ onClose }) {
             className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
             <MessageSquare className="h-4 w-4 mr-2" />
-            Sugestões ({suggestions.length})
+            Sugestões ({suggestionsCount})
           </Button>
                     <Button 
                       onClick={() => { setActiveTab('knowledge'); loadKnowledgeDocuments(); }}
@@ -1392,193 +1379,13 @@ export function AdminPanel({ onClose }) {
                   </div>
                 )}
 
-        {activeTab === 'suggestions' && (
-          <div className="space-y-4">
-            {suggestions.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Clock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 dark:text-gray-400">
-                  Nenhuma sugestão pendente no momento
-                </p>
-              </Card>
-            ) : (
-              suggestions.map((suggestion) => (
-                <Card key={suggestion.id} className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{suggestion.userName}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {suggestion.userPhone}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(suggestion.timestamp).toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      suggestion.status === 'pending' 
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        : suggestion.status === 'approved'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                    }`}>
-                      {suggestion.status === 'pending' ? 'Pendente' : suggestion.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
-                    </span>
-                  </div>
-
-                  {/* Pergunta Original do Cliente */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3">
-                    <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">PERGUNTA DO CLIENTE</p>
-                    <p className="text-sm whitespace-pre-wrap">{suggestion.lastUserMessage || 'Pergunta não disponível'}</p>
-                  </div>
-
-                  {/* Resposta Original do Bot */}
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3">
-                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">RESPOSTA DO BOT</p>
-                    <p className="text-sm whitespace-pre-wrap">{suggestion.lastBotReply || 'Resposta não disponível'}</p>
-                  </div>
-
-                  {/* Sugestão do Cliente */}
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">SUGESTÃO DO CLIENTE</p>
-                    <p className="text-sm whitespace-pre-wrap">{suggestion.suggestion}</p>
-                  </div>
-
-                  {suggestion.status === 'pending' && (
-                    <>
-                      {editingSuggestion === suggestion.id ? (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1 block">RESPOSTA CORRIGIDA (será salva no RAG)</label>
-                            <textarea
-                              className="w-full p-3 border rounded-lg bg-white dark:bg-gray-800 min-h-[120px]"
-                              value={editedText}
-                              onChange={(e) => setEditedText(e.target.value)}
-                              placeholder="Escreva a resposta técnica correta que o bot deveria ter dado..."
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestion.id}`), {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      editedAnswer: editedText
-                                    })
-                                  })
-                                  const data = await response.json()
-                                  if (data.success) {
-                                    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
-                                    setEditingSuggestion(null)
-                                    setEditedText('')
-                                  } else {
-                                    toast.error('Erro: ' + data.message)
-                                  }
-                                } catch (error) {
-                                  toast.error('Erro ao aprovar: ' + error.message)
-                                }
-                              }}
-                            >
-                              <Check className="h-4 w-4 mr-2" />
-                              Aprovar com Correção
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="flex-1"
-                              onClick={() => {
-                                setEditingSuggestion(null)
-                                setEditedText('')
-                              }}
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Cancelar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-green-600 hover:bg-green-700"
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestion.id}`), {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' }
-                                  })
-                                  const data = await response.json()
-                                if (data.success) {
-                                  setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
-                                } else {
-                                  toast.error('Erro: ' + data.message)
-                                }
-                              } catch (error) {
-                                toast.error('Erro ao aprovar: ' + error.message)
-                              }
-                            }}
-                          >
-                            <Check className="h-4 w-4 mr-2" />
-                            Aprovar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="flex-1 bg-blue-600 hover:bg-blue-700"
-                            onClick={() => {
-                              setEditingSuggestion(suggestion.id)
-                              setEditedText(suggestion.lastBotReply || '')
-                            }}
-                          >
-                            <Edit3 className="h-4 w-4 mr-2" />
-                            Editar Resposta
-                          </Button>
-                            {isAdmin && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="flex-1"
-                                onClick={async () => {
-                                  try {
-                                  const response = await fetch(buildAdminUrl(`/reject-suggestion/${suggestion.id}`), {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json' }
-                                    })
-                                    const data = await response.json()
-                                  if (data.success) {
-                                    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
-                                  } else {
-                                    toast.error('Erro: ' + data.message)
-                                  }
-                                } catch (error) {
-                                  toast.error('Erro ao rejeitar: ' + error.message)
-                                }
-                              }}
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Rejeitar
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </Card>
-              ))
-            )}
-          </div>
-        )}
+        <SuggestionsTab
+          buildAdminUrl={buildAdminUrl}
+          isAdmin={isAdmin}
+          isVisible={activeTab === 'suggestions'}
+          onCountChange={setSuggestionsCount}
+          refreshKey={suggestionsRefreshKey}
+        />
 
         {/* Gallery Tab */}
         {activeTab === 'gallery' && (
