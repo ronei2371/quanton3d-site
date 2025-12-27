@@ -168,12 +168,10 @@ export function AdminPanel({ onClose }) {
     const [topicConversations, setTopicConversations] = useState([])
     const [topicLoading, setTopicLoading] = useState(false)
 
-  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
-  const ADMIN_AUTH_TOKEN = 'quanton3d_admin_secret'
+  const API_BASE_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '')
 
   const buildAdminUrl = (path, params = {}) => {
-    const url = new URL(path, API_BASE_URL)
-    url.searchParams.set('auth', ADMIN_AUTH_TOKEN)
+    const url = new URL(path, `${API_BASE_URL}/`)
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         url.searchParams.set(key, value)
