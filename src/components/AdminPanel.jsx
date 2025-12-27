@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar, MessageSquare, Users, TrendingUp, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake } from 'lucide-react'
+import { X, Check, Clock, User, Phone, Calendar, MessageSquare, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake } from 'lucide-react'
+import { toast } from 'sonner'
 import { PartnersManager } from './PartnersManager.jsx'
+import { MetricsTab } from './admin/MetricsTab.jsx'
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
@@ -99,78 +101,60 @@ export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [accessLevel, setAccessLevel] = useState(null) // 'admin' | 'support' | null
   const [password, setPassword] = useState('')
-    const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
-    const [metrics, setMetrics] = useState(null)
-    const [suggestions, setSuggestions] = useState([])
-    const [loading, setLoading] = useState(false)
-    const [knowledgeTitle, setKnowledgeTitle] = useState('')
-    const [knowledgeContent, setKnowledgeContent] = useState('')
-    const [knowledgeTags, setKnowledgeTags] = useState('general')
-    const [knowledgeSource, setKnowledgeSource] = useState('admin-panel')
-    const [addingKnowledge, setAddingKnowledge] = useState(false)
-    const [knowledgeDocuments, setKnowledgeDocuments] = useState([])
-    const [knowledgeLoading, setKnowledgeLoading] = useState(false)
-    const [knowledgeDateStart, setKnowledgeDateStart] = useState('')
-    const [knowledgeDateEnd, setKnowledgeDateEnd] = useState('')
-    const [editingKnowledge, setEditingKnowledge] = useState(null)
-    const [editKnowledgeTitle, setEditKnowledgeTitle] = useState('')
-    const [editKnowledgeContent, setEditKnowledgeContent] = useState('')
-    const [editKnowledgeTags, setEditKnowledgeTags] = useState('general')
-    const [editKnowledgeSource, setEditKnowledgeSource] = useState('admin-panel')
-    const [customRequests, setCustomRequests] = useState([])
-    const [editingSuggestion, setEditingSuggestion] = useState(null)
-    const [editedText, setEditedText] = useState('')
-    const [contactMessages, setContactMessages] = useState([])
-    const [galleryEntries, setGalleryEntries] = useState([])
-    const [galleryLoading, setGalleryLoading] = useState(false)
-    // Visual RAG states
-    const [visualKnowledge, setVisualKnowledge] = useState([])
-    const [visualLoading, setVisualLoading] = useState(false)
-    const [visualImage, setVisualImage] = useState(null)
-    const [visualImagePreview, setVisualImagePreview] = useState(null)
-    const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
-    const [pendingVisualLoading, setPendingVisualLoading] = useState(false)
-    const [visualDefectType, setVisualDefectType] = useState('')
-    const [visualDiagnosis, setVisualDiagnosis] = useState('')
-    const [visualSolution, setVisualSolution] = useState('')
-    const [addingVisual, setAddingVisual] = useState(false)
-    // Estados para modal de detalhes de resina (CORRECAO 3)
-    const [selectedResin, setSelectedResin] = useState(null)
-    const [resinDetails, setResinDetails] = useState(null)
-    const [resinDetailsLoading, setResinDetailsLoading] = useState(false)
-    // Estados para modal de historico do cliente (CORRECAO 4)
-    const [selectedClient, setSelectedClient] = useState(null)
-    const [clientHistory, setClientHistory] = useState(null)
-    const [clientHistoryLoading, setClientHistoryLoading] = useState(false)
-    // Estados para modal de edicao da galeria
-    const [editingGalleryEntry, setEditingGalleryEntry] = useState(null)
-    const [editGalleryData, setEditGalleryData] = useState({})
-    const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
-    // Estados para gerenciamento de parametros de impressao
-    const [paramsResins, setParamsResins] = useState([])
-    const [paramsPrinters, setParamsPrinters] = useState([])
-    const [paramsProfiles, setParamsProfiles] = useState([])
-    const [paramsLoading, setParamsLoading] = useState(false)
-    const [paramsStats, setParamsStats] = useState(null)
-    const [newResinName, setNewResinName] = useState('')
-    const [newPrinterBrand, setNewPrinterBrand] = useState('')
-    const [newPrinterModel, setNewPrinterModel] = useState('')
-    const [editingProfile, setEditingProfile] = useState(null)
-    const [profileFormData, setProfileFormData] = useState({})
-    // Estados para filtro de data nas conversas (TAREFA 5)
-    const [conversationDateFilter, setConversationDateFilter] = useState('all') // 'all' | 'today' | 'yesterday' | 'last_week' | 'last_month'
-    // Estado para expandir/colapsar seção de clientes (TAREFA 2)
-    const [showAllClients, setShowAllClients] = useState(false)
-    // Estado para filtro de data nos clientes cadastrados
-    const [clientsDateFilter, setClientsDateFilter] = useState('all') // 'all' | 'today' | 'this_week' | 'this_month'
-    // Estado para modal de tópicos (drill-down)
-    const [selectedTopic, setSelectedTopic] = useState(null)
-    const [topicConversations, setTopicConversations] = useState([])
-    const [topicLoading, setTopicLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
+  const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
+  const [suggestions, setSuggestions] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [knowledgeTitle, setKnowledgeTitle] = useState('')
+  const [knowledgeContent, setKnowledgeContent] = useState('')
+  const [knowledgeTags, setKnowledgeTags] = useState('general')
+  const [knowledgeSource, setKnowledgeSource] = useState('admin-panel')
+  const [addingKnowledge, setAddingKnowledge] = useState(false)
+  const [knowledgeDocuments, setKnowledgeDocuments] = useState([])
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false)
+  const [knowledgeDateStart, setKnowledgeDateStart] = useState('')
+  const [knowledgeDateEnd, setKnowledgeDateEnd] = useState('')
+  const [editingKnowledge, setEditingKnowledge] = useState(null)
+  const [editKnowledgeTitle, setEditKnowledgeTitle] = useState('')
+  const [editKnowledgeContent, setEditKnowledgeContent] = useState('')
+  const [editKnowledgeTags, setEditKnowledgeTags] = useState('general')
+  const [editKnowledgeSource, setEditKnowledgeSource] = useState('admin-panel')
+  const [customRequests, setCustomRequests] = useState([])
+  const [editingSuggestion, setEditingSuggestion] = useState(null)
+  const [editedText, setEditedText] = useState('')
+  const [contactMessages, setContactMessages] = useState([])
+  const [galleryEntries, setGalleryEntries] = useState([])
+  const [galleryLoading, setGalleryLoading] = useState(false)
+  // Visual RAG states
+  const [visualKnowledge, setVisualKnowledge] = useState([])
+  const [visualLoading, setVisualLoading] = useState(false)
+  const [visualImage, setVisualImage] = useState(null)
+  const [visualImagePreview, setVisualImagePreview] = useState(null)
+  const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
+  const [pendingVisualLoading, setPendingVisualLoading] = useState(false)
+  const [visualDefectType, setVisualDefectType] = useState('')
+  const [visualDiagnosis, setVisualDiagnosis] = useState('')
+  const [visualSolution, setVisualSolution] = useState('')
+  const [addingVisual, setAddingVisual] = useState(false)
+  // Estados para modal de edicao da galeria
+  const [editingGalleryEntry, setEditingGalleryEntry] = useState(null)
+  const [editGalleryData, setEditGalleryData] = useState({})
+  const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
+  // Estados para gerenciamento de parametros de impressao
+  const [paramsResins, setParamsResins] = useState([])
+  const [paramsPrinters, setParamsPrinters] = useState([])
+  const [paramsProfiles, setParamsProfiles] = useState([])
+  const [paramsLoading, setParamsLoading] = useState(false)
+  const [paramsStats, setParamsStats] = useState(null)
+  const [newResinName, setNewResinName] = useState('')
+  const [newPrinterBrand, setNewPrinterBrand] = useState('')
+  const [newPrinterModel, setNewPrinterModel] = useState('')
+  const [editingProfile, setEditingProfile] = useState(null)
+  const [profileFormData, setProfileFormData] = useState({})
 
   const API_BASE_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '')
 
-  const buildAdminUrl = (path, params = {}) => {
+  const buildAdminUrl = useCallback((path, params = {}) => {
     const url = new URL(path, `${API_BASE_URL}/`)
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -178,7 +162,7 @@ export function AdminPanel({ onClose }) {
       }
     })
     return url.toString()
-  }
+  }, [API_BASE_URL])
 
   const parseTagsString = (value, fallback = 'general') => {
     const tags = (value || '')
@@ -201,9 +185,28 @@ export function AdminPanel({ onClose }) {
   
   // Helpers para verificar nivel de acesso
   const isAdmin = accessLevel === 'admin'
-  const isSupport = accessLevel === 'support'
 
-    const handleLogin = () => {
+  const refreshAllData = async () => {
+    setLoading(true)
+    try {
+      setMetricsRefreshKey((key) => key + 1)
+      await Promise.all([
+        loadSuggestions(),
+        loadCustomRequests(),
+        loadContactMessages(),
+        loadGalleryEntries(),
+        loadVisualKnowledge(),
+        loadPendingVisualPhotos(),
+        loadKnowledgeDocuments()
+      ])
+    } catch (error) {
+      console.error('Erro ao atualizar painel:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+    const handleLogin = async () => {
       if (password === ADMIN_PASSWORD) {
         setAccessLevel('admin')
         setIsAuthenticated(true)
@@ -211,31 +214,11 @@ export function AdminPanel({ onClose }) {
         setAccessLevel('support')
         setIsAuthenticated(true)
       } else {
-        alert('Senha incorreta!')
+        toast.error('Senha incorreta!')
         return
       }
-      // Carregar dados para ambos os niveis
-      loadMetrics()
-      loadSuggestions()
-      loadCustomRequests()
-      loadContactMessages()
-      loadGalleryEntries()
-      loadVisualKnowledge()
-      loadPendingVisualPhotos()
+      await refreshAllData()
     }
-
-  const loadMetrics = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch(buildAdminUrl('/metrics'))
-      const data = await response.json()
-      setMetrics(data.metrics)
-    } catch (error) {
-      console.error('Erro ao carregar métricas:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const loadSuggestions = async () => {
     try {
@@ -281,11 +264,11 @@ export function AdminPanel({ onClose }) {
             if (data.success) {
               loadContactMessages()
             } else {
-              alert('Erro ao atualizar status: ' + data.error)
+              toast.error('Erro ao atualizar status: ' + data.error)
             }
           } catch (error) {
             console.error('Erro ao atualizar status da mensagem:', error)
-            alert('Erro ao atualizar status da mensagem')
+            toast.error('Erro ao atualizar status da mensagem')
           }
         }
 
@@ -318,7 +301,7 @@ export function AdminPanel({ onClose }) {
 
     const deleteKnowledgeDocument = async (id) => {
       if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite excluir dados.')
+        toast.warning('Seu nivel de acesso nao permite excluir dados.')
         return
       }
       if (!confirm('Tem certeza que deseja deletar este documento? Esta acao nao pode ser desfeita.')) return
@@ -328,14 +311,14 @@ export function AdminPanel({ onClose }) {
         })
         const data = await response.json()
         if (data.success) {
-          alert('Documento deletado com sucesso!')
+          toast.success('Documento deletado com sucesso!')
           loadKnowledgeDocuments()
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao deletar documento:', error)
-        alert('Erro ao deletar documento')
+        toast.error('Erro ao deletar documento')
       }
     }
 
@@ -350,7 +333,7 @@ export function AdminPanel({ onClose }) {
     const saveEditKnowledge = async () => {
       if (!editingKnowledge) return
       if (!editKnowledgeTitle.trim() || !editKnowledgeContent.trim()) {
-        alert('Preencha titulo e conteudo!')
+        toast.warning('Preencha titulo e conteudo!')
         return
       }
       try {
@@ -368,15 +351,15 @@ export function AdminPanel({ onClose }) {
         })
         const data = await response.json()
         if (data.success) {
-          alert('Documento atualizado com sucesso!')
+          toast.success('Documento atualizado com sucesso!')
           setEditingKnowledge(null)
           loadKnowledgeDocuments()
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao atualizar documento:', error)
-        alert('Erro ao atualizar documento')
+        toast.error('Erro ao atualizar documento')
       }
     }
 
@@ -420,7 +403,7 @@ export function AdminPanel({ onClose }) {
 
     const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
         if (!defectType || !diagnosis || !solution) {
-          alert('Preencha todos os campos antes de aprovar')
+          toast.warning('Preencha todos os campos antes de aprovar')
           return false
         }
         try {
@@ -431,24 +414,24 @@ export function AdminPanel({ onClose }) {
           })
         const data = await response.json()
         if (data.success) {
-          alert('Conhecimento visual aprovado com sucesso!')
+          toast.success('Conhecimento visual aprovado com sucesso!')
           loadPendingVisualPhotos()
           loadVisualKnowledge()
           return true
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
           return false
         }
       } catch (error) {
         console.error('Erro ao aprovar conhecimento visual:', error)
-        alert('Erro ao aprovar conhecimento visual')
+        toast.error('Erro ao aprovar conhecimento visual')
         return false
       }
     }
 
     const deletePendingVisual = async (id) => {
         if (!isAdmin) {
-          alert('Seu nivel de acesso nao permite excluir dados.')
+          toast.warning('Seu nivel de acesso nao permite excluir dados.')
           return
         }
         if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
@@ -460,17 +443,17 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           loadPendingVisualPhotos()
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao deletar foto pendente:', error)
-        alert('Erro ao deletar foto pendente')
+        toast.error('Erro ao deletar foto pendente')
       }
     }
 
     const addVisualKnowledgeEntry = async () => {
       if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
-        alert('Preencha todos os campos e selecione uma imagem')
+        toast.warning('Preencha todos os campos e selecione uma imagem')
         return
       }
 
@@ -484,12 +467,12 @@ export function AdminPanel({ onClose }) {
 
           const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
             method: 'POST',
-            body: formData
+          body: formData
           })
         const data = await response.json()
         
         if (data.success) {
-          alert('Conhecimento visual adicionado com sucesso!')
+          toast.success('Conhecimento visual adicionado com sucesso!')
           setVisualImage(null)
           setVisualImagePreview(null)
           setVisualDefectType('')
@@ -497,11 +480,11 @@ export function AdminPanel({ onClose }) {
           setVisualSolution('')
           loadVisualKnowledge()
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao adicionar conhecimento visual:', error)
-        alert('Erro ao adicionar conhecimento visual')
+        toast.error('Erro ao adicionar conhecimento visual')
       } finally {
         setAddingVisual(false)
       }
@@ -509,7 +492,7 @@ export function AdminPanel({ onClose }) {
 
     const deleteVisualKnowledgeEntry= async (id) => {
         if (!isAdmin) {
-          alert('Seu nivel de acesso nao permite excluir dados.')
+          toast.warning('Seu nivel de acesso nao permite excluir dados.')
           return
         }
         if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
@@ -523,62 +506,11 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           loadVisualKnowledge()
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao deletar conhecimento visual:', error)
-        alert('Erro ao deletar conhecimento visual')
-      }
-    }
-
-    // CORRECAO 3: Carregar detalhes de clientes por resina
-      const loadResinDetails = async (resin) => {
-        const resinName = resin?.trim()
-        if (!resinName) {
-          alert('Selecione uma resina válida para ver os detalhes')
-          return
-        }
-        setSelectedResin(resinName)
-        setResinDetailsLoading(true)
-        setResinDetails(null)
-        try {
-          const response = await fetch(buildAdminUrl('/metrics/resin-details', { resin: resinName }))
-          const data = await response.json()
-          if (data.success) {
-            setResinDetails(data)
-          } else {
-            alert('Erro ao carregar detalhes: ' + data.error)
-          setSelectedResin(null)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar detalhes da resina:', error)
-        alert('Erro ao carregar detalhes da resina')
-        setSelectedResin(null)
-      } finally {
-        setResinDetailsLoading(false)
-      }
-    }
-
-    // CORRECAO 4: Carregar historico do cliente
-    const loadClientHistory = async (clientKey) => {
-      setSelectedClient(clientKey)
-      setClientHistoryLoading(true)
-      setClientHistory(null)
-      try {
-        const response = await fetch(buildAdminUrl('/metrics/client-history', { clientKey }))
-        const data = await response.json()
-        if (data.success) {
-          setClientHistory(data)
-        } else {
-          alert('Erro ao carregar historico: ' + data.error)
-          setSelectedClient(null)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar historico do cliente:', error)
-        alert('Erro ao carregar historico do cliente')
-        setSelectedClient(null)
-      } finally {
-        setClientHistoryLoading(false)
+        toast.error('Erro ao deletar conhecimento visual')
       }
     }
 
@@ -591,17 +523,17 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           loadGalleryEntries()
         } else {
-          alert('Erro ao aprovar: ' + data.error)
+          toast.error('Erro ao aprovar: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao aprovar:', error)
-        alert('Erro ao aprovar foto')
+        toast.error('Erro ao aprovar foto')
       }
     }
 
     const rejectGalleryEntry = async (id) => {
       if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite rejeitar/excluir dados.')
+        toast.warning('Seu nivel de acesso nao permite rejeitar/excluir dados.')
         return
       }
       if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
@@ -613,11 +545,11 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           loadGalleryEntries()
         } else {
-          alert('Erro ao rejeitar: ' + data.error)
+          toast.error('Erro ao rejeitar: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao rejeitar:', error)
-        alert('Erro ao rejeitar foto')
+        toast.error('Erro ao rejeitar foto')
       }
     }
 
@@ -671,102 +603,16 @@ export function AdminPanel({ onClose }) {
           setEditingGalleryEntry(null)
           setEditGalleryData({})
           loadGalleryEntries()
-          alert('Entrada atualizada com sucesso!')
+          toast.success('Entrada atualizada com sucesso!')
         } else {
-          alert('Erro ao atualizar: ' + data.error)
+          toast.error('Erro ao atualizar: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao atualizar:', error)
-        alert('Erro ao atualizar entrada da galeria')
+        toast.error('Erro ao atualizar entrada da galeria')
       } finally {
         setSavingGalleryEdit(false)
       }
-    }
-
-    // Funcao para filtrar clientes por data de cadastro
-    const getFilteredClients = () => {
-      if (!metrics?.registrations?.users) return []
-      const users = metrics.registrations.users
-      if (clientsDateFilter === 'all') return users
-      
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const thisWeekStart = new Date(today.getTime() - (today.getDay() * 24 * 60 * 60 * 1000))
-      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      
-      return users.filter(user => {
-        const regDate = new Date(user.registeredAt)
-        switch (clientsDateFilter) {
-          case 'today':
-            return regDate >= today
-          case 'this_week':
-            return regDate >= thisWeekStart
-          case 'this_month':
-            return regDate >= thisMonthStart
-          default:
-            return true
-        }
-      })
-    }
-
-    // Funcao para carregar conversas de um topico especifico
-      const loadTopicConversations = async (topic) => {
-        setSelectedTopic(topic)
-        setTopicLoading(true)
-        setTopicConversations([])
-        try {
-          const response = await fetch(buildAdminUrl('/metrics/topic-details', { topic }))
-          const data = await response.json()
-          if (data.success) {
-            setTopicConversations(data.conversations || [])
-          } else {
-            // Fallback: filtrar conversas locais se o endpoint nao existir
-          const filtered = metrics?.conversations?.recent?.filter(conv => 
-            conv.message?.toLowerCase().includes(topic.toLowerCase()) ||
-            conv.reply?.toLowerCase().includes(topic.toLowerCase())
-          ) || []
-          setTopicConversations(filtered)
-        }
-      } catch (error) {
-        console.error('Erro ao carregar conversas do topico:', error)
-        // Fallback: filtrar conversas locais
-        const filtered = metrics?.conversations?.recent?.filter(conv => 
-          conv.message?.toLowerCase().includes(topic.toLowerCase()) ||
-          conv.reply?.toLowerCase().includes(topic.toLowerCase())
-        ) || []
-        setTopicConversations(filtered)
-      } finally {
-        setTopicLoading(false)
-      }
-    }
-
-    // Funcao para filtrar conversas por data (TAREFA 5)
-    const getFilteredConversations = () => {
-      if (!metrics?.conversations?.recent) return []
-      const conversations = metrics.conversations.recent
-      if (conversationDateFilter === 'all') return conversations
-      
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
-      const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-      const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-      
-      return conversations.filter(conv => {
-        const convDate = new Date(conv.timestamp)
-        switch (conversationDateFilter) {
-          case 'today':
-            return convDate >= today
-          case 'yesterday':
-            return convDate >= yesterday && convDate < today
-          case 'last_week':
-            return convDate >= lastWeek
-          case 'last_month':
-            return convDate >= lastMonth
-          default:
-            return true
-        }
-      })
     }
 
     // Funcoes para gerenciamento de parametros de impressao
@@ -798,7 +644,7 @@ export function AdminPanel({ onClose }) {
 
     const addResin = async () => {
       if (!newResinName.trim()) {
-        alert('Digite o nome da resina')
+        toast.warning('Digite o nome da resina')
         return
       }
       try {
@@ -811,19 +657,19 @@ export function AdminPanel({ onClose }) {
         if (data.success) {
           setNewResinName('')
           loadParamsData()
-          alert('Resina adicionada com sucesso!')
+          toast.success('Resina adicionada com sucesso!')
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao adicionar resina:', error)
-        alert('Erro ao adicionar resina')
+        toast.error('Erro ao adicionar resina')
       }
     }
 
     const deleteResin = async (resinId) => {
       if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite excluir dados.')
+        toast.warning('Seu nivel de acesso nao permite excluir dados.')
         return
       }
       if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
@@ -834,19 +680,19 @@ export function AdminPanel({ onClose }) {
         const data = await response.json()
         if (data.success) {
           loadParamsData()
-          alert('Resina deletada com sucesso!')
+          toast.success('Resina deletada com sucesso!')
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao deletar resina:', error)
-        alert('Erro ao deletar resina')
+        toast.error('Erro ao deletar resina')
       }
     }
 
     const addPrinter = async () => {
       if (!newPrinterBrand.trim() || !newPrinterModel.trim()) {
-        alert('Digite a marca e o modelo da impressora')
+        toast.warning('Digite a marca e o modelo da impressora')
         return
       }
       try {
@@ -860,19 +706,19 @@ export function AdminPanel({ onClose }) {
           setNewPrinterBrand('')
           setNewPrinterModel('')
           loadParamsData()
-          alert('Impressora adicionada com sucesso!')
+          toast.success('Impressora adicionada com sucesso!')
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao adicionar impressora:', error)
-        alert('Erro ao adicionar impressora')
+        toast.error('Erro ao adicionar impressora')
       }
     }
 
     const deletePrinter = async (printerId) => {
       if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite excluir dados.')
+        toast.warning('Seu nivel de acesso nao permite excluir dados.')
         return
       }
       if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
@@ -883,13 +729,13 @@ export function AdminPanel({ onClose }) {
         const data = await response.json()
         if (data.success) {
           loadParamsData()
-          alert('Impressora deletada com sucesso!')
+          toast.success('Impressora deletada com sucesso!')
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao deletar impressora:', error)
-        alert('Erro ao deletar impressora')
+        toast.error('Erro ao deletar impressora')
       }
     }
 
@@ -913,7 +759,7 @@ export function AdminPanel({ onClose }) {
 
     const saveProfile = async () => {
       if (!profileFormData.resinId || !profileFormData.printerId) {
-        alert('Selecione a resina e a impressora')
+        toast.warning('Selecione a resina e a impressora')
         return
       }
       try {
@@ -942,19 +788,19 @@ export function AdminPanel({ onClose }) {
           setEditingProfile(null)
           setProfileFormData({})
           loadParamsData()
-          alert('Perfil salvo com sucesso!')
+          toast.success('Perfil salvo com sucesso!')
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao salvar perfil:', error)
-        alert('Erro ao salvar perfil')
+        toast.error('Erro ao salvar perfil')
       }
     }
 
     const deleteProfile = async (profileId) => {
       if (!isAdmin) {
-        alert('Seu nivel de acesso nao permite excluir dados.')
+        toast.warning('Seu nivel de acesso nao permite excluir dados.')
         return
       }
       if (!confirm('Tem certeza que deseja deletar este perfil?')) return
@@ -965,13 +811,13 @@ export function AdminPanel({ onClose }) {
         const data = await response.json()
         if (data.success) {
           loadParamsData()
-          alert('Perfil deletado com sucesso!')
+          toast.success('Perfil deletado com sucesso!')
         } else {
-          alert('Erro: ' + data.error)
+          toast.error('Erro: ' + data.error)
         }
       } catch (error) {
         console.error('Erro ao deletar perfil:', error)
-        alert('Erro ao deletar perfil')
+        toast.error('Erro ao deletar perfil')
       }
     }
 
@@ -1020,7 +866,7 @@ export function AdminPanel({ onClose }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={() => { loadMetrics(); loadSuggestions(); loadCustomRequests(); loadContactMessages(); loadGalleryEntries(); loadVisualKnowledge(); loadKnowledgeDocuments(); }} disabled={loading}>
+            <Button onClick={refreshAllData} disabled={loading}>
               {loading ? 'Carregando...' : 'Atualizar'}
             </Button>
             {onClose && (
@@ -1108,289 +954,8 @@ export function AdminPanel({ onClose }) {
                 </div>
 
         {/* Content */}
-        {activeTab === 'metrics' && metrics && (
-          <div className="space-y-6">
-            {/* Cards de Resumo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total de Conversas</p>
-                    <p className="text-3xl font-bold text-blue-600">{metrics.conversations.total}</p>
-                    <p className="text-xs text-gray-500 mt-1">{metrics.conversations.uniqueSessions} sessões únicas</p>
-                  </div>
-                  <MessageSquare className="h-12 w-12 text-blue-500 opacity-20" />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Cadastros Realizados</p>
-                    <p className="text-3xl font-bold text-green-600">{metrics.registrations.total}</p>
-                    <p className="text-xs text-gray-500 mt-1">Clientes registrados</p>
-                  </div>
-                  <Users className="h-12 w-12 text-green-500 opacity-20" />
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Taxa de Conversão</p>
-                    <p className="text-3xl font-bold text-purple-600">
-                      {metrics.conversations.total > 0 
-                        ? ((metrics.registrations.total / metrics.conversations.uniqueSessions) * 100).toFixed(1)
-                        : 0}%
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">Cadastros / Sessões</p>
-                  </div>
-                  <TrendingUp className="h-12 w-12 text-purple-500 opacity-20" />
-                </div>
-              </Card>
-            </div>
-
-            {/* Perguntas Mais Frequentes */}
-            <Card className="p-6">
-              <h3 className="text-xl font-bold mb-4">📊 Perguntas Mais Frequentes</h3>
-              {metrics.topQuestions.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhuma pergunta registrada ainda</p>
-              ) : (
-                <div className="space-y-2">
-                  {metrics.topQuestions.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex-1">
-                        <span className="font-semibold text-blue-600 mr-2">#{index + 1}</span>
-                        <span className="text-sm">{item.question}</span>
-                      </div>
-                      <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-semibold">
-                        {item.count}x
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-                        {/* Conversas por Resina - CORRECAO 3: Cards clicaveis */}
-                        <Card className="p-6">
-                          <h3 className="text-xl font-bold mb-4">🧪 Menções de Resinas nas Conversas</h3>
-                          <p className="text-sm text-gray-500 mb-4">Clique em uma resina para ver detalhes dos clientes</p>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {Object.entries(metrics.resinMentions).map(([resin, count]) => (
-                              <div 
-                                key={resin} 
-                                onClick={() => loadResinDetails(resin)}
-                                className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 rounded-lg text-center cursor-pointer hover:shadow-lg hover:scale-105 transition-all border-2 border-transparent hover:border-purple-400"
-                              >
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{resin}</p>
-                                <p className="text-2xl font-bold text-purple-600">{count}</p>
-                                <p className="text-xs text-gray-400 mt-1">Clique para detalhes</p>
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-
-                        {/* Top Clientes com Duvidas - CORRECAO 4: Botao Ver Historico */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <Card className="p-6">
-                            <h3 className="text-xl font-bold mb-4">👤 Top Clientes com Dúvidas</h3>
-                            {!metrics.topClients || metrics.topClients.length === 0 ? (
-                              <p className="text-gray-500 text-center py-8">Nenhum cliente registrado ainda</p>
-                            ) : (
-                              <div className="space-y-2">
-                                {metrics.topClients.map((item, index) => (
-                                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                    <div className="flex items-center gap-2">
-                                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                                        index === 1 ? 'bg-gray-300 text-gray-700' :
-                                        index === 2 ? 'bg-orange-400 text-orange-900' :
-                                        'bg-blue-100 text-blue-800'
-                                      }`}>
-                                        {index + 1}
-                                      </span>
-                                      <span className="text-sm truncate max-w-[120px]">{item.client}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs font-semibold">
-                                        {item.count}x
-                                      </span>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => loadClientHistory(item.client)}
-                                        className="text-xs px-2 py-1 h-7"
-                                      >
-                                        <Eye className="h-3 w-3 mr-1" />
-                                        Ver Histórico
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </Card>
-
-                          {/* Topicos Mais Acessados - CLICÁVEL */}
-                          <Card className="p-6">
-                            <h3 className="text-xl font-bold mb-4">🔥 Tópicos Mais Acessados</h3>
-                            <p className="text-xs text-gray-500 mb-3">Clique em um tópico para ver as conversas relacionadas</p>
-                            {!metrics.topTopics || metrics.topTopics.length === 0 ? (
-                              <p className="text-gray-500 text-center py-8">Nenhum tópico registrado ainda</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                {metrics.topTopics.map((item, index) => (
-                                  <button 
-                                    key={index}
-                                    onClick={() => loadTopicConversations(item.topic)}
-                                    className={`px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer hover:opacity-80 hover:scale-105 transition-all ${
-                                      index < 3 ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
-                                      index < 6 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200' :
-                                      index < 10 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
-                                      'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                    }`}
-                                    title={`Clique para ver ${item.count} conversas sobre "${item.topic}"`}
-                                  >
-                                    {item.topic} ({item.count})
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </Card>
-                        </div>
-
-                        {/* Clientes Cadastrados - COM FILTRO DE DATA */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div 
-                  className="flex items-center gap-2 cursor-pointer"
-                  onClick={() => setShowAllClients(!showAllClients)}
-                >
-                  <h3 className="text-xl font-bold">👥 Clientes Cadastrados ({metrics.registrations.total})</h3>
-                  <Button variant="ghost" size="sm">
-                    {showAllClients ? '▲' : '▼'}
-                  </Button>
-                </div>
-                {showAllClients && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <select
-                      value={clientsDateFilter}
-                      onChange={(e) => setClientsDateFilter(e.target.value)}
-                      className="px-2 py-1 text-sm border rounded-lg bg-white dark:bg-gray-800"
-                    >
-                      <option value="all">Todos</option>
-                      <option value="today">Hoje</option>
-                      <option value="this_week">Esta Semana</option>
-                      <option value="this_month">Este Mês</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-              {showAllClients && (
-                <>
-                  {getFilteredClients().length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      {clientsDateFilter === 'all' 
-                        ? 'Nenhum cadastro realizado ainda' 
-                        : 'Nenhum cadastro encontrado para este período'}
-                    </p>
-                  ) : (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      <p className="text-sm text-gray-500 mb-2">
-                        Mostrando {getFilteredClients().length} de {metrics.registrations.total} clientes
-                      </p>
-                      {getFilteredClients().map((user, index) => (
-                        <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                            <User className="h-5 w-5 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold truncate">{user.name}</p>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {user.phone}
-                              </span>
-                              <span className="truncate">{user.email}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(user.registeredAt).toLocaleDateString('pt-BR')}
-                            </span>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-xs h-6 px-2"
-                              onClick={() => loadClientHistory(user.email || user.phone)}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Ver Histórico
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </Card>
-
-            {/* Conversas Recentes - TAREFA 5: Date Filter */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">💬 Últimas Conversas</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Filtrar:</span>
-                  <select
-                    value={conversationDateFilter}
-                    onChange={(e) => setConversationDateFilter(e.target.value)}
-                    className="px-3 py-1.5 text-sm border rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">Todas</option>
-                    <option value="today">Hoje</option>
-                    <option value="yesterday">Ontem</option>
-                    <option value="last_week">Última Semana</option>
-                    <option value="last_month">Último Mês</option>
-                  </select>
-                </div>
-              </div>
-              {getFilteredConversations().length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  {conversationDateFilter === 'all' 
-                    ? 'Nenhuma conversa registrada ainda' 
-                    : 'Nenhuma conversa encontrada para este período'}
-                </p>
-              ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  <p className="text-sm text-gray-500 mb-2">
-                    Mostrando {Math.min(getFilteredConversations().length, 20)} de {getFilteredConversations().length} conversas
-                  </p>
-                  {getFilteredConversations().slice(0, 20).map((conv, index) => (
-                    <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-sm">{conv.userName}</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(conv.timestamp).toLocaleString('pt-BR')}
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
-                          <p className="text-sm"><strong>Pergunta:</strong> {conv.message}</p>
-                        </div>
-                        <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded">
-                          <p className="text-sm whitespace-pre-wrap"><strong>Resposta:</strong> {conv.reply}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
+        {activeTab === 'metrics' && (
+          <MetricsTab buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
         )}
 
         {activeTab === 'knowledge' && (
@@ -1441,7 +1006,7 @@ export function AdminPanel({ onClose }) {
                   <Button
                   onClick={async () => {
                       if (!knowledgeTitle.trim() || !knowledgeContent.trim()) {
-                        alert('Preencha título e conteúdo!')
+                        toast.warning('Preencha título e conteúdo!')
                         return
                       }
                       const tags = parseTagsString(knowledgeTags)
@@ -1460,16 +1025,16 @@ export function AdminPanel({ onClose }) {
                       })
                       const data = await response.json()
                       if (data.success) {
-                        alert('✅ Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
+                        toast.success('Conhecimento adicionado com sucesso! O bot já pode usar essa informação.')
                         setKnowledgeTitle('')
                         setKnowledgeContent('')
                         setKnowledgeTags('general')
                         setKnowledgeSource('admin-panel')
                       } else {
-                        alert('❌ Erro: ' + data.error)
+                        toast.error('Erro: ' + data.error)
                       }
                     } catch (error) {
-                      alert('❌ Erro ao adicionar conhecimento: ' + error.message)
+                      toast.error('Erro ao adicionar conhecimento: ' + error.message)
                     } finally {
                       setAddingKnowledge(false)
                     }
@@ -1919,10 +1484,10 @@ export function AdminPanel({ onClose }) {
                                     setEditingSuggestion(null)
                                     setEditedText('')
                                   } else {
-                                    alert('Erro: ' + data.message)
+                                    toast.error('Erro: ' + data.message)
                                   }
                                 } catch (error) {
-                                  alert('Erro ao aprovar: ' + error.message)
+                                  toast.error('Erro ao aprovar: ' + error.message)
                                 }
                               }}
                             >
@@ -1958,10 +1523,10 @@ export function AdminPanel({ onClose }) {
                                 if (data.success) {
                                   setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
                                 } else {
-                                  alert('Erro: ' + data.message)
+                                  toast.error('Erro: ' + data.message)
                                 }
                               } catch (error) {
-                                alert('Erro ao aprovar: ' + error.message)
+                                toast.error('Erro ao aprovar: ' + error.message)
                               }
                             }}
                           >
@@ -1994,10 +1559,10 @@ export function AdminPanel({ onClose }) {
                                   if (data.success) {
                                     setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))
                                   } else {
-                                    alert('Erro: ' + data.message)
+                                    toast.error('Erro: ' + data.message)
                                   }
                                 } catch (error) {
-                                  alert('Erro ao rejeitar: ' + error.message)
+                                  toast.error('Erro ao rejeitar: ' + error.message)
                                 }
                               }}
                             >
@@ -2097,7 +1662,6 @@ export function AdminPanel({ onClose }) {
                           const lowerLiftDist = params.lowerLiftDistance || {}
                           const liftDist = params.liftDistance || {}
                           const liftSpd = params.liftSpeed || {}
-                          const lowerRetractSpd = params.lowerRetractSpeed || {}
                           const retractSpd = params.retractSpeed || {}
                           return (
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
@@ -2196,27 +1760,34 @@ export function AdminPanel({ onClose }) {
               </p>
 
               {/* Secao de fotos pendentes - enviadas automaticamente pelo bot */}
-              {pendingVisualPhotos.length > 0 && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
-                  <h4 className="font-semibold flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-3">
-                    <AlertCircle className="h-5 w-5" />
-                    Fotos Pendentes para Treinamento ({pendingVisualPhotos.length})
-                  </h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
-                    Estas fotos foram enviadas por clientes e o bot nao conseguiu identificar o problema. Adicione o conhecimento para treinar o bot.
-                  </p>
-                  <div className="space-y-4">
-                    {pendingVisualPhotos.map((item) => (
-                      <PendingVisualItemForm 
-                        key={item._id} 
-                        item={item} 
-                        onApprove={approvePendingVisual}
-                        onDelete={deletePendingVisual}
-                        canDelete={isAdmin}
-                      />
-                    ))}
-                  </div>
+              {pendingVisualLoading ? (
+                <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <p className="text-sm">Carregando fotos pendentes...</p>
                 </div>
+              ) : (
+                pendingVisualPhotos.length > 0 && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                    <h4 className="font-semibold flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-3">
+                      <AlertCircle className="h-5 w-5" />
+                      Fotos Pendentes para Treinamento ({pendingVisualPhotos.length})
+                    </h4>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                      Estas fotos foram enviadas por clientes e o bot nao conseguiu identificar o problema. Adicione o conhecimento para treinar o bot.
+                    </p>
+                    <div className="space-y-4">
+                      {pendingVisualPhotos.map((item) => (
+                        <PendingVisualItemForm 
+                          key={item._id} 
+                          item={item} 
+                          onApprove={approvePendingVisual}
+                          onDelete={deletePendingVisual}
+                          canDelete={isAdmin}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
               )}
 
               {/* Form para adicionar novo conhecimento visual */}
@@ -2390,249 +1961,6 @@ export function AdminPanel({ onClose }) {
                     </div>
                   ))}
                 </div>
-              )}
-            </Card>
-          </div>
-        )}
-
-        {/* Modal de Detalhes da Resina - CORRECAO 3 */}
-        {selectedResin && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">🧪 Detalhes da Resina: {selectedResin}</h3>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedResin(null); setResinDetails(null); }}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {resinDetailsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                  <span className="ml-2">Carregando detalhes...</span>
-                </div>
-              ) : resinDetails ? (
-                <div className="space-y-6">
-                  {/* Clientes que usam essa resina */}
-                  <div>
-                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-blue-500" />
-                      Clientes que usam {selectedResin} ({resinDetails.customersCount})
-                    </h4>
-                    {resinDetails.customers.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">Nenhum cliente cadastrado com essa resina</p>
-                    ) : (
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {resinDetails.customers.map((customer, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                                <User className="h-4 w-4 text-white" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-sm">{customer.name}</p>
-                                <p className="text-xs text-gray-500">{customer.email || customer.phone || 'Sem contato'}</p>
-                              </div>
-                            </div>
-                            <div className="text-right text-xs text-gray-500">
-                              <p>{customer.printer || 'Impressora nao informada'}</p>
-                              {customer.registeredAt && <p>{new Date(customer.registeredAt).toLocaleDateString('pt-BR')}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Conversas relacionadas */}
-                  <div>
-                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-green-500" />
-                      Conversas Relacionadas ({resinDetails.conversationsCount})
-                    </h4>
-                    {resinDetails.conversations.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">Nenhuma conversa encontrada</p>
-                    ) : (
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {resinDetails.conversations.map((conv, idx) => (
-                          <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-sm">{conv.customerName}</span>
-                              <span className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString('pt-BR')}</span>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded text-sm">
-                                <strong>Duvida:</strong> {conv.userPrompt}
-                              </div>
-                              <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded text-sm">
-                                <strong>Resposta:</strong> {conv.botReply?.substring(0, 200)}{conv.botReply?.length > 200 ? '...' : ''}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">Erro ao carregar detalhes</p>
-              )}
-            </Card>
-          </div>
-        )}
-
-        {/* Modal de Conversas do Topico - DRILL-DOWN */}
-        {selectedTopic && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">🔥 Conversas sobre: {selectedTopic}</h3>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedTopic(null); setTopicConversations([]); }}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {topicLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-                  <span className="ml-2">Carregando conversas...</span>
-                </div>
-              ) : topicConversations.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhuma conversa encontrada para este tópico</p>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-500">
-                    Encontradas {topicConversations.length} conversas relacionadas a "{selectedTopic}"
-                  </p>
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                    {topicConversations.map((conv, idx) => (
-                      <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-sm">{conv.userName || conv.customerName || 'Cliente'}</span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(conv.timestamp).toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
-                            <p className="text-sm"><strong>Pergunta:</strong> {conv.message || conv.userPrompt}</p>
-                          </div>
-                          <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded">
-                            <p className="text-sm whitespace-pre-wrap"><strong>Resposta:</strong> {conv.reply || conv.botReply}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
-
-        {/* Modal de Historico do Cliente - CORRECAO 4 */}
-        {selectedClient && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">👤 Histórico do Cliente</h3>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedClient(null); setClientHistory(null); }}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {clientHistoryLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                  <span className="ml-2">Carregando historico...</span>
-                </div>
-              ) : clientHistory ? (
-                <div className="space-y-6">
-                  {/* Info do Cliente */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <User className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg">{clientHistory.client.name}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          {clientHistory.client.email && <span>{clientHistory.client.email}</span>}
-                          {clientHistory.client.phone && <span>{clientHistory.client.phone}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">Total de interacoes: {clientHistory.totalInteractions}</p>
-                  </div>
-
-                  {/* Registros do Cliente */}
-                  {clientHistory.registrations.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Resinas Utilizadas</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {clientHistory.registrations.map((reg, idx) => (
-                          <span key={idx} className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm">
-                            {reg.resin} - {reg.printer}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Conversas do Cliente */}
-                  <div>
-                    <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-green-500" />
-                      Historico de Conversas ({clientHistory.conversations.length})
-                    </h4>
-                    {clientHistory.conversations.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">Nenhuma conversa encontrada</p>
-                    ) : (
-                      <div className="space-y-3 max-h-80 overflow-y-auto">
-                        {clientHistory.conversations.map((conv, idx) => (
-                          <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border-l-4 border-blue-500">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs text-gray-500">{new Date(conv.timestamp).toLocaleString('pt-BR')}</span>
-                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                conv.documentsFound > 0 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                              }`}>
-                                {conv.documentsFound > 0 ? 'Resolvido pelo RAG' : 'Sem match RAG'}
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded">
-                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">DUVIDA PRINCIPAL</p>
-                                <p className="text-sm">{conv.prompt}</p>
-                              </div>
-                              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded">
-                                <p className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">RESPOSTA DO BOT</p>
-                                <p className="text-sm whitespace-pre-wrap">{conv.reply}</p>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs">
-                                <span className={`px-2 py-1 rounded ${
-                                  conv.documentsFound > 0 
-                                    ? 'bg-green-500 text-white' 
-                                    : 'bg-gray-300 text-gray-700'
-                                }`}>
-                                  Status: {conv.documentsFound > 0 ? 'Resolvido' : 'Nao resolvido'}
-                                </span>
-                                {conv.questionType && (
-                                  <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded">
-                                    Tipo: {conv.questionType}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">Erro ao carregar historico</p>
               )}
             </Card>
           </div>
