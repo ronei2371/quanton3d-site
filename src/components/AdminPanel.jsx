@@ -2,11 +2,12 @@ import { useCallback, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake } from 'lucide-react'
+import { X, Check, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, FileText, Beaker, Edit3, Mail, Camera, Image, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
 import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
+import { OrdersTab } from './admin/OrdersTab.jsx'
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
@@ -102,10 +103,12 @@ export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [accessLevel, setAccessLevel] = useState(null) // 'admin' | 'support' | null
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
+  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'orders' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
   const [suggestionsCount, setSuggestionsCount] = useState(0)
   const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0)
+  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0)
+  const [ordersPendingCount, setOrdersPendingCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [knowledgeTitle, setKnowledgeTitle] = useState('')
   const [knowledgeContent, setKnowledgeContent] = useState('')
@@ -191,6 +194,7 @@ export function AdminPanel({ onClose }) {
     try {
       setMetricsRefreshKey((key) => key + 1)
       setSuggestionsRefreshKey((key) => key + 1)
+      setOrdersRefreshKey((key) => key + 1)
       await Promise.all([
         loadCustomRequests(),
         loadContactMessages(),
@@ -882,6 +886,14 @@ export function AdminPanel({ onClose }) {
             <MessageSquare className="h-4 w-4 mr-2" />
             Sugestões ({suggestionsCount})
           </Button>
+          <Button 
+            onClick={() => setActiveTab('orders')}
+            variant={activeTab === 'orders' ? 'default' : 'outline'}
+            className={activeTab === 'orders' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <ShoppingBag className="h-4 w-4 mr-2" />
+            Pedidos ({ordersPendingCount})
+          </Button>
                     <Button 
                       onClick={() => { setActiveTab('knowledge'); loadKnowledgeDocuments(); }}
                       variant={activeTab === 'knowledge' ? 'default' : 'outline'}
@@ -1385,6 +1397,14 @@ export function AdminPanel({ onClose }) {
           isVisible={activeTab === 'suggestions'}
           onCountChange={setSuggestionsCount}
           refreshKey={suggestionsRefreshKey}
+        />
+
+        <OrdersTab
+          buildAdminUrl={buildAdminUrl}
+          isAdmin={isAdmin}
+          isVisible={activeTab === 'orders'}
+          onCountChange={setOrdersPendingCount}
+          refreshKey={ordersRefreshKey}
         />
 
         {/* Gallery Tab */}
