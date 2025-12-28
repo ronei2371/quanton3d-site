@@ -8,13 +8,13 @@ O site apresenta a empresa, seus produtos (resinas UV SLA), serviços de suporte
 
 ## Como Fazer o Deploy
 
-Recomendamos utilizar a plataforma da **Netlify** para fazer o deploy de forma simples e gratuita.
+Recomendamos utilizar a plataforma da **Render** para hospedar frontend e backend juntos. A Netlify continua sendo uma opção apenas para o front (estático), mas o fluxo principal agora é via Render.
 
-### Opção Render (usar backend + front juntos)
+### Deploy na Render (backend + frontend servidos juntos)
 
-1.  No Render, crie (ou reutilize) um serviço **Web Service** que execute `npm install` no build e depois `npm run build` + `npm run server` no start (o script `server` já aponta para `backend/app.js`, que agora também serve a pasta `dist`).
-2.  Em **Settings > Custom Domains**, adicione `axtonronei.online`.
-3.  O Render mostrará um **CNAME** (geralmente `quanton3d-bot-v2.onrender.com`) ou registros A/AAAA. Crie exatamente esses registros no DNS do domínio (remova os nameservers da Netlify, se estiverem ativos).
+1.  No Render, crie (ou reutilize) um **Web Service** que execute `npm install` no build e depois `npm run build` + `npm run server` no start (o script `server` já aponta para `backend/app.js`, que agora também serve a pasta `dist`).
+2.  Em **Settings > Custom Domains**, adicione `axtonronei.online` e copie o CNAME ou os registros A/AAAA exibidos pelo Render.
+3.  No provedor de DNS do domínio (ex.: Google Domains), remova eventuais nameservers da Netlify e crie o CNAME/A/AAAA exatamente como o Render indicou.
 4.  Aguarde a propagação do DNS. Assim que o Render verificar o domínio, o certificado HTTPS será emitido automaticamente.
 5.  Teste em aba anônima: `https://axtonronei.online`. Se precisar verificar DNS, use `nslookup axtonronei.online`.
 
@@ -33,7 +33,7 @@ Recomendamos utilizar a plataforma da **Netlify** para fazer o deploy de forma s
     git push -u origin main
     ```
 
-### Passo 2: Deploy na Netlify
+### (Opcional) Deploy na Netlify apenas para frontend estático
 
 1.  Crie uma conta na [Netlify](https://www.netlify.com/) (você pode usar sua conta do GitHub para se registrar).
 2.  No painel da Netlify, clique em **"Add new site"** e depois em **"Import an existing project"**.
@@ -44,32 +44,26 @@ Recomendamos utilizar a plataforma da **Netlify** para fazer o deploy de forma s
     *   **Publish directory:** `dist`
 6.  Clique em **"Deploy site"**.
 
-Em poucos minutos, seu site estará no ar com um endereço temporário da Netlify (ex: `nome-aleatorio.netlify.app`).
+Em poucos minutos, seu site estará no ar com um endereço temporário da Netlify (ex: `nome-aleatorio.netlify.app`). Para usar o domínio principal na Render, mantenha o DNS apontando para os registros fornecidos pelo Render (não para os nameservers da Netlify).
 
 ## Configurando o Domínio `axtonronei.online`
 
-Depois que o site estiver no ar na Netlify, você pode apontar seu domínio para ele.
+O domínio principal deve apontar para o serviço na Render.
 
-### Passo 1: Adicione o Domínio na Netlify
+### Passo 1: Adicione o domínio na Render
 
-1.  No painel do seu site na Netlify, vá para **"Domain settings"**.
+1.  No painel do Web Service na Render, vá em **Settings > Custom Domains**.
 2.  Clique em **"Add a domain"** e insira `axtonronei.online`.
-3.  Confirme que você é o dono do domínio.
-4.  A Netlify fornecerá os **Nameservers (servidores de nome)** que você precisa usar. Serão algo como:
-    *   `dns1.p01.nsone.net`
-    *   `dns2.p01.nsone.net`
-    *   `dns3.p01.nsone.net`
-    *   `dns4.p01.nsone.net`
+3.  Copie o **CNAME** ou os registros **A/AAAA** que o Render exibir (por exemplo, `quanton3d-bot-v2.onrender.com`).
 
-### Passo 2: Altere os Nameservers no Google Domains
+### Passo 2: Ajuste o DNS no provedor do domínio
 
-1.  Acesse sua conta no [Google Domains](https://domains.google.com/).
-2.  Encontre o domínio `axtonronei.online` e vá para a seção de **DNS**.
-3.  Selecione a opção para usar **"Custom name servers" (Servidores de nome personalizados)**.
-4.  Apague os nameservers existentes (da HostGator) e adicione os quatro nameservers fornecidos pela Netlify.
-5.  Salve as alterações.
+1.  Acesse seu provedor de DNS (ex.: [Google Domains](https://domains.google.com/)).
+2.  Se existirem nameservers da Netlify, remova-os e volte a usar o DNS padrão do provedor.
+3.  Crie o registro **CNAME** (ou **A/AAAA**, conforme instrução do Render) exatamente como informado na etapa anterior.
+4.  Salve as alterações e aguarde a propagação.
 
-**Atenção:** A propagação do DNS pode levar de alguns minutos a 48 horas. Após esse período, seu site `axtonronei.online` estará funcionando e apontando para a versão hospedada na Netlify, com certificado de segurança (HTTPS) ativado automaticamente.
+**Atenção:** A propagação do DNS pode levar de alguns minutos a 48 horas. Após esse período, acesse `https://axtonronei.online` em uma aba anônima para validar. O Render emitirá o certificado HTTPS automaticamente assim que a verificação do domínio for concluída.
 
 ## Atualizações
 
