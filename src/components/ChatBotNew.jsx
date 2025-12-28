@@ -16,7 +16,8 @@
         // =================================================================
         // INCLUSÃO DO RAG (1. Tenta o Conhecimento de Especialista)
         // =================================================================
-        const RAG_ENDPOINT = '/.netlify/functions/rag-handler'; // Endpoint da Função Netlify rag-handler.js
+        const RAG_ENDPOINT =
+          import.meta.env.VITE_RAG_ENDPOINT || `${API_URL}/rag-handler`;
         
         let ragAnswer = null;
 
