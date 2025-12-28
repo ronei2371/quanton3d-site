@@ -10,6 +10,7 @@ import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
 import { OrdersTab } from './admin/OrdersTab.jsx'
 import { GalleryTab } from './admin/GalleryTab.jsx'
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
+import { ContactsTab } from './admin/ContactsTab.jsx'
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
@@ -114,9 +115,10 @@ export function AdminPanel({ onClose }) {
   const [loading, setLoading] = useState(false)
   const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0)
   const [customRequests, setCustomRequests] = useState([])
-  const [contactMessages, setContactMessages] = useState([])
   const [galleryPendingCount, setGalleryPendingCount] = useState(0)
   const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
+  const [contactCount, setContactCount] = useState(0)
+  const [contactRefreshKey, setContactRefreshKey] = useState(0)
   // Visual RAG states
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
@@ -166,9 +168,9 @@ export function AdminPanel({ onClose }) {
       setSuggestionsRefreshKey((key) => key + 1)
       setOrdersRefreshKey((key) => key + 1)
       setKnowledgeRefreshKey((key) => key + 1)
+      setContactRefreshKey((key) => key + 1)
       await Promise.all([
         loadCustomRequests(),
-        loadContactMessages(),
         loadVisualKnowledge(),
         loadPendingVisualPhotos(),
         loadParamsData()
@@ -204,35 +206,6 @@ export function AdminPanel({ onClose }) {
       console.error('Erro ao carregar pedidos customizados:', error)
     }
   }
-
-        const loadContactMessages = async () => {
-          try {
-            const response = await fetch(buildAdminUrl('/api/contact'))
-            const data = await response.json()
-            setContactMessages(data.messages || [])
-          } catch (error) {
-            console.error('Erro ao carregar mensagens de contato:', error)
-          }
-        }
-
-        const toggleMessageResolved = async (messageId, currentResolved) => {
-          try {
-            const response = await fetch(buildAdminUrl(`/api/contact/${messageId}`), {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ resolved: !currentResolved })
-            })
-            const data = await response.json()
-            if (data.success) {
-              loadContactMessages()
-            } else {
-              toast.error('Erro ao atualizar status: ' + data.error)
-            }
-          } catch (error) {
-            console.error('Erro ao atualizar status da mensagem:', error)
-            toast.error('Erro ao atualizar status da mensagem')
-        }
-        }
 
     // Visual RAG functions
       const loadVisualKnowledge = async () => {
@@ -662,14 +635,14 @@ export function AdminPanel({ onClose }) {
             <ShoppingBag className="h-4 w-4 mr-2" />
             Pedidos ({ordersPendingCount})
           </Button>
-                    <Button 
-                      onClick={() => { setActiveTab('knowledge'); setKnowledgeRefreshKey((key) => key + 1); }}
-                      variant={activeTab === 'knowledge' ? 'default' : 'outline'}
-                    className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-                  >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Gestão de Conhecimento
-                  </Button>
+          <Button 
+            onClick={() => { setActiveTab('knowledge'); setKnowledgeRefreshKey((key) => key + 1); }}
+            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
+            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Gestão de Conhecimento
+          </Button>
           <Button 
             onClick={() => setActiveTab('custom')}
             variant={activeTab === 'custom' ? 'default' : 'outline'}
@@ -678,47 +651,47 @@ export function AdminPanel({ onClose }) {
             <Beaker className="h-4 w-4 mr-2" />
             Formulações ({customRequests.length})
           </Button>
-                  <Button 
-                    onClick={() => setActiveTab('messages')}
-                    variant={activeTab === 'messages' ? 'default' : 'outline'}
-                    className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Mensagens ({contactMessages.length})
-                  </Button>
-                  <Button 
-                    onClick={() => setActiveTab('gallery')}
-                    variant={activeTab === 'gallery' ? 'default' : 'outline'}
-                    className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Galeria ({galleryPendingCount})
-                  </Button>
-                  <Button 
-                    onClick={() => setActiveTab('visual')}
-                    variant={activeTab === 'visual' ? 'default' : 'outline'}
-                    className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Treinamento Visual ({visualKnowledge.length})
-                  </Button>
-                  <Button 
-                    onClick={() => setActiveTab('partners')}
-                    variant={activeTab === 'partners' ? 'default' : 'outline'}
-                    className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-                  >
-                    <Handshake className="h-4 w-4 mr-2" />
-                    Parceiros
-                  </Button>
-                  <Button 
-                    onClick={() => { setActiveTab('params'); loadParamsData(); }}
-                    variant={activeTab === 'params' ? 'default' : 'outline'}
-                    className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-                  >
-                    <Beaker className="h-4 w-4 mr-2" />
-                    Gerenciar Parametros
-                  </Button>
-                </div>
+          <Button 
+            onClick={() => { setActiveTab('messages'); setContactRefreshKey((key) => key + 1); }}
+            variant={activeTab === 'messages' ? 'default' : 'outline'}
+            className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Mensagens ({contactCount})
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('gallery')}
+            variant={activeTab === 'gallery' ? 'default' : 'outline'}
+            className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Camera className="h-4 w-4 mr-2" />
+            Galeria ({galleryPendingCount})
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('visual')}
+            variant={activeTab === 'visual' ? 'default' : 'outline'}
+            className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Treinamento Visual ({visualKnowledge.length})
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('partners')}
+            variant={activeTab === 'partners' ? 'default' : 'outline'}
+            className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Handshake className="h-4 w-4 mr-2" />
+            Parceiros
+          </Button>
+          <Button 
+            onClick={() => { setActiveTab('params'); loadParamsData(); }}
+            variant={activeTab === 'params' ? 'default' : 'outline'}
+            className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Beaker className="h-4 w-4 mr-2" />
+            Gerenciar Parametros
+          </Button>
+        </div>
 
         {/* Content */}
         {activeTab === 'metrics' && (
@@ -795,106 +768,12 @@ export function AdminPanel({ onClose }) {
           </div>
         )}
 
-                {activeTab === 'messages' && (
-                  <div className="space-y-4">
-                    {contactMessages.length === 0 ? (
-                      <Card className="p-12 text-center">
-                        <Mail className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-600 dark:text-gray-400">
-                          Nenhuma mensagem de contato ainda
-                        </p>
-                      </Card>
-                    ) : (
-                      contactMessages.map((message, index) => (
-                        <Card 
-                          key={index} 
-                          className={`p-6 transition-all ${message.resolved ? 'opacity-60 bg-gray-100 dark:bg-gray-900' : ''}`}
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                                message.resolved 
-                                  ? 'bg-green-500' 
-                                  : 'bg-gradient-to-br from-green-500 to-blue-500'
-                              }`}>
-                                {message.resolved ? (
-                                  <Check className="h-5 w-5 text-white" />
-                                ) : (
-                                  <Mail className="h-5 w-5 text-white" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-semibold">{message.name}</p>
-                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                  {message.phone && (
-                                    <span className="flex items-center gap-1">
-                                      <Phone className="h-3 w-3" />
-                                      {message.phone}
-                                    </span>
-                                  )}
-                                  {message.email && (
-                                    <span className="truncate">{message.email}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                message.resolved 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                  : message.status === 'new' 
-                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                              }`}>
-                                {message.resolved ? 'Resolvido' : message.status === 'new' ? 'Pendente' : message.status}
-                              </span>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {new Date(message.createdAt).toLocaleString('pt-BR')}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                            <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                          </div>
-
-                          <div className="flex gap-2 items-center">
-                            {message.phone && (
-                              <Button 
-                                size="sm" 
-                                className="flex-1 bg-green-600 hover:bg-green-700"
-                                onClick={() => window.open(`https://wa.me/55${message.phone.replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
-                              >
-                                <Phone className="h-4 w-4 mr-2" />
-                                WhatsApp
-                              </Button>
-                            )}
-                            {message.email && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => window.open(`mailto:${message.email}?subject=Re: Contato Quanton3D&body=Olá ${message.name},%0A%0ARecebemos sua mensagem...`, '_blank')}
-                              >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Email
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant={message.resolved ? 'outline' : 'default'}
-                              className={message.resolved ? 'border-green-500 text-green-600' : 'bg-blue-600 hover:bg-blue-700'}
-                              onClick={() => toggleMessageResolved(message._id, message.resolved)}
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              {message.resolved ? 'Reabrir' : 'Marcar Resolvido'}
-                            </Button>
-                          </div>
-                        </Card>
-                      ))
-                    )}
-                  </div>
-                )}
+        <ContactsTab
+          buildAdminUrl={buildAdminUrl}
+          isVisible={activeTab === 'messages'}
+          onCountChange={setContactCount}
+          refreshKey={contactRefreshKey}
+        />
 
         <SuggestionsTab
           buildAdminUrl={buildAdminUrl}
