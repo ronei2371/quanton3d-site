@@ -65,6 +65,21 @@ O domínio principal deve apontar para o serviço na Render.
 
 **Atenção:** A propagação do DNS pode levar de alguns minutos a 48 horas. Após esse período, acesse `https://axtonronei.online` em uma aba anônima para validar. O Render emitirá o certificado HTTPS automaticamente assim que a verificação do domínio for concluída.
 
+### Resolvendo falhas de verificação no Render
+
+Caso o painel do Render mostre “DNS update needed to verify domain ownership” (como na captura da tela), verifique:
+
+1. **Registros corretos no DNS**  
+   - `www.axtonronei.online` → CNAME apontando para `quanton3d-bot-v2.onrender.com`.  
+   - `axtonronei.online` (raiz) → use **ALIAS/ANAME** para `quanton3d-bot-v2.onrender.com`. Se o provedor não suportar esses tipos, crie um **A** apontando para `216.24.57.1` (IP fornecido pelo Render).
+2. **Remova conflitos**  
+   - Apague registros antigos da Netlify (CNAMEs ou registros apex) ou qualquer outro A/AAAA/CNAME apontando para outro serviço.
+3. **Propagação e cache**  
+   - Aguarde 15–30 minutos e teste via `nslookup axtonronei.online` e `nslookup www.axtonronei.online` para confirmar a resolução para o host/IP da Render.  
+   - Teste em aba anônima ou com `curl -I https://axtonronei.online` para evitar cache.
+4. **Repetir verificação**  
+   - Após confirmar a resolução, volte ao painel do Render e clique em **Verify**. O certificado HTTPS será emitido automaticamente quando o domínio for validado.
+
 ## Atualizações
 
 - **04/11/2024:** Interface de menu e chat com imagens de circuito implementada
