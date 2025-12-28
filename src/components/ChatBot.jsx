@@ -2,12 +2,24 @@
 // (Este é o código CORRIGIDO. Eu consertei o caminho do robot-icon.png)
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus } from 'lucide-react';
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
 // URL do backend - usa variavel de ambiente ou fallback para producao
 const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
+const STORAGE_KEY = 'quanton3d-chat-state';
+const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
+
+const getInitialMessageText = (mode) => {
+  if (mode === 'suporte') {
+    return 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
+  }
+  if (mode === 'vendas') {
+    return 'Olá! Você está no modo "Vendas e Produtos". Posso ajudar a encontrar a resina ideal ou falar sobre nossos produtos?';
+  }
+  return 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
+};
 
 export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
   const [messages, setMessages] = useState([]);
@@ -20,34 +32,82 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
   const fileInputRef = useRef(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
-  const [userData, setUserData] = useState({ name: '', phone: '', email: '', resin: '' });
+  const [userData, setUserData] = useState(initialUserData);
   const [userRegistered, setUserRegistered] = useState(false);
   const [phoneError, setPhoneError] = useState('');
-  const [sessionId] = useState(`session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+  const [sessionId, setSessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [lastBotReply, setLastBotReply] = useState('');
   
   const endOfMessagesRef = useRef(null);
+  const initializedRef = useRef(false);
+  const registrationTimeoutRef = useRef(null);
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
-  // Define a mensagem inicial com base no modo
+  // Define a mensagem inicial com base no modo e restaura conversas salvas
   useEffect(() => {
-    let initialText = '';
-    if (mode === 'suporte') {
-      initialText = 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
-    } else if (mode === 'vendas') {
-      initialText = 'Olá! Você está no modo "Vendas e Produtos". Posso ajudar a encontrar a resina ideal ou falar sobre nossos produtos?';
-    } else {
-      initialText = 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
+    if (initializedRef.current) return;
+
+    const restored = (() => {
+      if (typeof window === 'undefined') return false;
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return false;
+        const parsed = JSON.parse(stored);
+        setMessages(parsed?.messages?.length ? parsed.messages : [{ id: 1, sender: 'bot', text: getInitialMessageText(mode) }]);
+        setUserData({ ...initialUserData, ...(parsed?.userData || {}) });
+        setUserRegistered(Boolean(parsed?.userRegistered));
+        setShowUserForm(Boolean(parsed?.showUserForm));
+        setShowWelcomeScreen(Boolean(parsed?.showWelcomeScreen));
+        setLastUserMessage(parsed?.lastUserMessage || '');
+        setLastBotReply(parsed?.lastBotReply || '');
+        if (parsed?.sessionId) {
+          setSessionId(parsed.sessionId);
+        }
+        return true;
+      } catch (err) {
+        console.error('Erro ao restaurar conversa salva:', err);
+        return false;
+      }
+    })();
+
+    if (!restored) {
+      setMessages([{ id: 1, sender: 'bot', text: getInitialMessageText(mode) }]);
+      // Mostrar formulário de cadastro imediatamente ao abrir o chat
+      if (!userRegistered) {
+        registrationTimeoutRef.current = setTimeout(() => setShowUserForm(true), 500);
+      }
     }
-    setMessages([{ id: 1, sender: 'bot', text: initialText }]);
-    // Mostrar formulário de cadastro imediatamente ao abrir o chat
-    if (!userRegistered) {
-      setTimeout(() => setShowUserForm(true), 500);
+    initializedRef.current = true;
+  }, [mode, userRegistered, setSessionId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !initializedRef.current) return;
+    const stateToPersist = {
+      messages,
+      userData,
+      userRegistered,
+      showUserForm,
+      showWelcomeScreen,
+      lastUserMessage,
+      lastBotReply,
+      sessionId,
+      mode
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToPersist));
+    } catch (err) {
+      console.error('Erro ao salvar conversa localmente:', err);
     }
-  }, [mode, userRegistered]);
+  }, [messages, userData, userRegistered, showUserForm, showWelcomeScreen, lastUserMessage, lastBotReply, sessionId, mode]);
+
+  useEffect(() => () => {
+    if (registrationTimeoutRef.current) {
+      clearTimeout(registrationTimeoutRef.current);
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -150,6 +210,28 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
     }
   };
 
+  const resetConversation = () => {
+    const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    setSessionId(newSessionId);
+    setMessages([{ id: Date.now(), sender: 'bot', text: getInitialMessageText(mode) }]);
+    setUserData(initialUserData);
+    setUserRegistered(false);
+    setShowUserForm(true);
+    setShowWelcomeScreen(false);
+    setSelectedImage(null);
+    setSuggestionText('');
+    setError(null);
+    setLastUserMessage('');
+    setLastBotReply('');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (err) {
+        console.error('Erro ao limpar conversa local:', err);
+      }
+    }
+  };
+
   const handleUserFormSubmit = async (e) => {
     e.preventDefault();
     if (!userData.name || !userData.phone || !userData.email || !userData.resin || !userData.problemType) {
@@ -243,9 +325,18 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
             <p className="text-xs opacity-80">Assistente Virtual GPT</p>
           </div>
         </div>
-        <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={resetConversation}
+            className="px-3 py-2 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-lg border border-white/20 flex items-center gap-2 transition-all"
+          >
+            <RefreshCcw size={14} /> Nova conversa
+          </button>
+          <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Tela de Boas-Vindas */}
