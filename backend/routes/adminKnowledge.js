@@ -78,4 +78,22 @@ export const registerAdminKnowledgeRoutes = (router) => {
       res.end(JSON.stringify({ message: 'Failed to import documents.' }))
     }
   })
+
+  router.get('/admin/knowledge/list', [authAdmin], async ({ res }) => {
+    try {
+      const documents = await DocumentModel.findAll()
+      res.statusCode = 200
+      res.end(
+        JSON.stringify({
+          message: 'Documents listed successfully.',
+          count: documents.length,
+          documents,
+        })
+      )
+    } catch (error) {
+      console.error('[LIST-KNOWLEDGE] Failed to list documents', error)
+      res.statusCode = 500
+      res.end(JSON.stringify({ message: 'Failed to list documents.' }))
+    }
+  })
 }

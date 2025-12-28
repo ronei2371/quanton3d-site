@@ -20,6 +20,13 @@ function loadDocuments() {
   return JSON.parse(buffer)
 }
 
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return []
+  return tags
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+    .filter(Boolean)
+}
+
 function saveDocuments(documents) {
   writeFileSync(DATA_FILE, JSON.stringify(documents, null, 2))
 }
@@ -33,8 +40,8 @@ export class DocumentModel {
       title: doc.title,
       content: doc.content,
       embedding: doc.embedding ?? [],
-      tags: doc.tags ?? [],
-      source: doc.source ?? null,
+      tags: normalizeTags(doc.tags),
+      source: doc.source?.trim() || null,
       createdAt: now,
       updatedAt: now,
     }))
@@ -42,5 +49,9 @@ export class DocumentModel {
     const merged = [...existing, ...payload]
     saveDocuments(merged)
     return payload
+  }
+
+  static async findAll() {
+    return loadDocuments()
   }
 }
