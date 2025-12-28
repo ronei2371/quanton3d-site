@@ -1,5 +1,67 @@
+import fs from 'node:fs'
+import fsp from 'node:fs/promises'
 import http from 'node:http'
+import path from 'node:path'
 import { z } from 'zod'
+
+const distDir = path.resolve(process.cwd(), 'dist')
+const indexFile = path.join(distDir, 'index.html')
+const statusFile = path.join(distDir, 'status.html')
+
+const mimeTypes = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.txt': 'text/plain; charset=utf-8',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+}
+
+async function fileExists(filePath) {
+  try {
+    await fsp.access(filePath, fs.constants.F_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase()
+  return mimeTypes[ext] || 'application/octet-stream'
+}
+
+async function serveFile(filePath, res) {
+  if (!(await fileExists(filePath))) return false
+
+  res.statusCode = 200
+  res.setHeader('Content-Type', getMimeType(filePath))
+  const stream = fs.createReadStream(filePath)
+  stream.pipe(res)
+  return true
+}
+
+async function serveStaticAsset(pathname, res) {
+  const requestedPath = pathname === '/' ? '/index.html' : pathname
+  const filePath = path.join(distDir, decodeURIComponent(requestedPath))
+
+  if (await fileExists(filePath)) {
+    return serveFile(filePath, res)
+  }
+
+  if (await fileExists(indexFile)) {
+    return serveFile(indexFile, res)
+  }
+
+  return false
+}
 
 const askSchema = z
   .object({
@@ -49,9 +111,10 @@ function parseJsonBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-  res.setHeader('Content-Type', 'application/json')
+  const { pathname } = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
 
-  if (req.method === 'POST' && req.url === '/ask') {
+  if (req.method === 'POST' && pathname === '/ask') {
+    res.setHeader('Content-Type', 'application/json')
     try {
       const body = await parseJsonBody(req)
       const validation = askSchema.safeParse(body)
@@ -87,9 +150,21 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ message: 'Internal server error' }))
       return
     }
+    return
+  }
+
+  if (req.method === 'GET' && (pathname === '/status' || pathname === '/status.html')) {
+    const servedStatus = await serveFile(statusFile, res)
+    if (servedStatus) return
+  }
+
+  if (req.method === 'GET') {
+    const served = await serveStaticAsset(pathname, res)
+    if (served) return
   }
 
   res.statusCode = 404
+  res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify({ message: 'Not Found' }))
 })
 
