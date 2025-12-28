@@ -15,18 +15,19 @@ export class Router {
     )
 
     if (!match) {
-      res.statusCode = 404
-      res.end(JSON.stringify({ message: 'Not Found' }))
-      return
+      return false
     }
 
+    res.setHeader('Content-Type', 'application/json')
     const context = { req, res }
     for (const middleware of match.middlewares) {
       const result = await middleware(context)
-      if (result === false) return
+      if (result === false) return true
     }
 
     await match.handler(context)
+
+    return true
   }
 }
 

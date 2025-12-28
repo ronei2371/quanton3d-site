@@ -10,6 +10,14 @@ O site apresenta a empresa, seus produtos (resinas UV SLA), serviços de suporte
 
 Recomendamos utilizar a plataforma da **Netlify** para fazer o deploy de forma simples e gratuita.
 
+### Opção Render (usar backend + front juntos)
+
+1.  No Render, crie (ou reutilize) um serviço **Web Service** que execute `npm install` no build e depois `npm run build` + `npm run server` no start (o script `server` já aponta para `backend/app.js`, que agora também serve a pasta `dist`).
+2.  Em **Settings > Custom Domains**, adicione `axtonronei.online`.
+3.  O Render mostrará um **CNAME** (geralmente `quanton3d-bot-v2.onrender.com`) ou registros A/AAAA. Crie exatamente esses registros no DNS do domínio (remova os nameservers da Netlify, se estiverem ativos).
+4.  Aguarde a propagação do DNS. Assim que o Render verificar o domínio, o certificado HTTPS será emitido automaticamente.
+5.  Teste em aba anônima: `https://axtonronei.online`. Se precisar verificar DNS, use `nslookup axtonronei.online`.
+
 ### Passo 1: Crie um Repositório no GitHub
 
 1.  Crie uma conta no [GitHub](https://github.com/) (caso ainda não tenha).
@@ -71,4 +79,3 @@ Depois que o site estiver no ar na Netlify, você pode apontar seu domínio para
 
 - **Evoluir o Chatbot:** O chatbot atual tem respostas pré-definidas. Para o futuro, ele pode ser conectado a um serviço de Processamento de Linguagem Natural (como o da OpenAI) para se tornar verdadeiramente inteligente.
 - **Banco de Dados:** As informações de contato e histórico de conversas podem ser salvas em um banco de dados para garantir a continuidade do atendimento.
-
