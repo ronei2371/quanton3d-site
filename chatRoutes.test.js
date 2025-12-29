@@ -1,5 +1,5 @@
 import request from 'supertest';
-import server from './server.js';
+import server from './backend/app.js';
 
 describe('POST /ask', () => {
   afterAll((done) => {
