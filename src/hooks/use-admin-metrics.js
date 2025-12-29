@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-export function useAdminMetrics(apiToken) {
+export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {}) {
   const [metrics, setMetrics] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const fetchMetrics = useCallback(async () => {
+    if (!enabled) return
+
     if (!apiToken) {
       const message = 'Token de autenticação do admin não foi informado.'
       setError(new Error(message))
@@ -42,11 +44,17 @@ export function useAdminMetrics(apiToken) {
     } finally {
       setIsLoading(false)
     }
-  }, [apiToken])
+  }, [apiToken, enabled])
 
   useEffect(() => {
     fetchMetrics()
   }, [fetchMetrics])
+
+  useEffect(() => {
+    if (refreshKey > 0) {
+      fetchMetrics()
+    }
+  }, [refreshKey, fetchMetrics])
 
   return {
     metrics,
