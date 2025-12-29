@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Calendar, Eye, Loader2, MessageSquare, Phone, TrendingUp, User, Users, X } from 'lucide-react'
@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { useAdminMetrics } from '@/hooks/use-admin-metrics.js'
 
 export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
-  const { metrics, isLoading: metricsLoading, error: metricsError, refetch } = useAdminMetrics(apiToken)
+  const { metrics, isLoading: metricsLoading, error: metricsError } = useAdminMetrics(apiToken, { refreshKey })
   const [conversationDateFilter, setConversationDateFilter] = useState('all')
   const [showAllClients, setShowAllClients] = useState(false)
   const [clientsDateFilter, setClientsDateFilter] = useState('all')
@@ -19,12 +19,6 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
   const [selectedTopic, setSelectedTopic] = useState(null)
   const [topicConversations, setTopicConversations] = useState([])
   const [topicLoading, setTopicLoading] = useState(false)
-
-  useEffect(() => {
-    if (refreshKey > 0) {
-      refetch()
-    }
-  }, [refreshKey, refetch])
 
   const loadResinDetails = async (resin) => {
     const resinName = resin?.trim()
