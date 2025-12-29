@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Calendar, Eye, Loader2, MessageSquare, Phone, TrendingUp, User, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAdminMetrics } from '@/hooks/use-admin-metrics.js'
 
-export function MetricsTab({ buildAdminUrl, refreshKey }) {
-  const [metrics, setMetrics] = useState(null)
-  const [loading, setLoading] = useState(false)
+export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
+  const { metrics, isLoading: metricsLoading, error: metricsError, refetch } = useAdminMetrics(apiToken)
   const [conversationDateFilter, setConversationDateFilter] = useState('all')
   const [showAllClients, setShowAllClients] = useState(false)
   const [clientsDateFilter, setClientsDateFilter] = useState('all')
@@ -20,23 +20,11 @@ export function MetricsTab({ buildAdminUrl, refreshKey }) {
   const [topicConversations, setTopicConversations] = useState([])
   const [topicLoading, setTopicLoading] = useState(false)
 
-  const loadMetrics = useCallback(async () => {
-    setLoading(true)
-    try {
-      const response = await fetch(buildAdminUrl('/metrics'))
-      const data = await response.json()
-      setMetrics(data.metrics)
-    } catch (error) {
-      console.error('Erro ao carregar métricas:', error)
-      toast.error('Erro ao carregar métricas')
-    } finally {
-      setLoading(false)
-    }
-  }, [buildAdminUrl])
-
   useEffect(() => {
-    loadMetrics()
-  }, [loadMetrics, refreshKey])
+    if (refreshKey > 0) {
+      refetch()
+    }
+  }, [refreshKey, refetch])
 
   const loadResinDetails = async (resin) => {
     const resinName = resin?.trim()
@@ -176,9 +164,11 @@ export function MetricsTab({ buildAdminUrl, refreshKey }) {
     <>
       {!metrics ? (
         <Card className="p-6 flex items-center gap-3">
-          {loading && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
+          {metricsLoading && <Loader2 className="h-5 w-5 animate-spin text-blue-500" />}
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {loading ? 'Carregando métricas...' : 'Nenhuma métrica carregada. Clique em atualizar para tentar novamente.'}
+            {metricsLoading
+              ? 'Carregando métricas...'
+              : metricsError?.message || 'Nenhuma métrica carregada. Clique em atualizar para tentar novamente.'}
           </p>
         </Card>
       ) : (

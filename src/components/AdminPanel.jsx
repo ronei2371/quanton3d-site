@@ -143,6 +143,7 @@ export function AdminPanel({ onClose }) {
   const [profileFormData, setProfileFormData] = useState({})
 
   const API_BASE_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '')
+  const ADMIN_API_TOKEN = import.meta.env.VITE_ADMIN_API_TOKEN || ''
 
   const buildAdminUrl = useCallback((path, params = {}) => {
     const url = new URL(path, `${API_BASE_URL}/`)
@@ -695,7 +696,7 @@ export function AdminPanel({ onClose }) {
 
         {/* Content */}
         {activeTab === 'metrics' && (
-          <MetricsTab buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+          <MetricsTab apiToken={ADMIN_API_TOKEN} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
         )}
 
         {activeTab === 'knowledge' && (
