@@ -11,6 +11,31 @@ const API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onren
 const STORAGE_KEY = 'quanton3d-chat-state';
 const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
 
+const readFileAsBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const [meta, data] = (reader.result || '').toString().split(',');
+      const mime = meta?.match(/data:(.*);base64/)?.[1] || file.type || 'image/png';
+      if (!data) {
+        reject(new Error('Não foi possível ler a imagem enviada.'));
+        return;
+      }
+      resolve({ data, mime });
+    };
+    reader.onerror = () => reject(new Error('Não foi possível ler a imagem enviada.'));
+    reader.readAsDataURL(file);
+  });
+
+const buildHistoryPayload = (messages) =>
+  messages
+    .filter((msg) => msg.sender === 'user' || msg.sender === 'bot')
+    .slice(-10)
+    .map((msg) => ({
+      role: msg.sender === 'bot' ? 'assistant' : 'user',
+      content: msg.text,
+    }));
+
 const getInitialMessageText = (mode) => {
   if (mode === 'suporte') {
     return 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
@@ -135,30 +160,33 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
     setIsLoading(true);
     setError(null); // Limpar erro anterior
     
+    const historyPayload = buildHistoryPayload([...messages, userMessage]);
+    let typingId = null;
+
     try {
-      let response;
-      
+      const payload = {
+        message: inputValue || 'Analise esta imagem',
+        sessionId,
+        conversationHistory: historyPayload,
+      };
+      let endpoint = `${API_URL}/ask`;
+
       if (selectedImage) {
-        // Upload com imagem
-        const formData = new FormData();
-        formData.append('image', selectedImage);
-        formData.append('message', inputValue || 'Analise esta imagem');
-        formData.append('sessionId', sessionId);
-        
-        response = await fetch(`${API_URL}/ask-with-image`, {
-          method: 'POST',
-          body: formData,
-        });
+        const imagePayload = await readFileAsBase64(selectedImage);
+        payload.image = { data: imagePayload.data, type: imagePayload.mime };
+        endpoint = `${API_URL}/ask-with-image`;
         setSelectedImage(null);
-      } else {
-        // Mensagem normal
-        response = await fetch(`${API_URL}/ask`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
-        });
       }
-      
+
+      typingId = showTypingIndicator();
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      removeTypingIndicator(typingId);
+
       if (!response.ok) {
         // Tratamento de erros específicos
         let errorMsg = 'Ocorreu um erro ao conectar com a IA.';
@@ -175,7 +203,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       }
       
       const data = await response.json();
-      const botText = data.reply || 'Não consegui processar sua resposta.';
+      const botText = data.reply || data.response || 'Não consegui processar sua resposta.';
       const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
       setMessages((prev) => [...prev, botMessage]);
       
@@ -183,6 +211,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOp
       setLastUserMessage(userMessage.text);
       setLastBotReply(botText);
     } catch (error) {
+      if (typingId) removeTypingIndicator(typingId);
       console.error('Erro na API:', error);
       
       // Definir erro no estado para exibir componente de erro
