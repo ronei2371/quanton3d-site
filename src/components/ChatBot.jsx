@@ -1,5 +1,5 @@
-// Arquivo: quanton3d-site/src/components/ChatBotNew.jsx
-// (Este é o código CORRIGIDO. Eu consertei o caminho do robot-icon.png)
+// Arquivo: quanton3d-site/src/components/ChatBot.jsx
+// (Código com correção de caminho do robot-icon.png)
 
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus, RefreshCcw } from 'lucide-react';
@@ -21,7 +21,7 @@ const getInitialMessageText = (mode) => {
   return 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
 };
 
-export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', isModalOpen, onOpenModal }) {
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
