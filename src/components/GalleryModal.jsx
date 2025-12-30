@@ -1,7 +1,7 @@
 // Componente: GalleryModal.jsx
 // Galeria de fotos de impressoes 3D com upload e visualizacao
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { X, Upload, Image, Camera, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
 import { resinList, printerList } from '@/data/parametersData.js';
@@ -50,7 +50,7 @@ export function GalleryModal({ isOpen, onClose }) {
   const [filterPrinter, setFilterPrinter] = useState('');
 
   // Carregar galeria
-  const loadGallery = async (page = 1) => {
+  const loadGallery = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       let url = `${API_URL}/api/gallery?page=${page}&limit=12`;
@@ -71,13 +71,13 @@ export function GalleryModal({ isOpen, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterPrinter, filterResin]);
 
   useEffect(() => {
     if (isOpen && activeTab === 'gallery') {
       loadGallery(1);
     }
-  }, [isOpen, activeTab, filterResin, filterPrinter]);
+  }, [activeTab, isOpen, loadGallery]);
 
   // Handle file selection
   const handleFileChange = (e) => {
@@ -182,11 +182,9 @@ export function GalleryModal({ isOpen, onClose }) {
   };
 
   // Cleanup preview URLs on unmount
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, []);
+  useEffect(() => () => {
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  }, [previewUrls]);
 
   if (!isOpen) return null;
 

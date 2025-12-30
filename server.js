@@ -150,7 +150,6 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ message: 'Internal server error' }))
       return
     }
-    return
   }
 
   if (req.method === 'GET' && (pathname === '/status' || pathname === '/status.html')) {

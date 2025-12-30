@@ -227,8 +227,8 @@ function App() {
       </footer>
 
       {/* ChatBot, Menu Selector, Service Modal, Privacy Modal */}
-      <ChatBot isOpen={isChatOpen} setIsOpen={setIsChatOpen} mode={chatMode} onOpenModal={() => setIsModalOpen(true)} isModalOpen={isModalOpen} />
-      <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} onOpenChat={() => { setChatMode('suporte'); setIsChatOpen(true); }} />
+      <ChatBot isOpen={isChatOpen} setIsOpen={setIsChatOpen} mode={chatMode} />
+      <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
       <ServiceModal 
         isOpen={modalService !== null} 
         onClose={() => setModalService(null)} 

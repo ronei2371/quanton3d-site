@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
 import { parameters } from '@/data/parametersData';
@@ -93,19 +93,7 @@ export default function ParametersSelector() {
   const [error, setError] = useState(null);
   const [dataSource, setDataSource] = useState('api');
 
-  useEffect(() => {
-    fetchResins();
-  }, []);
-
-  useEffect(() => {
-    if (selectedResin) {
-      fetchPrinters(selectedResin);
-    } else {
-      setPrinters([]);
-    }
-  }, [selectedResin]);
-
-  const fetchResins = async () => {
+  const fetchResins = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/params/resins`);
@@ -128,9 +116,9 @@ export default function ParametersSelector() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchPrinters = async (resinId) => {
+  const fetchPrinters = useCallback(async (resinId) => {
     if (dataSource === 'local') {
       setPrinters(normalizePrinters(getLocalPrintersForResin(resinId)));
       return;
@@ -149,7 +137,19 @@ export default function ParametersSelector() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dataSource]);
+
+  useEffect(() => {
+    fetchResins();
+  }, [fetchResins]);
+
+  useEffect(() => {
+    if (selectedResin) {
+      fetchPrinters(selectedResin);
+    } else {
+      setPrinters([]);
+    }
+  }, [fetchPrinters, selectedResin]);
 
   const fetchProfile = async (resinId, printerId) => {
     if (dataSource === 'local') {
