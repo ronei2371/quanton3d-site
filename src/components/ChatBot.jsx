@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
 // URL do backend - usa variavel de ambiente ou fallback para producao
-const API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com').replace(/\/$/, '') + '/api';
+const API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api').replace(/\/$/, '');
 const STORAGE_KEY = 'quanton3d-chat-state';
 const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
 
@@ -43,6 +43,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const endOfMessagesRef = useRef(null);
   const initializedRef = useRef(false);
   const registrationTimeoutRef = useRef(null);
+  const persistTimeoutRef = useRef(null);
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
@@ -63,6 +64,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         setShowWelcomeScreen(Boolean(parsed?.showWelcomeScreen));
         setLastUserMessage(parsed?.lastUserMessage || '');
         setLastBotReply(parsed?.lastBotReply || '');
+        setSelectedImage(null);
+        setError(parsed?.error || null);
+        setSuggestionText(parsed?.suggestionText || '');
         if (parsed?.sessionId) {
           setSessionId(parsed.sessionId);
         }
@@ -94,18 +98,33 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
       lastUserMessage,
       lastBotReply,
       sessionId,
-      mode
+      mode,
+      selectedImage: selectedImage
+        ? { name: selectedImage.name, size: selectedImage.size, type: selectedImage.type }
+        : null,
+      error,
+      suggestionText
     };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToPersist));
-    } catch (err) {
-      console.error('Erro ao salvar conversa localmente:', err);
+
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
     }
-  }, [messages, userData, userRegistered, showUserForm, showWelcomeScreen, lastUserMessage, lastBotReply, sessionId, mode]);
+
+    persistTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToPersist));
+      } catch (err) {
+        console.error('Erro ao salvar conversa localmente:', err);
+      }
+    }, 800);
+  }, [messages, userData, userRegistered, showUserForm, showWelcomeScreen, lastUserMessage, lastBotReply, sessionId, mode, selectedImage, error, suggestionText]);
 
   useEffect(() => () => {
     if (registrationTimeoutRef.current) {
       clearTimeout(registrationTimeoutRef.current);
+    }
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
     }
   }, []);
 

@@ -40,7 +40,17 @@ async function parseBody(req) {
 }
 
 export const registerAdminKnowledgeRoutes = (router) => {
-  router.post('/admin/knowledge/import', [authAdmin], async ({ req, res }) => {
+  router.options('/api/admin/knowledge/import', [], async ({ res }) => {
+    res.statusCode = 204
+    res.end()
+  })
+
+  router.options('/api/admin/knowledge/list', [], async ({ res }) => {
+    res.statusCode = 204
+    res.end()
+  })
+
+  router.post('/api/admin/knowledge/import', [authAdmin], async ({ req, res }) => {
     try {
       const body = await parseBody(req)
       const validation = importSchema.safeParse(body)
@@ -79,7 +89,7 @@ export const registerAdminKnowledgeRoutes = (router) => {
     }
   })
 
-  router.get('/admin/knowledge/list', [authAdmin], async ({ res }) => {
+  router.get('/api/admin/knowledge/list', [authAdmin], async ({ res }) => {
     try {
       const documents = await DocumentModel.findAll()
       res.statusCode = 200
