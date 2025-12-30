@@ -1,5 +1,6 @@
 import { registerAdminKnowledgeRoutes } from './adminKnowledge.js'
 import { registerAskRoutes } from './ask.js'
+import { registerMetricsRoutes } from './metrics.js'
 import { registerPartnersRoutes } from './partners.js'
 
 const normalizePath = (path) => {
@@ -101,5 +102,6 @@ export function buildRouter() {
   registerAskRoutes(router)
   registerAdminKnowledgeRoutes(router)
   registerPartnersRoutes(router)
+  registerMetricsRoutes(router)
   return router
 }

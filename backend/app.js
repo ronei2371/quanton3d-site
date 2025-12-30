@@ -10,6 +10,12 @@ const port = process.env.PORT || 4000
 const distDir = path.resolve(process.cwd(), 'dist')
 const indexFile = path.join(distDir, 'index.html')
 
+const allowedOrigins =
+  process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean) || [
+    'https://quanton3dia.onrender.com',
+    'http://localhost:5173',
+  ]
+
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
@@ -62,6 +68,24 @@ async function serveStatic(req, res) {
 }
 
 const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
+
+  if (url.pathname.startsWith('/api')) {
+    const origin = req.headers.origin
+    const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0] || '*'
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204
+      res.end()
+      return
+    }
+  }
+
   // First, try API routes
   const handled = await router.handle(req, res)
   if (handled === true) return
