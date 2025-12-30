@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: quanton3d-site
+    env: node
+    nodeVersion: 20
+    buildCommand: pnpm install --no-frozen-lockfile && pnpm run build
+    startCommand: pnpm run server
+    envVars:
+      - key: CI
+        value: "true"

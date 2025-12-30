@@ -63,17 +63,30 @@ export class Router {
 
   async handle(req, res) {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`)
-    const requestPath = normalizePath(url.pathname)
+    const normalizedRequestPath = normalizePath(url.pathname)
+    const pathVariants = [normalizedRequestPath]
+
+    if (normalizedRequestPath.startsWith('/api')) {
+      const trimmed = normalizedRequestPath.slice('/api'.length) || '/'
+      pathVariants.push(normalizePath(trimmed))
+    }
 
     let matchedRoute = null
     let params = {}
 
     for (const route of this.routes) {
       if (route.method !== req.method) continue
-      const match = matchPath(route.path, requestPath)
-      if (match) {
-        matchedRoute = route
-        params = match
+
+      for (const pathVariant of pathVariants) {
+        const match = matchPath(route.path, pathVariant)
+        if (match) {
+          matchedRoute = route
+          params = match
+          break
+        }
+      }
+
+      if (matchedRoute) {
         break
       }
     }

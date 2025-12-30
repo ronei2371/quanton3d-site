@@ -43,6 +43,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const endOfMessagesRef = useRef(null);
   const initializedRef = useRef(false);
   const registrationTimeoutRef = useRef(null);
+  const persistTimeoutRef = useRef(null);
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
@@ -63,6 +64,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         setShowWelcomeScreen(Boolean(parsed?.showWelcomeScreen));
         setLastUserMessage(parsed?.lastUserMessage || '');
         setLastBotReply(parsed?.lastBotReply || '');
+        setShowSuggestion(Boolean(parsed?.showSuggestion));
+        setSuggestionText(parsed?.suggestionText || '');
+        setError(parsed?.error || null);
         if (parsed?.sessionId) {
           setSessionId(parsed.sessionId);
         }
@@ -85,6 +89,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
 
   useEffect(() => {
     if (typeof window === 'undefined' || !initializedRef.current) return;
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
+    }
     const stateToPersist = {
       messages,
       userData,
@@ -94,18 +101,44 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
       lastUserMessage,
       lastBotReply,
       sessionId,
-      mode
+      mode,
+      showSuggestion,
+      suggestionText,
+      error
     };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToPersist));
-    } catch (err) {
-      console.error('Erro ao salvar conversa localmente:', err);
-    }
-  }, [messages, userData, userRegistered, showUserForm, showWelcomeScreen, lastUserMessage, lastBotReply, sessionId, mode]);
+    persistTimeoutRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToPersist));
+      } catch (err) {
+        console.error('Erro ao salvar conversa localmente:', err);
+      }
+    }, 300);
+    return () => {
+      if (persistTimeoutRef.current) {
+        clearTimeout(persistTimeoutRef.current);
+      }
+    };
+  }, [
+    messages,
+    userData,
+    userRegistered,
+    showUserForm,
+    showWelcomeScreen,
+    lastUserMessage,
+    lastBotReply,
+    sessionId,
+    mode,
+    showSuggestion,
+    suggestionText,
+    error
+  ]);
 
   useEffect(() => () => {
     if (registrationTimeoutRef.current) {
       clearTimeout(registrationTimeoutRef.current);
+    }
+    if (persistTimeoutRef.current) {
+      clearTimeout(persistTimeoutRef.current);
     }
   }, []);
 
@@ -219,6 +252,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     setShowUserForm(true);
     setShowWelcomeScreen(false);
     setSelectedImage(null);
+    setShowSuggestion(false);
     setSuggestionText('');
     setError(null);
     setLastUserMessage('');
