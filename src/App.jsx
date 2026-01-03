@@ -20,6 +20,7 @@ import ParametersSelector from '@/components/ParametersSelector.jsx'
 import CustomFormModal from '@/components/CustomFormModal.jsx'
 import ContactModal from '@/components/ContactModal.jsx'
 import { AdminPanel } from '@/components/AdminPanel.jsx'
+import { AuthWrapper } from '@/components/AuthWrapper.jsx'
 import { GalleryModal } from '@/components/GalleryModal.jsx'
 import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -249,12 +250,22 @@ function App() {
 
             {/* Admin Panel Modal */}
       {isAdminPanelOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setIsAdminPanelOpen(false)} />
-          <div className="relative h-full overflow-auto">
-            <AdminPanel onClose={() => setIsAdminPanelOpen(false)} />
-          </div>
-        </div>
+        <AuthWrapper>
+          {({ onLogout }) => (
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+              <div className="absolute inset-0" onClick={() => setIsAdminPanelOpen(false)} />
+              <div className="relative h-full overflow-auto">
+                <AdminPanel 
+                  onClose={() => setIsAdminPanelOpen(false)} 
+                  onLogout={() => {
+                    onLogout();
+                    setIsAdminPanelOpen(false);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </AuthWrapper>
       )}
     </div>
   )
