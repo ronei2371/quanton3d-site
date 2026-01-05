@@ -1,0 +1,135 @@
+{
+  "resins": [
+    {
+      "id": "pyroblast-plus",
+      "name": "Pyroblast+",
+      "sourceSheet": "Resina técnica de alta resistência mecânica para peças funcionais",
+      "category": "engineering",
+      "active": true
+    },
+    {
+      "id": "iron-7030",
+      "name": "Iron 7030",
+      "sourceSheet": "Resina ultra resistente tipo ABS-like para peças de engenharia",
+      "category": "engineering",
+      "active": true
+    },
+    {
+      "id": "spin-plus",
+      "name": "Spin+",
+      "sourceSheet": "Resina de alta precisão para miniaturas e action figures",
+      "category": "hobby",
+      "active": true
+    },
+    {
+      "id": "spark",
+      "name": "Spark",
+      "sourceSheet": "Resina premium para impressões de alta qualidade",
+      "category": "general",
+      "active": true
+    },
+    {
+      "id": "alchemist",
+      "name": "Alchemist",
+      "sourceSheet": "Resina versátil para diversos tipos de impressão",
+      "category": "general",
+      "active": true
+    },
+    {
+      "id": "flexform",
+      "name": "FlexForm",
+      "sourceSheet": "Resina flexível tipo TPU para peças que precisam dobrar",
+      "category": "flexible",
+      "active": true
+    },
+    {
+      "id": "poseidon",
+      "name": "Poseidon",
+      "sourceSheet": "Resina lavável em água para facilitar limpeza",
+      "category": "washable",
+      "active": true
+    },
+    {
+      "id": "lowsmell",
+      "name": "LowSmell",
+      "sourceSheet": "Resina com baixo odor para ambientes fechados",
+      "category": "general",
+      "active": true
+    },
+    {
+      "id": "castable",
+      "name": "Castable",
+      "sourceSheet": "Resina calcinável para fundição em joalheria",
+      "category": "jewelry",
+      "active": true
+    },
+    {
+      "id": "athom-dental",
+      "name": "Athom Dental",
+      "sourceSheet": "Resina biocompatível para uso odontológico",
+      "category": "dental",
+      "active": true
+    },
+    {
+      "id": "vulcan-cast",
+      "name": "Vulcan Cast",
+      "sourceSheet": "Resina para fundição de metais em joalheria",
+      "category": "jewelry",
+      "active": true
+    },
+    {
+      "id": "abs-like",
+      "name": "ABS-Like",
+      "sourceSheet": "Resina com propriedades similares ao ABS termoplástico",
+      "category": "engineering",
+      "active": true
+    },
+    {
+      "id": "dental-bio",
+      "name": "Dental Bio",
+      "sourceSheet": "Resina biocompatível certificada para aplicações dentárias",
+      "category": "dental",
+      "active": true
+    },
+    {
+      "id": "eco-washable",
+      "name": "Eco Washable",
+      "sourceSheet": "Resina ecológica lavável em água",
+      "category": "washable",
+      "active": true
+    },
+    {
+      "id": "standard",
+      "name": "Standard",
+      "sourceSheet": "Resina padrão para uso geral e testes",
+      "category": "general",
+      "active": true
+    }
+  ]
+}
+```
+
+4. Role para baixo e clique em **"Commit new file"**
+5. Escreva: `feat: adicionar arquivo de resinas`
+6. Clique em **"Commit new file"** novamente
+
+---
+
+## 🚀 **DEPOIS DO COMMIT:**
+
+### **Aguardar Deploy:**
+1. O Render vai detectar a mudança automaticamente
+2. Aguarde **2-3 minutos** para o deploy terminar
+3. Verifique no Render se o status ficou **"Live"**
+
+### **Testar:**
+
+**Teste 1: Health Check**
+```
+https://quanton3d-bot-v2.onrender.com/health
+```
+Deve retornar: `{"status":"ok","database":"connected"}`
+
+**Teste 2: Resinas** (A QUE ESTAVA DANDO 404!)
+```
+https://quanton3d-bot-v2.onrender.com/resins
