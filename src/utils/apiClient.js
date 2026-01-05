@@ -3,13 +3,18 @@
 // Gerencia todas as chamadas ao backend com autenticação
 // =====================================================
 
-// ✅ CORREÇÃO: URL correta do backend
-const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com';
+// Usa VITE_API_URL como prioridade; fallback para o backend v2
+const API_BASE_URL =
+  (typeof import !== "undefined" &&
+    typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    import.meta.env.VITE_API_URL) ||
+  "https://quanton3d-bot-v2.onrender.com/api";
 
 // Gerenciador de token JWT
 class TokenManager {
   constructor() {
-    this.tokenKey = 'quanton3d_admin_token';
+    this.tokenKey = "quanton3d_admin_token";
   }
 
   getToken() {
@@ -36,37 +41,29 @@ const tokenManager = new TokenManager();
 // =====================================================
 
 /**
- * Envia mensagem para o bot (ROTA CORRIGIDA)
+ * Envia mensagem para o bot
  */
 async function sendMessage(message, sessionId, additionalData = {}) {
   try {
-    console.log('📤 [API] Enviando mensagem para o bot:', message);
-    
-    // ✅ CORREÇÃO: Usar /api/chat ao invés de /ask
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message,
-        sessionId,
-        ...additionalData
-      })
+    console.log("📤 [API] Enviando mensagem para o bot:", message);
+
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, sessionId, ...additionalData }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [API] Erro na resposta:', response.status, errorText);
+      console.error("❌ [API] Erro na resposta:", response.status, errorText);
       throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('✅ [API] Resposta recebida:', data);
-    
+    console.log("✅ [API] Resposta recebida:", data);
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao enviar mensagem:', error);
+    console.error("❌ [API] Erro ao enviar mensagem:", error);
     throw error;
   }
 }
@@ -76,14 +73,12 @@ async function sendMessage(message, sessionId, additionalData = {}) {
  */
 async function registerUser(userData) {
   try {
-    console.log('📤 [API] Registrando usuário:', userData);
-    
-    const response = await fetch(`${API_BASE_URL}/api/register-user`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(userData)
+    console.log("📤 [API] Registrando usuário:", userData);
+
+    const response = await fetch(`${API_BASE_URL}/register-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
     });
 
     if (!response.ok) {
@@ -91,11 +86,10 @@ async function registerUser(userData) {
     }
 
     const data = await response.json();
-    console.log('✅ [API] Usuário registrado:', data);
-    
+    console.log("✅ [API] Usuário registrado:", data);
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao registrar usuário:', error);
+    console.error("❌ [API] Erro ao registrar usuário:", error);
     throw error;
   }
 }
@@ -105,14 +99,12 @@ async function registerUser(userData) {
  */
 async function sendSuggestion(suggestionData) {
   try {
-    console.log('📤 [API] Enviando sugestão:', suggestionData);
-    
-    const response = await fetch(`${API_BASE_URL}/api/suggest-knowledge`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(suggestionData)
+    console.log("📤 [API] Enviando sugestão:", suggestionData);
+
+    const response = await fetch(`${API_BASE_URL}/suggest-knowledge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(suggestionData),
     });
 
     if (!response.ok) {
@@ -120,47 +112,42 @@ async function sendSuggestion(suggestionData) {
     }
 
     const data = await response.json();
-    console.log('✅ [API] Sugestão enviada:', data);
-    
+    console.log("✅ [API] Sugestão enviada:", data);
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao enviar sugestão:', error);
+    console.error("❌ [API] Erro ao enviar sugestão:", error);
     throw error;
   }
 }
 
 // =====================================================
-// FUNÇÕES DE API - RESINAS (ROTA CORRIGIDA)
+// FUNÇÕES DE API - RESINAS (ROTA PÚBLICA)
 // =====================================================
 
 /**
- * Lista todas as resinas disponíveis (ROTA PÚBLICA)
+ * Lista todas as resinas disponíveis
  */
 async function getResins() {
   try {
-    console.log('📤 [API] Buscando lista de resinas...');
-    
-    // ✅ CORREÇÃO: Usar /resins (rota pública) ao invés de /params/resins
+    console.log("📤 [API] Buscando lista de resinas...");
+
+    // Usa /api/resins (prefixo consistente)
     const response = await fetch(`${API_BASE_URL}/resins`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [API] Erro ao buscar resinas:', response.status, errorText);
+      console.error("❌ [API] Erro ao buscar resinas:", response.status, errorText);
       throw new Error(`Erro HTTP ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('✅ [API] Resinas carregadas:', data.total || 0);
-    
+    console.log("✅ [API] Resinas carregadas:", data.total || 0);
     return data.resins || [];
   } catch (error) {
-    console.error('❌ [API] Erro ao buscar resinas:', error);
-    // Retornar lista vazia ao invés de quebrar
+    console.error("❌ [API] Erro ao buscar resinas:", error);
     return [];
   }
 }
@@ -174,18 +161,14 @@ async function getResins() {
  */
 async function getGallery(page = 1, limit = 12, category = null) {
   try {
-    console.log('📤 [API] Buscando galeria...');
-    
-    let url = `${API_BASE_URL}/api/gallery?page=${page}&limit=${limit}`;
-    if (category) {
-      url += `&category=${category}`;
-    }
-    
+    console.log("📤 [API] Buscando galeria...");
+
+    let url = `${API_BASE_URL}/gallery?page=${page}&limit=${limit}`;
+    if (category) url += `&category=${category}`;
+
     const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -193,11 +176,10 @@ async function getGallery(page = 1, limit = 12, category = null) {
     }
 
     const data = await response.json();
-    console.log('✅ [API] Galeria carregada:', data.total || 0, 'itens');
-    
+    console.log("✅ [API] Galeria carregada:", data.total || 0, "itens");
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao buscar galeria:', error);
+    console.error("❌ [API] Erro ao buscar galeria:", error);
     return { items: [], total: 0, page: 1, totalPages: 1 };
   }
 }
@@ -207,14 +189,12 @@ async function getGallery(page = 1, limit = 12, category = null) {
  */
 async function submitGalleryItem(itemData) {
   try {
-    console.log('📤 [API] Enviando item para galeria:', itemData);
-    
-    const response = await fetch(`${API_BASE_URL}/api/gallery`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(itemData)
+    console.log("📤 [API] Enviando item para galeria:", itemData);
+
+    const response = await fetch(`${API_BASE_URL}/gallery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(itemData),
     });
 
     if (!response.ok) {
@@ -222,11 +202,10 @@ async function submitGalleryItem(itemData) {
     }
 
     const data = await response.json();
-    console.log('✅ [API] Item enviado para galeria:', data);
-    
+    console.log("✅ [API] Item enviado para galeria:", data);
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao enviar item para galeria:', error);
+    console.error("❌ [API] Erro ao enviar item para galeria:", error);
     throw error;
   }
 }
@@ -235,19 +214,14 @@ async function submitGalleryItem(itemData) {
 // FUNÇÕES DE API - CONTATO
 // =====================================================
 
-/**
- * Envia mensagem de contato
- */
 async function sendContact(contactData) {
   try {
-    console.log('📤 [API] Enviando mensagem de contato:', contactData);
-    
-    const response = await fetch(`${API_BASE_URL}/api/contact`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(contactData)
+    console.log("📤 [API] Enviando mensagem de contato:", contactData);
+
+    const response = await fetch(`${API_BASE_URL}/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(contactData),
     });
 
     if (!response.ok) {
@@ -255,11 +229,10 @@ async function sendContact(contactData) {
     }
 
     const data = await response.json();
-    console.log('✅ [API] Mensagem de contato enviada:', data);
-    
+    console.log("✅ [API] Mensagem de contato enviada:", data);
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao enviar mensagem de contato:', error);
+    console.error("❌ [API] Erro ao enviar mensagem de contato:", error);
     throw error;
   }
 }
@@ -268,103 +241,80 @@ async function sendContact(contactData) {
 // FUNÇÕES DE API - AUTENTICAÇÃO ADMIN
 // =====================================================
 
-/**
- * Login do admin
- */
 async function adminLogin(password) {
   try {
-    console.log('📤 [API] Tentando login admin...');
-    
+    console.log("📤 [API] Tentando login admin...");
+
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ password })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Senha incorreta');
+      throw new Error(errorData.error || "Senha incorreta");
     }
 
     const data = await response.json();
-    console.log('✅ [API] Login admin bem-sucedido');
-    
-    // Salvar token
+    console.log("✅ [API] Login admin bem-sucedido");
+
     if (data.token) {
       tokenManager.setToken(data.token);
     }
-    
+
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro no login admin:', error);
+    console.error("❌ [API] Erro no login admin:", error);
     throw error;
   }
 }
 
-/**
- * Verificar token JWT
- */
 async function verifyToken(token) {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ token })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
     });
 
-    if (!response.ok) {
-      return { valid: false };
-    }
+    if (!response.ok) return { valid: false };
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro ao verificar token:', error);
+    console.error("❌ [API] Erro ao verificar token:", error);
     return { valid: false };
   }
 }
 
-/**
- * Logout do admin
- */
 function adminLogout() {
   tokenManager.removeToken();
-  console.log('✅ [API] Logout realizado');
+  console.log("✅ [API] Logout realizado");
 }
 
 // =====================================================
 // FUNÇÕES DE API - ADMIN (PROTEGIDAS)
 // =====================================================
 
-/**
- * Requisição genérica com autenticação
- */
 async function authenticatedRequest(endpoint, options = {}) {
   const token = tokenManager.getToken();
-  
-  if (!token) {
-    throw new Error('Usuário não autenticado');
-  }
+  if (!token) throw new Error("Usuário não autenticado");
 
   const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    ...options.headers
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    ...options.headers,
   };
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers
+    headers,
   });
 
   if (response.status === 401) {
-    // Token inválido/expirado
     tokenManager.removeToken();
-    throw new Error('Sessão expirada. Faça login novamente.');
+    throw new Error("Sessão expirada. Faça login novamente.");
   }
 
   if (!response.ok) {
@@ -375,18 +325,16 @@ async function authenticatedRequest(endpoint, options = {}) {
   return response.json();
 }
 
-/**
- * Health check do servidor
- */
+// Health check
 async function healthCheck() {
   try {
     const response = await fetch(`${API_BASE_URL}/health`);
     const data = await response.json();
-    console.log('✅ [API] Health check:', data);
+    console.log("✅ [API] Health check:", data);
     return data;
   } catch (error) {
-    console.error('❌ [API] Erro no health check:', error);
-    return { status: 'error', message: error.message };
+    console.error("❌ [API] Erro no health check:", error);
+    return { status: "error", message: error.message };
   }
 }
 
@@ -394,38 +342,37 @@ async function healthCheck() {
 // EXPORTAÇÕES
 // =====================================================
 
-// Exportar para uso global
 window.apiClient = {
   // Chat/Bot
   sendMessage,
   registerUser,
   sendSuggestion,
-  
+
   // Resinas
   getResins,
-  
+
   // Galeria
   getGallery,
   submitGalleryItem,
-  
+
   // Contato
   sendContact,
-  
+
   // Auth
   adminLogin,
   verifyToken,
   adminLogout,
   isAuthenticated: () => tokenManager.isAuthenticated(),
-  
+
   // Admin
   authenticatedRequest,
-  
+
   // Utils
   healthCheck,
-  
+
   // Config
-  API_BASE_URL
+  API_BASE_URL,
 };
 
-console.log('✅ [API] API Client inicializado com sucesso!');
-console.log('📡 [API] Backend URL:', API_BASE_URL);
+console.log("✅ [API] API Client inicializado com sucesso!");
+console.log("📡 [API] Backend URL:", API_BASE_URL);
