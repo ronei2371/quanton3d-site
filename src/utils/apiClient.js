@@ -1,16 +1,14 @@
 // =====================================================
-// API CLIENT - BLINDADO (CORREÇÃO DE TELA BRANCA)
+// API CLIENT - BLINDADO V2 (COM EXPORT DEFAULT)
 // =====================================================
 
-// 1. Lógica inteligente para limpar a URL duplicada
+// 1. Limpeza Inteligente de URL (Evita o erro /api/api)
 const rawUrl = (import.meta.env.VITE_API_URL || "https://quanton3d-bot-v2.onrender.com/api");
-
-// Remove qualquer /api do final ou barras extras e adiciona um único /api limpo
 const API_BASE_URL = rawUrl.replace(/\/api\/?$/, "").replace(/\/$/, "") + "/api";
 
 console.log("🚀 [API] Conectando em:", API_BASE_URL);
 
-// Gerenciador de Token (Admin)
+// Gerenciador de Token
 class TokenManager {
   constructor() { this.tokenKey = "quanton3d_admin_token"; }
   getToken() { return localStorage.getItem(this.tokenKey); }
@@ -18,29 +16,27 @@ class TokenManager {
   removeToken() { localStorage.removeItem(this.tokenKey); }
   isAuthenticated() { return !!this.getToken(); }
 }
-const tokenManager = new TokenManager();
+export const tokenManager = new TokenManager();
 
 // =====================================================
-// FUNÇÕES SEGURAS (COM TRY/CATCH PARA NÃO CRASHAR)
+// FUNÇÕES SEGURAS (TRY/CATCH)
 // =====================================================
 
-async function getResins() {
+export async function getResins() {
   try {
-    // Remove o /api para chamar a rota pública /resins (compatibilidade)
+    // Tira o /api para chamar a rota publica /resins
     const publicUrl = API_BASE_URL.replace('/api', ''); 
     const response = await fetch(`${publicUrl}/resins`);
-    
     if (!response.ok) return [];
-    
     const data = await response.json();
     return data.resins || [];
   } catch (error) {
-    console.warn("⚠️ [API] Falha ao buscar resinas (Site não vai travar):", error);
-    return []; // Retorna lista vazia em vez de quebrar o site
+    console.warn("⚠️ [API] Falha leve ao buscar resinas:", error);
+    return []; 
   }
 }
 
-async function sendMessage(message, sessionId, additionalData = {}) {
+export async function sendMessage(message, sessionId, additionalData = {}) {
   try {
     const response = await fetch(`${API_BASE_URL}/chat`, {
       method: "POST",
@@ -54,27 +50,28 @@ async function sendMessage(message, sessionId, additionalData = {}) {
   }
 }
 
-// Funções do Admin (Protegidas)
-async function adminLogin(password) {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-  
-  const data = await response.json();
-  if (data.token) tokenManager.setToken(data.token);
-  return data;
+export async function adminLogin(password) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await response.json();
+    if (data.token) tokenManager.setToken(data.token);
+    return data;
+  } catch (e) {
+    return { success: false, error: "Erro de conexão" };
+  }
 }
 
-// Exportação Segura
-export { 
-  getResins, 
-  sendMessage, 
-  adminLogin, 
+// OBJETO FINAL PARA COMPATIBILIDADE (Isso evita a Tela Branca)
+const apiClient = {
+  getResins,
+  sendMessage,
+  adminLogin,
   tokenManager,
-  API_BASE_URL 
+  API_BASE_URL
 };
 
-// Compatibilidade com window (para debug)
-window.apiClient = { getResins, sendMessage, API_BASE_URL };
+export default apiClient;
