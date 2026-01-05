@@ -131,7 +131,6 @@ async function getResins() {
   try {
     console.log("📤 [API] Buscando lista de resinas...");
 
-    // Usa /api/resins (prefixo consistente)
     const response = await fetch(`${API_BASE_URL}/resins`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -312,7 +311,7 @@ async function authenticatedRequest(endpoint, options = {}) {
     headers,
   });
 
-  if (response.status === 401) {
+    if (response.status === 401) {
     tokenManager.removeToken();
     throw new Error("Sessão expirada. Faça login novamente.");
   }
