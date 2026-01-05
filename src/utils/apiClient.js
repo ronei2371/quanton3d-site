@@ -311,7 +311,7 @@ async function authenticatedRequest(endpoint, options = {}) {
     headers,
   });
 
-    if (response.status === 401) {
+  if (response.status === 401) {
     tokenManager.removeToken();
     throw new Error("Sessão expirada. Faça login novamente.");
   }
