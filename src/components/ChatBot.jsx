@@ -15,7 +15,8 @@ const normalizeApiUrl = (rawUrl) => {
 
 const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api');
 const PUBLIC_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
-const CHAT_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/chat`, `${PUBLIC_BASE_URL}/chat`]));
+const ASK_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/ask`, `${PUBLIC_BASE_URL}/ask`]));
+const ASK_IMAGE_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/ask-with-image`, `${PUBLIC_BASE_URL}/ask-with-image`]));
 const REGISTER_ENDPOINT = `${API_BASE_URL}/register-user`;
 const SUGGESTION_ENDPOINT = `${API_BASE_URL}/suggest-knowledge`;
 const STORAGE_KEY = 'quanton3d-chat-state';
@@ -157,27 +158,25 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const fileToBase64 = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result || '';
-      const base64 = result.toString().split(',').pop();
-      resolve(base64 || '');
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
-  const callChatApi = async (payload) => {
+  const callChatApi = async (payload, hasImage = false) => {
     let lastError = new Error('Chat indisponível no momento.');
 
-    for (const endpoint of CHAT_ENDPOINTS) {
+    const targets = hasImage ? ASK_IMAGE_ENDPOINTS : ASK_ENDPOINTS;
+    for (const endpoint of targets) {
       try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(
+          endpoint,
+          hasImage
+            ? {
+                method: 'POST',
+                body: payload,
+              }
+            : {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              }
+        );
 
         if (!response.ok) {
           lastError = new Error(`HTTP ${response.status}`);
@@ -215,23 +214,23 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     setError(null); // Limpar erro anterior
     
     try {
-      let imagePayload = {};
-      if (selectedImage) {
-        const base64 = await fileToBase64(selectedImage);
-        imagePayload = {
-          image: base64,
-          hasImage: true,
-          filename: selectedImage.name,
-          contentType: selectedImage.type,
-        };
-        setSelectedImage(null);
-      }
+      const messageText = inputValue || (selectedImage ? 'Analise esta imagem' : '');
+      let data;
 
-      const data = await callChatApi({
-        message: inputValue || (selectedImage ? 'Analise esta imagem' : ''),
-        sessionId,
-        ...imagePayload,
-      });
+      if (selectedImage) {
+        const formData = new FormData();
+        formData.append('message', messageText);
+        formData.append('sessionId', sessionId);
+        formData.append('image', selectedImage);
+
+        data = await callChatApi(formData, true);
+        setSelectedImage(null);
+      } else {
+        data = await callChatApi({
+          message: messageText,
+          sessionId,
+        });
+      }
 
       const botText = data.reply || data.response || 'Não consegui processar sua resposta.';
       const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
