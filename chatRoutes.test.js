@@ -1,5 +1,5 @@
 import request from 'supertest';
-import server from './backend/app.js';
+import server from './server.js';
 
 afterAll((done) => {
   server.close(done);
