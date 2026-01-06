@@ -7,7 +7,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
 // URL do backend - usa variavel de ambiente ou fallback para producao
-const API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com').replace(/\/$/, '') + '/api';
+const normalizeApiUrl = (rawUrl) => {
+  const trimmed = (rawUrl || '').trim().replace(/\/+$/, '');
+  if (!trimmed) return 'https://quanton3d-bot-v2.onrender.com/api';
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
+const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api');
+const PUBLIC_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
+const CHAT_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/chat`, `${PUBLIC_BASE_URL}/chat`]));
+const REGISTER_ENDPOINT = `${API_BASE_URL}/register-user`;
+const SUGGESTION_ENDPOINT = `${API_BASE_URL}/suggest-knowledge`;
 const STORAGE_KEY = 'quanton3d-chat-state';
 const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
 
@@ -39,7 +49,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [lastBotReply, setLastBotReply] = useState('');
-  
+
   const endOfMessagesRef = useRef(null);
   const initializedRef = useRef(false);
   const registrationTimeoutRef = useRef(null);
@@ -147,6 +157,42 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result || '';
+      const base64 = result.toString().split(',').pop();
+      resolve(base64 || '');
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const callChatApi = async (payload) => {
+    let lastError = new Error('Chat indisponível no momento.');
+
+    for (const endpoint of CHAT_ENDPOINTS) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          lastError = new Error(`HTTP ${response.status}`);
+          continue;
+        }
+
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if ((!inputValue.trim() && !selectedImage) || isLoading) return;
@@ -169,46 +215,25 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     setError(null); // Limpar erro anterior
     
     try {
-      let response;
-      
+      let imagePayload = {};
       if (selectedImage) {
-        // Upload com imagem
-        const formData = new FormData();
-        formData.append('image', selectedImage);
-        formData.append('message', inputValue || 'Analise esta imagem');
-        formData.append('sessionId', sessionId);
-        
-        response = await fetch(`${API_URL}/ask-with-image`, {
-          method: 'POST',
-          body: formData,
-        });
+        const base64 = await fileToBase64(selectedImage);
+        imagePayload = {
+          image: base64,
+          hasImage: true,
+          filename: selectedImage.name,
+          contentType: selectedImage.type,
+        };
         setSelectedImage(null);
-      } else {
-        // Mensagem normal
-        response = await fetch(`${API_URL}/ask`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: inputValue, sessionId: sessionId }),
-        });
       }
-      
-      if (!response.ok) {
-        // Tratamento de erros específicos
-        let errorMsg = 'Ocorreu um erro ao conectar com a IA.';
-        
-        if (response.status === 429) {
-          errorMsg = '⚠️ Muitas mensagens enviadas! Por favor, aguarde um momento antes de enviar novamente.';
-        } else if (response.status === 503) {
-          errorMsg = '⚠️ Servidor temporiamente ocupado. Tente novamente em alguns segundos.';
-        } else if (response.status === 500) {
-          errorMsg = '⚠️ Erro no servidor. Nossa equipe foi notificada. Tente novamente em instantes.';
-        }
-        
-        throw new Error(errorMsg);
-      }
-      
-      const data = await response.json();
-      const botText = data.reply || 'Não consegui processar sua resposta.';
+
+      const data = await callChatApi({
+        message: inputValue || (selectedImage ? 'Analise esta imagem' : ''),
+        sessionId,
+        ...imagePayload,
+      });
+
+      const botText = data.reply || data.response || 'Não consegui processar sua resposta.';
       const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
       setMessages((prev) => [...prev, botMessage]);
       
@@ -282,7 +307,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     setPhoneError(''); // Limpar erro se validacao passar
     
     try {
-      const response = await fetch(`${API_URL}/register-user`, {
+      const response = await fetch(REGISTER_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...userData, sessionId }),
@@ -319,7 +344,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         lastBotReply
       };
       
-      const response = await fetch(`${API_URL}/suggest-knowledge`, {
+      const response = await fetch(SUGGESTION_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
