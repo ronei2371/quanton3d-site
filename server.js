@@ -4,7 +4,8 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
-import db from './db.js'
+const dbModule = await import('./db.js')
+const db = dbModule.default ?? dbModule
 
 dotenv.config()
 
