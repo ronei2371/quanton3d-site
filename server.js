@@ -4,7 +4,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
-import { connectToMongo, getParametrosCollection } from './db.js'
+import * as db from './db.js'
 
 dotenv.config()
 
@@ -25,7 +25,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 if (MONGODB_URI) {
-  connectToMongo(MONGODB_URI)
+  db.connectToMongo(MONGODB_URI)
     .then(() => {
       console.log('[MongoDB] Conectado com sucesso')
     })
@@ -37,7 +37,7 @@ if (MONGODB_URI) {
 }
 
 app.get('/resins', async (req, res) => {
-  const collection = getParametrosCollection()
+  const collection = db.getParametrosCollection()
 
   if (!collection) {
     return res.status(503).json({
