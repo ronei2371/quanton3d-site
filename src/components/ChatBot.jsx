@@ -19,6 +19,7 @@ const ASK_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/ask`, `${PUBLIC_BASE_
 const ASK_IMAGE_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/ask-with-image`, `${PUBLIC_BASE_URL}/ask-with-image`]));
 const REGISTER_ENDPOINT = `${API_BASE_URL}/register-user`;
 const SUGGESTION_ENDPOINT = `${API_BASE_URL}/suggest-knowledge`;
+const CHAT_MODEL = (import.meta.env.VITE_CHAT_MODEL || '').trim() || null;
 const STORAGE_KEY = 'quanton3d-chat-state';
 const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
 
@@ -230,6 +231,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         formData.append('message', messageText);
         formData.append('sessionId', sessionId);
         formData.append('image', selectedImage);
+        if (CHAT_MODEL) {
+          formData.append('model', CHAT_MODEL);
+        }
 
         data = await callChatApi(formData, true);
         setSelectedImage(null);
@@ -237,6 +241,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         data = await callChatApi({
           message: messageText,
           sessionId,
+          ...(CHAT_MODEL ? { model: CHAT_MODEL } : {}),
         });
       }
 
