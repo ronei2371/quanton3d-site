@@ -50,6 +50,29 @@ export async function sendMessage(message, sessionId, additionalData = {}) {
   }
 }
 
+export async function sendMessageWithImage({ image, message, model, sessionId }) {
+  try {
+    const formData = new FormData();
+    if (image) {
+      formData.append("image", image);
+    }
+    formData.append("message", message || "");
+    formData.append("model", model || "");
+    if (sessionId) {
+      formData.append("sessionId", sessionId);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/ask-with-image`, {
+      method: "POST",
+      body: formData,
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("❌ [API] Erro no envio de imagem:", error);
+    return { success: false, response: "Erro de conexão. Tente novamente." };
+  }
+}
+
 export async function adminLogin(password) {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -69,6 +92,7 @@ export async function adminLogin(password) {
 const apiClient = {
   getResins,
   sendMessage,
+  sendMessageWithImage,
   adminLogin,
   tokenManager,
   API_BASE_URL
