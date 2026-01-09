@@ -15,10 +15,21 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI || ''
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || []
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || '*',
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   })
 )
