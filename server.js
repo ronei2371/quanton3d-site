@@ -4,7 +4,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
-import * as db from './db.js'
+import db from './db.js'
 
 dotenv.config()
 
@@ -24,9 +24,8 @@ app.use(
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-const connectToMongo = db.connectToMongo ?? db.default?.connectToMongo
-if (MONGODB_URI && typeof connectToMongo === 'function') {
-  connectToMongo(MONGODB_URI)
+if (MONGODB_URI && typeof db.connectToMongo === 'function') {
+  db.connectToMongo(MONGODB_URI)
     .then(() => {
       console.log('[MongoDB] Conectado com sucesso')
     })
@@ -40,16 +39,14 @@ if (MONGODB_URI && typeof connectToMongo === 'function') {
 }
 
 app.get('/resins', async (req, res) => {
-  const getParametrosCollection = db.getParametrosCollection ?? db.default?.getParametrosCollection
-
-  if (typeof getParametrosCollection !== 'function') {
+  if (typeof db.getParametrosCollection !== 'function') {
     return res.status(503).json({
       success: false,
       message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
     })
   }
 
-  const collection = getParametrosCollection()
+  const collection = db.getParametrosCollection()
 
   if (!collection) {
     return res.status(503).json({
