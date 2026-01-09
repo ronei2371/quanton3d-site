@@ -3,8 +3,8 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import mongoose from 'mongoose'
 import chatRoutes from './src/routes/chatRoutes.js'
+import { connectToMongo, getParametrosCollection } from './db.js'
 
 dotenv.config()
 
@@ -25,10 +25,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
 if (MONGODB_URI) {
-  mongoose
-    .connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-    })
+  connectToMongo(MONGODB_URI)
     .then(() => {
       console.log('[MongoDB] Conectado com sucesso')
     })
@@ -38,6 +35,28 @@ if (MONGODB_URI) {
 } else {
   console.warn('[MongoDB] MONGODB_URI não configurada; conexão não iniciada')
 }
+
+app.get('/resins', async (req, res) => {
+  const collection = getParametrosCollection()
+
+  if (!collection) {
+    return res.status(503).json({
+      success: false,
+      message: 'Banco de dados indisponível. Tente novamente mais tarde.',
+    })
+  }
+
+  try {
+    const resins = await collection.find({}).toArray()
+    return res.status(200).json({ success: true, resins })
+  } catch (error) {
+    console.error('[RESINS] Falha ao carregar resinas', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao carregar resinas.',
+    })
+  }
+})
 
 app.use('/api', chatRoutes)
 app.use('/chat', chatRoutes)
