@@ -181,7 +181,20 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
 
         if (!response.ok) {
           let errorMsg = 'Ocorreu um erro ao conectar com a IA.';
-          if (response.status === 429) {
+          try {
+            const errorPayload = await response.json();
+            if (typeof errorPayload?.message === 'string') {
+              errorMsg = errorPayload.message;
+            } else if (typeof errorPayload?.error === 'string') {
+              errorMsg = errorPayload.error;
+            }
+          } catch {
+            // Mantém a mensagem padrão quando não há JSON válido.
+          }
+
+          if (response.status === 400) {
+            errorMsg = errorMsg || '⚠️ Não foi possível validar a solicitação. Verifique os dados enviados.';
+          } else if (response.status === 429) {
             errorMsg = '⚠️ Muitas mensagens enviadas! Por favor, aguarde um momento antes de enviar novamente.';
           } else if (response.status === 503) {
             errorMsg = '⚠️ Servidor temporiamente ocupado. Tente novamente em alguns segundos.';
@@ -231,9 +244,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         formData.append('message', messageText);
         formData.append('sessionId', sessionId);
         formData.append('image', selectedImage);
-        if (CHAT_MODEL) {
-          formData.append('model', CHAT_MODEL);
-        }
+        formData.append('model', CHAT_MODEL || '');
 
         data = await callChatApi(formData, true);
         setSelectedImage(null);
