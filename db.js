@@ -39,3 +39,12 @@ export const getParametrosCollection = () => getCollection('parametros')
 const conversasSchema = new mongoose.Schema({}, { strict: false, collection: 'conversas' })
 
 export const Conversas = mongoose.models.Conversas || mongoose.model('Conversas', conversasSchema)
+
+export default {
+  connectToMongo,
+  getGalleryCollection,
+  getSuggestionsCollection,
+  getMetricasCollection,
+  getParametrosCollection,
+  Conversas,
+}
