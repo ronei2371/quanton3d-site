@@ -6,8 +6,6 @@ import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
 
 // --- CORREÇÃO DO CODEX ---
-// Usamos o await import para garantir que o módulo carregue corretamente,
-// prevenindo erros de exportação/importação.
 const dbModule = await import('./db.js')
 const db = dbModule.default ?? dbModule
 // -------------------------
@@ -20,17 +18,28 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI || ''
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || []
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || '*',
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true)
+      }
+
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
+
+      return callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   })
 )
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-if (MONGODB_URI) {
+if (MONGODB_URI && typeof db.connectToMongo === 'function') {
   db.connectToMongo(MONGODB_URI)
     .then(() => {
       console.log('[MongoDB] Conectado com sucesso')
@@ -38,11 +47,20 @@ if (MONGODB_URI) {
     .catch((error) => {
       console.error('[MongoDB] Falha na conexão', error)
     })
+} else if (MONGODB_URI) {
+  console.warn('[MongoDB] Helper connectToMongo indisponível; conexão não iniciada')
 } else {
   console.warn('[MongoDB] MONGODB_URI não configurada; conexão não iniciada')
 }
 
 app.get('/resins', async (req, res) => {
+  if (typeof db.getParametrosCollection !== 'function') {
+    return res.status(503).json({
+      success: false,
+      message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
+    })
+  }
+
   const collection = db.getParametrosCollection()
 
   if (!collection) {
