@@ -4,7 +4,13 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
-import * as db from './db.js'
+
+// --- CORREÇÃO DO CODEX ---
+// Usamos o await import para garantir que o módulo carregue corretamente,
+// prevenindo erros de exportação/importação.
+const dbModule = await import('./db.js')
+const db = dbModule.default ?? dbModule
+// -------------------------
 
 dotenv.config()
 
