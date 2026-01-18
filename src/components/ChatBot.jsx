@@ -53,6 +53,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const [lastBotReply, setLastBotReply] = useState('');
   
   const endOfMessagesRef = useRef(null);
+  const inputRef = useRef(null);
   const initializedRef = useRef(false);
   const registrationTimeoutRef = useRef(null);
   const persistTimeoutRef = useRef(null);
@@ -158,6 +159,21 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!isOpen || showUserForm || showWelcomeScreen) return;
+    const focusInput = () => inputRef.current?.focus();
+    const focusId = window.requestAnimationFrame(focusInput);
+    return () => window.cancelAnimationFrame(focusId);
+  }, [isOpen, showUserForm, showWelcomeScreen]);
+
+  useEffect(() => {
+    if (!isOpen || showUserForm || showWelcomeScreen || isLoading) return;
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.sender !== 'bot') return;
+    const focusId = window.requestAnimationFrame(() => inputRef.current?.focus());
+    return () => window.cancelAnimationFrame(focusId);
+  }, [messages, isLoading, isOpen, showUserForm, showWelcomeScreen]);
 
   const callChatApi = async (payload, hasImage = false) => {
     let lastError = new Error('Chat indisponível no momento.');
@@ -769,6 +785,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
           </button>
           <input
             type="text"
+            ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             className="flex-1 p-3 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
