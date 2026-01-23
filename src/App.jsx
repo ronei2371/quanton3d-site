@@ -83,6 +83,13 @@ function App() {
             <a href="#produtos" className="text-sm font-medium hover:text-blue-600 transition-colors">Produtos</a>
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
                         <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
+                        <a
+                          href="https://quanton3d-bot-v2.onrender.com/admin"
+                          className="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Acesso administrativo"
+                        >
+                          🔒 Admin
+                        </a>
                         <button
                           onClick={() => setIsAdminPanelOpen(true)} 
                           className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
