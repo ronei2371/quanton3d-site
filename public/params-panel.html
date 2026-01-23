@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo Quanton3D</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --muted: #6b7280;
+      --danger: #ef4444;
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: #0f172a;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px 48px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 28px 32px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.75rem;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .field input,
+    .field textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .field textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--primary);
+    }
+
+    .status {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Painel Administrativo Quanton3D</h1>
+      <p>Gestão centralizada dos módulos CRM, RAG e parâmetros.</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="https://quanton3dia.onrender.com" class="btn secondary" style="text-decoration: none; display: flex; align-items: center;">⬅ Voltar ao Site</a>
+      <button id="logout-btn" class="btn" style="background: var(--danger);">🔒 Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Importar Conhecimento</h2>
+      <div class="field">
+        <label for="knowledge-title">Título</label>
+        <input id="knowledge-title" type="text" placeholder="Título do conhecimento" />
+      </div>
+      <div class="field">
+        <label for="knowledge-content">Conteúdo</label>
+        <textarea id="knowledge-content" placeholder="Escreva o conteúdo detalhado"></textarea>
+      </div>
+      <button id="submit-knowledge" class="btn">Salvar conhecimento</button>
+      <div id="knowledge-status" class="status"></div>
+    </section>
+  </main>
+
+  <script>
+    const API_BASE = 'https://quanton3d-bot-v2.onrender.com';
+    const AUTH_TOKEN_KEY = 'quanton3d_admin_token';
+
+    const knowledgeTitle = document.getElementById('knowledge-title');
+    const knowledgeContent = document.getElementById('knowledge-content');
+    const knowledgeStatus = document.getElementById('knowledge-status');
+
+    const ensureAuthenticated = () => {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) {
+        knowledgeStatus.textContent = 'Faça login para continuar.';
+        return false;
+      }
+      return true;
+    };
+
+    const fetchWithAuth = (url, options = {}) => {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+      });
+    };
+
+    // Lógica de Logout
+    document.getElementById("logout-btn")?.addEventListener("click", () => {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      window.location.reload();
+    });
+
+    // Correção do Envio de Conhecimento
+    const submitKnowledge = async () => {
+      if (!ensureAuthenticated()) return;
+      const title = knowledgeTitle.value.trim();
+      const content = knowledgeContent.value.trim();
+      if (!title || !content) {
+        knowledgeStatus.textContent = "Preencha título e conteúdo.";
+        return;
+      }
+      knowledgeStatus.textContent = "Enviando...";
+      try {
+        const response = await fetchWithAuth(`${API_BASE}/admin/knowledge/import`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documents: [{ title, content, tags: ["admin_fix"], source: "painel" }] })
+        });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error);
+        knowledgeStatus.textContent = "✅ Salvo com sucesso!";
+        knowledgeTitle.value = "";
+        knowledgeContent.value = "";
+      } catch (error) {
+        knowledgeStatus.textContent = "Erro: " + error.message;
+      }
+    };
+    // Reatribuir o evento ao novo botão
+    document.getElementById("submit-knowledge").onclick = submitKnowledge;
+  </script>
+</body>
+</html>
