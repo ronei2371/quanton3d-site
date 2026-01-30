@@ -200,9 +200,11 @@ export function AdminPanel({ onClose }) {
 
   const loadCustomRequests = async () => {
     try {
-      const response = await fetch(buildAdminUrl('/custom-requests'))
+      const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
+        headers: ADMIN_API_TOKEN ? { Authorization: `Bearer ${ADMIN_API_TOKEN}` } : undefined
+      })
       const data = await response.json()
-      setCustomRequests(data.requests || [])
+      setCustomRequests(data.formulations || data.requests || [])
     } catch (error) {
       console.error('Erro ao carregar pedidos customizados:', error)
     }
@@ -720,31 +722,31 @@ export function AdminPanel({ onClose }) {
                       <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                         <User className="h-5 w-5 text-white" />
                       </div>
-                      <div>
-                        <p className="font-semibold">{request.name}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {request.phone}
-                          </span>
-                          <span className="truncate">{request.email}</span>
-                        </div>
-                      </div>
+                  <div>
+                    <p className="font-semibold">{request.name || request.fullName || request.nome || 'Cliente'}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {request.phone || request.telefone || 'Não informado'}
+                      </span>
+                      <span className="truncate">{request.email || 'Sem e-mail'}</span>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {new Date(request.timestamp).toLocaleString('pt-BR')}
-                    </span>
                   </div>
+                </div>
+                <span className="text-xs text-gray-500">
+                      {new Date(request.createdAt || request.timestamp).toLocaleString('pt-BR')}
+                </span>
+              </div>
 
-                  <div className="space-y-3">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
-                      <p className="text-sm">{request.caracteristica}</p>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
-                      <p className="text-sm">{request.cor}</p>
-                    </div>
+              <div className="space-y-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
+                      <p className="text-sm">{request.caracteristica || request.caracteristicaDesejada || '-'}</p>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
+                      <p className="text-sm">{request.cor || '-'}</p>
+                </div>
                     {request.complementos && (
                       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                         <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">COMPLEMENTOS</p>
@@ -757,7 +759,7 @@ export function AdminPanel({ onClose }) {
                     <Button 
                       size="sm" 
                       className="flex-1 bg-green-600 hover:bg-green-700"
-                      onClick={() => window.open(`https://wa.me/55${request.phone.replace(/\D/g, '')}?text=Olá ${request.name}, sobre sua solicitação de formulação customizada...`, '_blank')}
+                      onClick={() => window.open(`https://wa.me/55${(request.phone || '').replace(/\D/g, '')}?text=Olá ${request.name || 'cliente'}, sobre sua solicitação de formulação customizada...`, '_blank')}
                     >
                       <Phone className="h-4 w-4 mr-2" />
                       Contatar via WhatsApp
@@ -774,6 +776,7 @@ export function AdminPanel({ onClose }) {
           isVisible={activeTab === 'messages'}
           onCountChange={setContactCount}
           refreshKey={contactRefreshKey}
+          adminToken={ADMIN_API_TOKEN}
         />
 
         <SuggestionsTab
