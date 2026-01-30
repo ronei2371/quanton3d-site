@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button.jsx'
 import { Check, Mail, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKey }) {
+export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKey, adminToken }) {
   const [contactMessages, setContactMessages] = useState([])
   const [loading, setLoading] = useState(false)
 
   const loadContactMessages = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/contact'))
+      const response = await fetch(buildAdminUrl('/api/admin/messages'), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       const messages = data.messages || []
       setContactMessages(messages)
@@ -22,13 +24,16 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
     } finally {
       setLoading(false)
     }
-  }, [buildAdminUrl, onCountChange])
+  }, [adminToken, buildAdminUrl, onCountChange])
 
   const toggleMessageResolved = async (messageId, currentResolved) => {
     try {
       const response = await fetch(buildAdminUrl(`/api/contact/${messageId}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+        },
         body: JSON.stringify({ resolved: !currentResolved })
       })
       const data = await response.json()

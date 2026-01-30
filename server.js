@@ -26,6 +26,7 @@ const VISUAL_SYSTEM_PROMPT = systemPrompt
 const app = express()
 const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI || ''
+const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || ''
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || []
 
 app.use(
@@ -46,6 +47,21 @@ app.use(
 )
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+const requireAdmin = (req, res, next) => {
+  if (!ADMIN_API_TOKEN) {
+    return next()
+  }
+
+  const authHeader = req.headers.authorization || ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
+
+  if (token !== ADMIN_API_TOKEN) {
+    return res.status(401).json({ success: false, message: 'Não autorizado.' })
+  }
+
+  return next()
+}
 
 if (MONGODB_URI && typeof db.connectToMongo === 'function') {
   db.connectToMongo(MONGODB_URI)
@@ -86,6 +102,64 @@ app.get('/resins', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Erro ao carregar resinas.',
+    })
+  }
+})
+
+app.get('/api/admin/messages', requireAdmin, async (_req, res) => {
+  if (typeof db.getContactsCollection !== 'function') {
+    return res.status(503).json({
+      success: false,
+      message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
+    })
+  }
+
+  const collection = db.getContactsCollection()
+
+  if (!collection) {
+    return res.status(503).json({
+      success: false,
+      message: 'Banco de dados indisponível. Tente novamente mais tarde.',
+    })
+  }
+
+  try {
+    const messages = await collection.find({}).sort({ createdAt: -1 }).toArray()
+    return res.status(200).json({ success: true, messages })
+  } catch (error) {
+    console.error('[ADMIN][MESSAGES] Falha ao carregar mensagens', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao carregar mensagens.',
+    })
+  }
+})
+
+app.get('/api/admin/formulations', requireAdmin, async (_req, res) => {
+  if (typeof db.getCustomRequestsCollection !== 'function') {
+    return res.status(503).json({
+      success: false,
+      message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
+    })
+  }
+
+  const collection = db.getCustomRequestsCollection()
+
+  if (!collection) {
+    return res.status(503).json({
+      success: false,
+      message: 'Banco de dados indisponível. Tente novamente mais tarde.',
+    })
+  }
+
+  try {
+    const formulations = await collection.find({}).sort({ createdAt: -1 }).toArray()
+    return res.status(200).json({ success: true, formulations })
+  } catch (error) {
+    console.error('[ADMIN][FORMULATIONS] Falha ao carregar formulações', error)
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao carregar formulações.',
     })
   }
 })
