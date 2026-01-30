@@ -123,6 +123,29 @@
         margin-bottom: 12px;
       }
 
+      .tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 20px 0 12px;
+      }
+
+      .tabs .btn {
+        box-shadow: none;
+      }
+
+      .tabs .btn.active {
+        background: var(--electric-blue-dark);
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
       .btn {
         border: none;
         background: var(--electric-blue);
@@ -337,57 +360,102 @@
         </div>
       </header>
 
-      <section class="filters">
-        <div>
-          <label for="resin-select">Resina</label>
-          <select id="resin-select">
-            <option value="">Todas as resinas</option>
-          </select>
+      <div class="tabs" role="tablist">
+        <button class="btn secondary active" data-tab="params" type="button">Parâmetros</button>
+        <button class="btn secondary" data-tab="messages" type="button">Mensagens</button>
+        <button class="btn secondary" data-tab="formulations" type="button">Formulações</button>
+      </div>
+
+      <section class="tab-panel active" id="params-panel">
+        <section class="filters">
+          <div>
+            <label for="resin-select">Resina</label>
+            <select id="resin-select">
+              <option value="">Todas as resinas</option>
+            </select>
+          </div>
+          <div>
+            <label for="printer-select">Impressora</label>
+            <select id="printer-select">
+              <option value="">Todas as impressoras</option>
+            </select>
+          </div>
+          <div>
+            <label for="status-select">Status</label>
+            <select id="status-select">
+              <option value="">Todos</option>
+              <option value="ok">Ativo</option>
+              <option value="coming_soon">Em Breve</option>
+            </select>
+          </div>
+          <div>
+            <label for="search-input">Busca rápida</label>
+            <input id="search-input" type="text" placeholder="Resina, marca ou modelo" />
+          </div>
+        </section>
+
+        <div class="actions-bar">
+          <div id="count-info">Carregando perfis...</div>
+          <div>
+            <button class="btn" id="refresh-button">Atualizar</button>
+            <button class="btn secondary" id="clear-button">Limpar filtros</button>
+          </div>
         </div>
-        <div>
-          <label for="printer-select">Impressora</label>
-          <select id="printer-select">
-            <option value="">Todas as impressoras</option>
-          </select>
-        </div>
-        <div>
-          <label for="status-select">Status</label>
-          <select id="status-select">
-            <option value="">Todos</option>
-            <option value="ok">Ativo</option>
-            <option value="coming_soon">Em Breve</option>
-          </select>
-        </div>
-        <div>
-          <label for="search-input">Busca rápida</label>
-          <input id="search-input" type="text" placeholder="Resina, marca ou modelo" />
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Resina</th>
+                <th>Impressora</th>
+                <th>Parâmetros</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="profiles-body"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state" hidden>Nenhum perfil encontrado.</div>
+          <div class="pagination" id="pagination"></div>
         </div>
       </section>
 
-      <div class="actions-bar">
-        <div id="count-info">Carregando perfis...</div>
-        <div>
-          <button class="btn" id="refresh-button">Atualizar</button>
-          <button class="btn secondary" id="clear-button">Limpar filtros</button>
+      <section class="tab-panel" id="messages-panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Nome</th>
+                <th>Telefone</th>
+                <th>E-mail</th>
+                <th>Mensagem</th>
+              </tr>
+            </thead>
+            <tbody id="messages-body"></tbody>
+          </table>
+          <div class="empty-state" id="messages-empty" hidden>Nenhuma mensagem encontrada.</div>
         </div>
-      </div>
+      </section>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Resina</th>
-              <th>Impressora</th>
-              <th>Parâmetros</th>
-              <th>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="profiles-body"></tbody>
-        </table>
-        <div class="empty-state" id="empty-state" hidden>Nenhum perfil encontrado.</div>
-        <div class="pagination" id="pagination"></div>
-      </div>
+      <section class="tab-panel" id="formulations-panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Nome</th>
+                <th>Contato</th>
+                <th>Característica</th>
+                <th>Cor</th>
+                <th>Detalhes</th>
+              </tr>
+            </thead>
+            <tbody id="formulations-body"></tbody>
+          </table>
+          <div class="empty-state" id="formulations-empty" hidden>Nenhuma formulação encontrada.</div>
+        </div>
+      </section>
     </div>
 
     <script>
@@ -417,11 +485,19 @@
         resins: [],
         printers: [],
         profiles: [],
+        messages: [],
+        formulations: [],
         page: 1,
         limit: null,
-        total: 0
+        total: 0,
+        tabsLoaded: {
+          messages: false,
+          formulations: false
+        }
       };
 
+      const tabs = Array.from(document.querySelectorAll(".tabs .btn"));
+      const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
       const resinSelect = document.getElementById("resin-select");
       const printerSelect = document.getElementById("printer-select");
       const statusSelect = document.getElementById("status-select");
@@ -433,10 +509,21 @@
       const knowledgeTitle = document.getElementById("knowledge-title");
       const knowledgeContent = document.getElementById("knowledge-content");
       const knowledgeStatus = document.getElementById("knowledge-status");
+      const messagesBody = document.getElementById("messages-body");
+      const messagesEmpty = document.getElementById("messages-empty");
+      const formulationsBody = document.getElementById("formulations-body");
+      const formulationsEmpty = document.getElementById("formulations-empty");
 
       const statusLabels = {
         ok: "Ativo",
         coming_soon: "Em Breve"
+      };
+
+      const formatDateTime = (value) => {
+        if (!value) return "-";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+        return date.toLocaleString("pt-BR");
       };
 
       const formatParams = (params = {}) => {
@@ -614,6 +701,90 @@
         loadProfiles();
       };
 
+      const renderMessages = () => {
+        messagesBody.innerHTML = "";
+        messagesEmpty.hidden = state.messages.length > 0;
+
+        state.messages.forEach((message) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td data-label="Data">${formatDateTime(message.createdAt || message.created_at || message.date)}</td>
+            <td data-label="Nome">${message.name || message.fullName || message.nome || "-"}</td>
+            <td data-label="Telefone">${message.phone || message.telefone || "-"}</td>
+            <td data-label="E-mail">${message.email || "-"}</td>
+            <td data-label="Mensagem">${message.message || message.recado || "-"}</td>
+          `;
+          messagesBody.appendChild(row);
+        });
+      };
+
+      const renderFormulations = () => {
+        formulationsBody.innerHTML = "";
+        formulationsEmpty.hidden = state.formulations.length > 0;
+
+        state.formulations.forEach((request) => {
+          const contactParts = [request.phone || request.telefone, request.email].filter(Boolean);
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td data-label="Data">${formatDateTime(request.createdAt || request.created_at || request.date)}</td>
+            <td data-label="Nome">${request.name || request.fullName || request.nome || "-"}</td>
+            <td data-label="Contato">${contactParts.length ? contactParts.join(" / ") : "-"}</td>
+            <td data-label="Característica">${request.caracteristica || request.caracteristicaDesejada || "-"}</td>
+            <td data-label="Cor">${request.cor || "-"}</td>
+            <td data-label="Detalhes">${request.complementos || request.detalhes || "-"}</td>
+          `;
+          formulationsBody.appendChild(row);
+        });
+      };
+
+      const loadMessages = async () => {
+        if (!ensureAuthenticated()) return;
+        try {
+          const response = await fetchWithAuth(`${API_BASE}/api/admin/messages`);
+          const data = await response.json();
+          if (!data.success) throw new Error(data.message || data.error || "Erro ao carregar mensagens.");
+          state.messages = data.messages || [];
+          renderMessages();
+        } catch (error) {
+          console.error("Erro ao carregar mensagens", error);
+          messagesEmpty.hidden = false;
+          messagesEmpty.textContent = "Erro ao carregar mensagens.";
+        }
+      };
+
+      const loadFormulations = async () => {
+        if (!ensureAuthenticated()) return;
+        try {
+          const response = await fetchWithAuth(`${API_BASE}/api/admin/formulations`);
+          const data = await response.json();
+          if (!data.success) throw new Error(data.message || data.error || "Erro ao carregar formulações.");
+          state.formulations = data.formulations || [];
+          renderFormulations();
+        } catch (error) {
+          console.error("Erro ao carregar formulações", error);
+          formulationsEmpty.hidden = false;
+          formulationsEmpty.textContent = "Erro ao carregar formulações.";
+        }
+      };
+
+      const setActiveTab = async (tabId) => {
+        tabs.forEach((button) => {
+          button.classList.toggle("active", button.dataset.tab === tabId);
+        });
+        tabPanels.forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `${tabId}-panel`);
+        });
+
+        if (tabId === "messages" && !state.tabsLoaded.messages) {
+          await loadMessages();
+          state.tabsLoaded.messages = true;
+        }
+        if (tabId === "formulations" && !state.tabsLoaded.formulations) {
+          await loadFormulations();
+          state.tabsLoaded.formulations = true;
+        }
+      };
+
       document.getElementById("refresh-button").addEventListener("click", () => {
         loadProfiles();
         loadStats();
@@ -668,6 +839,12 @@
             )}`
           );
         }
+      });
+
+      tabs.forEach((button) => {
+        button.addEventListener("click", () => {
+          setActiveTab(button.dataset.tab);
+        });
       });
 
       loadStats();
