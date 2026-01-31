@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag } from 'lucide-react'
+import { X, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
@@ -23,7 +23,6 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
     try {
       const success = await onApprove(item._id, defectType, diagnosis, solution)
       if (success) {
-        // Limpar campos apos aprovacao bem-sucedida
         setDefectType('')
         setDiagnosis('')
         setSolution('')
@@ -81,7 +80,6 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
               disabled={isSubmitting}
               className="bg-green-600 hover:bg-green-700"
             >
-              <Check className="h-4 w-4 mr-1" />
               {isSubmitting ? 'Aprovando...' : 'Aprovar e Treinar'}
             </Button>
             {canDelete && (
@@ -104,9 +102,12 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 
 export function AdminPanel({ onClose }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [accessLevel, setAccessLevel] = useState(null) // 'admin' | 'support' | null
+  const [accessLevel, setAccessLevel] = useState(null)
   const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState('metrics') // 'metrics' | 'suggestions' | 'orders' | 'knowledge' | 'custom' | 'messages' | 'gallery' | 'visual' | 'partners'
+  // ESTADO NOVO: Armazena o Token (crachá) recebido do login
+  const [adminToken, setAdminToken] = useState('') 
+  
+  const [activeTab, setActiveTab] = useState('metrics')
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
   const [suggestionsCount, setSuggestionsCount] = useState(0)
   const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0)
@@ -119,6 +120,7 @@ export function AdminPanel({ onClose }) {
   const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
+  
   // Visual RAG states
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
@@ -130,7 +132,8 @@ export function AdminPanel({ onClose }) {
   const [visualDiagnosis, setVisualDiagnosis] = useState('')
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
-  // Estados para gerenciamento de parametros de impressao
+  
+  // Parametros
   const [paramsResins, setParamsResins] = useState([])
   const [paramsPrinters, setParamsPrinters] = useState([])
   const [paramsProfiles, setParamsProfiles] = useState([])
@@ -143,7 +146,12 @@ export function AdminPanel({ onClose }) {
   const [profileFormData, setProfileFormData] = useState({})
 
   const API_BASE_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '')
-  const ADMIN_API_TOKEN = import.meta.env.VITE_ADMIN_API_TOKEN || ''
+
+  // Senhas de fallback local
+  const ADMIN_PASSWORD = 'Rmartins1201'
+  const TEAM_SECRET = 'suporte_quanton_2025'
+  
+  const isAdmin = accessLevel === 'admin'
 
   const buildAdminUrl = useCallback((path, params = {}) => {
     const url = new URL(path, `${API_BASE_URL}/`)
@@ -155,14 +163,49 @@ export function AdminPanel({ onClose }) {
     return url.toString()
   }, [API_BASE_URL])
 
-  // Senhas de acesso- Admin tem acesso total, Equipe tem acesso limitado (sem excluir)
-  const ADMIN_PASSWORD = 'Rmartins1201'
-  const TEAM_SECRET = 'suporte_quanton_2025'
-  
-  // Helpers para verificar nivel de acesso
-  const isAdmin = accessLevel === 'admin'
+  // LOGIN INTELIGENTE: Tenta pegar o token do servidor
+  const handleLogin = async () => {
+    setLoading(true)
+    try {
+      // 1. Tenta autenticar no backend para pegar o Token Real
+      const res = await fetch(buildAdminUrl('/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }) // Envia a senha digitada
+      })
+      const data = await res.json()
 
-  const refreshAllData = async () => {
+      if (data.success && data.token) {
+        setAccessLevel('admin')
+        setIsAuthenticated(true)
+        setAdminToken(data.token) // SALVA O CRACHÁ!
+        toast.success('Login conectado ao servidor!')
+        await refreshAllData(data.token) // Usa o token imediatamente
+        return
+      }
+    } catch (e) {
+      console.warn('Login backend falhou, tentando fallback local...', e)
+    } finally {
+      setLoading(false)
+    }
+
+    // 2. Fallback local (se o servidor de auth falhar, mas a senha bater)
+    if (password === ADMIN_PASSWORD) {
+      setAccessLevel('admin')
+      setIsAuthenticated(true)
+      toast.info('Modo Admin Local (algumas funções podem estar limitadas)')
+      refreshAllData() // Tenta carregar sem token
+    } else if (password === TEAM_SECRET) {
+      setAccessLevel('support')
+      setIsAuthenticated(true)
+      refreshAllData()
+    } else {
+      toast.error('Senha incorreta!')
+    }
+  }
+
+  const refreshAllData = async (tokenOverride) => {
+    const tokenToUse = tokenOverride || adminToken
     setLoading(true)
     try {
       setMetricsRefreshKey((key) => key + 1)
@@ -171,7 +214,7 @@ export function AdminPanel({ onClose }) {
       setKnowledgeRefreshKey((key) => key + 1)
       setContactRefreshKey((key) => key + 1)
       await Promise.all([
-        loadCustomRequests(),
+        loadCustomRequests(tokenToUse),
         loadVisualKnowledge(),
         loadPendingVisualPhotos(),
         loadParamsData()
@@ -184,24 +227,11 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-    const handleLogin = async () => {
-      if (password === ADMIN_PASSWORD) {
-        setAccessLevel('admin')
-        setIsAuthenticated(true)
-      } else if (password === TEAM_SECRET) {
-        setAccessLevel('support')
-        setIsAuthenticated(true)
-      } else {
-        toast.error('Senha incorreta!')
-        return
-      }
-      await refreshAllData()
-    }
-
-  const loadCustomRequests = async () => {
+  const loadCustomRequests = async (tokenToUse) => {
     try {
+      const token = tokenToUse || adminToken
       const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
-        headers: ADMIN_API_TOKEN ? { Authorization: `Bearer ${ADMIN_API_TOKEN}` } : undefined
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
       const data = await response.json()
       setCustomRequests(data.formulations || data.requests || [])
@@ -210,351 +240,350 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-    // Visual RAG functions
-      const loadVisualKnowledge = async () => {
-        setVisualLoading(true)
-        try {
-          const response = await fetch(buildAdminUrl('/api/visual-knowledge'))
-          const data = await response.json()
-          setVisualKnowledge(data.documents || [])
-        } catch (error) {
-          console.error('Erro ao carregar conhecimento visual:', error)
-        } finally {
-        setVisualLoading(false)
-      }
+  // Visual RAG functions
+  const loadVisualKnowledge = async () => {
+    setVisualLoading(true)
+    try {
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'))
+      const data = await response.json()
+      setVisualKnowledge(data.documents || [])
+    } catch (error) {
+      console.error('Erro ao carregar conhecimento visual:', error)
+    } finally {
+      setVisualLoading(false)
     }
+  }
 
-      const loadPendingVisualPhotos = async () => {
-        setPendingVisualLoading(true)
-        try {
-          const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'))
-          const data = await response.json()
-          setPendingVisualPhotos(data.documents || [])
-        } catch (error) {
-          console.error('Erro ao carregar fotos pendentes:', error)
-        } finally {
-        setPendingVisualLoading(false)
-      }
+  const loadPendingVisualPhotos = async () => {
+    setPendingVisualLoading(true)
+    try {
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'))
+      const data = await response.json()
+      setPendingVisualPhotos(data.documents || [])
+    } catch (error) {
+      console.error('Erro ao carregar fotos pendentes:', error)
+    } finally {
+      setPendingVisualLoading(false)
     }
+  }
 
-    const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
-        if (!defectType || !diagnosis || !solution) {
-          toast.warning('Preencha todos os campos antes de aprovar')
-          return false
-        }
-        try {
-          const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ defectType, diagnosis, solution })
-          })
-        const data = await response.json()
-        if (data.success) {
-          toast.success('Conhecimento visual aprovado com sucesso!')
-          loadPendingVisualPhotos()
-          loadVisualKnowledge()
-          return true
-        } else {
-          toast.error('Erro: ' + data.error)
-          return false
-        }
-      } catch (error) {
-        console.error('Erro ao aprovar conhecimento visual:', error)
-        toast.error('Erro ao aprovar conhecimento visual')
+  const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+    if (!defectType || !diagnosis || !solution) {
+      toast.warning('Preencha todos os campos antes de aprovar')
+      return false
+    }
+    try {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defectType, diagnosis, solution })
+      })
+      const data = await response.json()
+      if (data.success) {
+        toast.success('Conhecimento visual aprovado com sucesso!')
+        loadPendingVisualPhotos()
+        loadVisualKnowledge()
+        return true
+      } else {
+        toast.error('Erro: ' + data.error)
         return false
       }
+    } catch (error) {
+      console.error('Erro ao aprovar conhecimento visual:', error)
+      toast.error('Erro ao aprovar conhecimento visual')
+      return false
     }
+  }
 
-    const deletePendingVisual = async (id) => {
-        if (!isAdmin) {
-          toast.warning('Seu nivel de acesso nao permite excluir dados.')
-          return
-        }
-        if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
-        try {
-          const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-            method: 'DELETE'
-          })
-          const data = await response.json()
-        if (data.success) {
-          loadPendingVisualPhotos()
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao deletar foto pendente:', error)
-        toast.error('Erro ao deletar foto pendente')
-      }
+  const deletePendingVisual = async (id) => {
+    if (!isAdmin) {
+      toast.warning('Seu nivel de acesso nao permite excluir dados.')
+      return
     }
-
-    const addVisualKnowledgeEntry = async () => {
-      if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
-        toast.warning('Preencha todos os campos e selecione uma imagem')
-        return
-      }
-
-        setAddingVisual(true)
-        try {
-          const formData = new FormData()
-          formData.append('image', visualImage)
-          formData.append('defectType', visualDefectType)
-          formData.append('diagnosis', visualDiagnosis)
-          formData.append('solution', visualSolution)
-
-          const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
-            method: 'POST',
-          body: formData
-          })
-        const data = await response.json()
-        
-        if (data.success) {
-          toast.success('Conhecimento visual adicionado com sucesso!')
-          setVisualImage(null)
-          setVisualImagePreview(null)
-          setVisualDefectType('')
-          setVisualDiagnosis('')
-          setVisualSolution('')
-          loadVisualKnowledge()
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao adicionar conhecimento visual:', error)
-        toast.error('Erro ao adicionar conhecimento visual')
-      } finally {
-        setAddingVisual(false)
-      }
-    }
-
-    const deleteVisualKnowledgeEntry= async (id) => {
-        if (!isAdmin) {
-          toast.warning('Seu nivel de acesso nao permite excluir dados.')
-          return
-        }
-        if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
-
-        try {
-          const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-            method: 'DELETE'
-          })
-          const data = await response.json()
-        
-        if (data.success) {
-          loadVisualKnowledge()
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao deletar conhecimento visual:', error)
-        toast.error('Erro ao deletar conhecimento visual')
-      }
-    }
-
-    // Funcoes para gerenciamento de parametros de impressao
-    const loadParamsData = async () => {
-      setParamsLoading(true)
-      try {
-        const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-          fetch(buildAdminUrl('/params/resins')),
-          fetch(buildAdminUrl('/params/printers')),
-          fetch(buildAdminUrl('/params/profiles')),
-          fetch(buildAdminUrl('/params/stats'))
-        ])
-        const [resinsData, printersData, profilesData, statsData] = await Promise.all([
-          resinsRes.json(),
-          printersRes.json(),
-          profilesRes.json(),
-          statsRes.json()
-        ])
-        if (resinsData.success) setParamsResins(resinsData.resins || [])
-        if (printersData.success) setParamsPrinters(printersData.printers || [])
-        if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
-        if (statsData.success) setParamsStats(statsData.stats || null)
-      } catch (error) {
-        console.error('Erro ao carregar parametros:', error)
-      } finally {
-        setParamsLoading(false)
-      }
-    }
-
-    const addResin = async () => {
-      if (!newResinName.trim()) {
-        toast.warning('Digite o nome da resina')
-        return
-      }
-      try {
-        const response = await fetch(buildAdminUrl('/params/resins'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newResinName.trim() })
-        })
-        const data = await response.json()
-        if (data.success) {
-          setNewResinName('')
-          loadParamsData()
-          toast.success('Resina adicionada com sucesso!')
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao adicionar resina:', error)
-        toast.error('Erro ao adicionar resina')
-      }
-    }
-
-    const deleteResin = async (resinId) => {
-      if (!isAdmin) {
-        toast.warning('Seu nivel de acesso nao permite excluir dados.')
-        return
-      }
-      if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
-      try {
-        const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), {
-          method: 'DELETE'
-        })
-        const data = await response.json()
-        if (data.success) {
-          loadParamsData()
-          toast.success('Resina deletada com sucesso!')
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao deletar resina:', error)
-        toast.error('Erro ao deletar resina')
-      }
-    }
-
-    const addPrinter = async () => {
-      if (!newPrinterBrand.trim() || !newPrinterModel.trim()) {
-        toast.warning('Digite a marca e o modelo da impressora')
-        return
-      }
-      try {
-        const response = await fetch(buildAdminUrl('/params/printers'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
-        })
-        const data = await response.json()
-        if (data.success) {
-          setNewPrinterBrand('')
-          setNewPrinterModel('')
-          loadParamsData()
-          toast.success('Impressora adicionada com sucesso!')
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao adicionar impressora:', error)
-        toast.error('Erro ao adicionar impressora')
-      }
-    }
-
-    const deletePrinter = async (printerId) => {
-      if (!isAdmin) {
-        toast.warning('Seu nivel de acesso nao permite excluir dados.')
-        return
-      }
-      if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
-      try {
-        const response = await fetch(buildAdminUrl(`/params/printers/${printerId}`), {
-          method: 'DELETE'
-        })
-        const data = await response.json()
-        if (data.success) {
-          loadParamsData()
-          toast.success('Impressora deletada com sucesso!')
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao deletar impressora:', error)
-        toast.error('Erro ao deletar impressora')
-      }
-    }
-
-    const openEditProfile = (profile) => {
-      setEditingProfile(profile)
-      setProfileFormData({
-        resinId: profile.resinId || '',
-        printerId: profile.printerId || '',
-        status: profile.status || 'active',
-        layerHeightMm: profile.params?.layerHeightMm || '',
-        exposureTimeS: profile.params?.exposureTimeS || '',
-        baseExposureTimeS: profile.params?.baseExposureTimeS || '',
-        baseLayers: profile.params?.baseLayers || '',
-        uvOffDelayS: profile.params?.uvOffDelayS || '',
-        restBeforeLiftS: profile.params?.restBeforeLiftS || '',
-        restAfterLiftS: profile.params?.restAfterLiftS || '',
-        restAfterRetractS: profile.params?.restAfterRetractS || '',
-        uvPower: profile.params?.uvPower || ''
+    if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+        method: 'DELETE'
       })
+      const data = await response.json()
+      if (data.success) {
+        loadPendingVisualPhotos()
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao deletar foto pendente:', error)
+      toast.error('Erro ao deletar foto pendente')
+    }
+  }
+
+  const addVisualKnowledgeEntry = async () => {
+    if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
+      toast.warning('Preencha todos os campos e selecione uma imagem')
+      return
     }
 
-    const saveProfile = async () => {
-      if (!profileFormData.resinId || !profileFormData.printerId) {
-        toast.warning('Selecione a resina e a impressora')
-        return
-      }
-      try {
-        const response = await fetch(buildAdminUrl('/params/profiles'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            resinId: profileFormData.resinId,
-            printerId: profileFormData.printerId,
-            status: profileFormData.status || 'active',
-            params: {
-              layerHeightMm: profileFormData.layerHeightMm || null,
-              exposureTimeS: profileFormData.exposureTimeS || null,
-              baseExposureTimeS: profileFormData.baseExposureTimeS || null,
-              baseLayers: profileFormData.baseLayers || null,
-              uvOffDelayS: profileFormData.uvOffDelayS || null,
-              restBeforeLiftS: profileFormData.restBeforeLiftS || null,
-              restAfterLiftS: profileFormData.restAfterLiftS || null,
-              restAfterRetractS: profileFormData.restAfterRetractS || null,
-              uvPower: profileFormData.uvPower || null
-            }
-          })
-        })
-        const data = await response.json()
-        if (data.success) {
-          setEditingProfile(null)
-          setProfileFormData({})
-          loadParamsData()
-          toast.success('Perfil salvo com sucesso!')
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao salvar perfil:', error)
-        toast.error('Erro ao salvar perfil')
-      }
-    }
+    setAddingVisual(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', visualImage)
+      formData.append('defectType', visualDefectType)
+      formData.append('diagnosis', visualDiagnosis)
+      formData.append('solution', visualSolution)
 
-    const deleteProfile = async (profileId) => {
-      if (!isAdmin) {
-        toast.warning('Seu nivel de acesso nao permite excluir dados.')
-        return
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+        method: 'POST',
+        body: formData
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Conhecimento visual adicionado com sucesso!')
+        setVisualImage(null)
+        setVisualImagePreview(null)
+        setVisualDefectType('')
+        setVisualDiagnosis('')
+        setVisualSolution('')
+        loadVisualKnowledge()
+      } else {
+        toast.error('Erro: ' + data.error)
       }
-      if (!confirm('Tem certeza que deseja deletar este perfil?')) return
-      try {
-        const response = await fetch(buildAdminUrl(`/params/profiles/${profileId}`), {
-          method: 'DELETE'
-        })
-        const data = await response.json()
-        if (data.success) {
-          loadParamsData()
-          toast.success('Perfil deletado com sucesso!')
-        } else {
-          toast.error('Erro: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao deletar perfil:', error)
-        toast.error('Erro ao deletar perfil')
-      }
+    } catch (error) {
+      console.error('Erro ao adicionar conhecimento visual:', error)
+      toast.error('Erro ao adicionar conhecimento visual')
+    } finally {
+      setAddingVisual(false)
     }
+  }
+
+  const deleteVisualKnowledgeEntry= async (id) => {
+    if (!isAdmin) {
+      toast.warning('Seu nivel de acesso nao permite excluir dados.')
+      return
+    }
+    if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
+
+    try {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (data.success) {
+        loadVisualKnowledge()
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao deletar conhecimento visual:', error)
+      toast.error('Erro ao deletar conhecimento visual')
+    }
+  }
+
+  // Funcoes para gerenciamento de parametros
+  const loadParamsData = async () => {
+    setParamsLoading(true)
+    try {
+      const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
+        fetch(buildAdminUrl('/params/resins')),
+        fetch(buildAdminUrl('/params/printers')),
+        fetch(buildAdminUrl('/params/profiles')),
+        fetch(buildAdminUrl('/params/stats'))
+      ])
+      const [resinsData, printersData, profilesData, statsData] = await Promise.all([
+        resinsRes.json(),
+        printersRes.json(),
+        profilesRes.json(),
+        statsRes.json()
+      ])
+      if (resinsData.success) setParamsResins(resinsData.resins || [])
+      if (printersData.success) setParamsPrinters(printersData.printers || [])
+      if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
+      if (statsData.success) setParamsStats(statsData.stats || null)
+    } catch (error) {
+      console.error('Erro ao carregar parametros:', error)
+    } finally {
+      setParamsLoading(false)
+    }
+  }
+
+  const addResin = async () => {
+    if (!newResinName.trim()) {
+      toast.warning('Digite o nome da resina')
+      return
+    }
+    try {
+      const response = await fetch(buildAdminUrl('/params/resins'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newResinName.trim() })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setNewResinName('')
+        loadParamsData()
+        toast.success('Resina adicionada com sucesso!')
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar resina:', error)
+      toast.error('Erro ao adicionar resina')
+    }
+  }
+
+  const deleteResin = async (resinId) => {
+    if (!isAdmin) {
+      toast.warning('Seu nivel de acesso nao permite excluir dados.')
+      return
+    }
+    if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (data.success) {
+        loadParamsData()
+        toast.success('Resina deletada com sucesso!')
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao deletar resina:', error)
+      toast.error('Erro ao deletar resina')
+    }
+  }
+
+  const addPrinter = async () => {
+    if (!newPrinterBrand.trim() || !newPrinterModel.trim()) {
+      toast.warning('Digite a marca e o modelo da impressora')
+      return
+    }
+    try {
+      const response = await fetch(buildAdminUrl('/params/printers'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setNewPrinterBrand('')
+        setNewPrinterModel('')
+        loadParamsData()
+        toast.success('Impressora adicionada com sucesso!')
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar impressora:', error)
+      toast.error('Erro ao adicionar impressora')
+    }
+  }
+
+  const deletePrinter = async (printerId) => {
+    if (!isAdmin) {
+      toast.warning('Seu nivel de acesso nao permite excluir dados.')
+      return
+    }
+    if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/params/printers/${printerId}`), {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (data.success) {
+        loadParamsData()
+        toast.success('Impressora deletada com sucesso!')
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao deletar impressora:', error)
+      toast.error('Erro ao deletar impressora')
+    }
+  }
+
+  const openEditProfile = (profile) => {
+    setEditingProfile(profile)
+    setProfileFormData({
+      resinId: profile.resinId || '',
+      printerId: profile.printerId || '',
+      status: profile.status || 'active',
+      layerHeightMm: profile.params?.layerHeightMm || '',
+      exposureTimeS: profile.params?.exposureTimeS || '',
+      baseExposureTimeS: profile.params?.baseExposureTimeS || '',
+      baseLayers: profile.params?.baseLayers || '',
+      uvOffDelayS: profile.params?.uvOffDelayS || '',
+      restBeforeLiftS: profile.params?.restBeforeLiftS || '',
+      restAfterLiftS: profile.params?.restAfterLiftS || '',
+      restAfterRetractS: profile.params?.restAfterRetractS || '',
+      uvPower: profile.params?.uvPower || ''
+    })
+  }
+
+  const saveProfile = async () => {
+    if (!profileFormData.resinId || !profileFormData.printerId) {
+      toast.warning('Selecione a resina e a impressora')
+      return
+    }
+    try {
+      const response = await fetch(buildAdminUrl('/params/profiles'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resinId: profileFormData.resinId,
+          printerId: profileFormData.printerId,
+          status: profileFormData.status || 'active',
+          params: {
+            layerHeightMm: profileFormData.layerHeightMm || null,
+            exposureTimeS: profileFormData.exposureTimeS || null,
+            baseExposureTimeS: profileFormData.baseExposureTimeS || null,
+            baseLayers: profileFormData.baseLayers || null,
+            uvOffDelayS: profileFormData.uvOffDelayS || null,
+            restBeforeLiftS: profileFormData.restBeforeLiftS || null,
+            restAfterLiftS: profileFormData.restAfterLiftS || null,
+            restAfterRetractS: profileFormData.restAfterRetractS || null,
+            uvPower: profileFormData.uvPower || null
+          }
+        })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setEditingProfile(null)
+        setProfileFormData({})
+        loadParamsData()
+        toast.success('Perfil salvo com sucesso!')
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error)
+      toast.error('Erro ao salvar perfil')
+    }
+  }
+
+  const deleteProfile = async (profileId) => {
+    if (!isAdmin) {
+      toast.warning('Seu nivel de acesso nao permite excluir dados.')
+      return
+    }
+    if (!confirm('Tem certeza que deseja deletar este perfil?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/params/profiles/${profileId}`), {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (data.success) {
+        loadParamsData()
+        toast.success('Perfil deletado com sucesso!')
+      } else {
+        toast.error('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao deletar perfil:', error)
+      toast.error('Erro ao deletar perfil')
+    }
+  }
 
   if (!isAuthenticated) {
     return (
@@ -569,13 +598,14 @@ export function AdminPanel({ onClose }) {
           <div className="space-y-4">
             <Input
               type="password"
-              placeholder="Senha do painel (admin ou equipe)"
+              placeholder="Senha do painel"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
             />
-            <Button onClick={handleLogin} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
-              Entrar
+            <Button onClick={handleLogin} disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </div>
         </Card>
@@ -601,8 +631,9 @@ export function AdminPanel({ onClose }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={refreshAllData} disabled={loading}>
-              {loading ? 'Carregando...' : 'Atualizar'}
+            <Button onClick={() => refreshAllData()} disabled={loading}>
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {loading ? 'Atualizando...' : 'Atualizar'}
             </Button>
             {onClose && (
               <Button onClick={onClose} variant="outline">
@@ -613,7 +644,7 @@ export function AdminPanel({ onClose }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <Button 
             onClick={() => setActiveTab('metrics')}
             variant={activeTab === 'metrics' ? 'default' : 'outline'}
@@ -647,7 +678,7 @@ export function AdminPanel({ onClose }) {
             Gestão de Conhecimento
           </Button>
           <Button 
-            onClick={() => setActiveTab('custom')}
+            onClick={() => { setActiveTab('custom'); loadCustomRequests(); }}
             variant={activeTab === 'custom' ? 'default' : 'outline'}
             className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
@@ -698,7 +729,7 @@ export function AdminPanel({ onClose }) {
 
         {/* Content */}
         {activeTab === 'metrics' && (
-          <MetricsTab apiToken={ADMIN_API_TOKEN} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+          <MetricsTab apiToken={adminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
         )}
 
         {activeTab === 'knowledge' && (
@@ -776,7 +807,7 @@ export function AdminPanel({ onClose }) {
           isVisible={activeTab === 'messages'}
           onCountChange={setContactCount}
           refreshKey={contactRefreshKey}
-          adminToken={ADMIN_API_TOKEN}
+          adminToken={adminToken}
         />
 
         <SuggestionsTab
