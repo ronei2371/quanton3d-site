@@ -145,7 +145,8 @@ export function AdminPanel({ onClose }) {
   const [editingProfile, setEditingProfile] = useState(null)
   const [profileFormData, setProfileFormData] = useState({})
 
-  const API_BASE_URL = (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, '')
+// FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
+const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
   // Senhas de fallback local
   const ADMIN_PASSWORD = 'Rmartins1201'
