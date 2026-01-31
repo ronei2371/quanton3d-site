@@ -101,8 +101,9 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 }
 
 export function AdminPanel({ onClose }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [accessLevel, setAccessLevel] = useState(null)
+  // MUDANÇA: Começa como TRUE (logado) e nível ADMIN direto!
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [accessLevel, setAccessLevel] = useState('admin')
   const [password, setPassword] = useState('')
   // ESTADO NOVO: Armazena o Token (crachá) recebido do login
   const [adminToken, setAdminToken] = useState('') 
