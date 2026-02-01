@@ -135,16 +135,26 @@ export function AdminPanel({ onClose }) {
   const [addingVisual, setAddingVisual] = useState(false)
   
   // Parametros
-  const [paramsResins, setParamsResins] = useState([])
-  const [paramsPrinters, setParamsPrinters] = useState([])
-  const [paramsProfiles, setParamsProfiles] = useState([])
-  const [paramsLoading, setParamsLoading] = useState(false)
-  const [paramsStats, setParamsStats] = useState(null)
-  const [newResinName, setNewResinName] = useState('')
-  const [newPrinterBrand, setNewPrinterBrand] = useState('')
-  const [newPrinterModel, setNewPrinterModel] = useState('')
-  const [editingProfile, setEditingProfile] = useState(null)
-  const [profileFormData, setProfileFormData] = useState({})
+ const buildAdminUrl = useCallback((path, params = {}) => {
+    let finalPath = path
+
+    // 🔧 CORREÇÃO TÉCNICA DO RONEI:
+    // O código antigo tenta buscar '/params/xyz', mas o servidor novo espera '/api/admin/params/xyz'.
+    // Aqui nós desviamos o trânsito para a rota certa automaticamente.
+    if (finalPath.startsWith('/params/')) {
+      finalPath = `/api/admin${finalPath}`
+    }
+
+    // Se já estiver chamando /api/admin, não mexemos.
+    
+    const url = new URL(finalPath, `${API_BASE_URL}/`)
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value)
+      }
+    })
+    return url.toString()
+  }, [])
 
 // FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
 const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
