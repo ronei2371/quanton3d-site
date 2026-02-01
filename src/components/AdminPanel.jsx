@@ -138,6 +138,45 @@ export function AdminPanel({ onClose }) {
 const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
+    // 🔧 CORREÇÃO DE ROTA:
+    // Se o pedido começar com /params, manda para /api/admin/params
+    if (finalPath.startsWith('/params/')) {
+      finalPath = `/api/admin${finalPath}`
+    }
+    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
+    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
+      finalPath = `/api${finalPath}`
+    }
+
+    const url = new URL(finalPath, `${API_BASE_URL}/`)
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value)
+      }
+    })
+    return url.toString()
+  }, [])
+    // 🔧 CORREÇÃO DE ROTA:
+    // Se o pedido começar com /params, manda para /api/admin/params
+    if (finalPath.startsWith('/params/')) {
+      finalPath = `/api/admin${finalPath}`
+    }
+    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
+    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
+      finalPath = `/api${finalPath}`
+    }
+
+    const url = new URL(finalPath, `${API_BASE_URL}/`)
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value)
+      }
+    })
+    return url.toString()
+  }, [])
+
     // 🔧 CORREÇÃO TÉCNICA DO RONEI:
     // O código antigo tenta buscar '/params/xyz', mas o servidor novo espera '/api/admin/params/xyz'.
     // Aqui nós desviamos o trânsito para a rota certa automaticamente.
