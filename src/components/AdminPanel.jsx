@@ -177,16 +177,28 @@ const buildAdminUrl = useCallback((path, params = {}) => {
     return url.toString()
   }, [])
 
-    // 🔧 CORREÇÃO TÉCNICA DO RONEI:
-    // O código antigo tenta buscar '/params/xyz', mas o servidor novo espera '/api/admin/params/xyz'.
-    // Aqui nós desviamos o trânsito para a rota certa automaticamente.
+  // FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
+  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+
+  // Senhas de fallback local
+  const ADMIN_PASSWORD = 'Rmartins1201'
+  const TEAM_SECRET = 'suporte_quanton_2025'
+  
+  const isAdmin = accessLevel === 'admin'
+
+  const buildAdminUrl = useCallback((path, params = {}) => {
+    let finalPath = path
+
+    // 🔧 CORREÇÃO DE ROTA (Para Galeria e Listas funcionarem):
     if (finalPath.startsWith('/params/')) {
       finalPath = `/api/admin${finalPath}`
     }
+    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
+      finalPath = `/api${finalPath}`
+    }
 
-    // Se já estiver chamando /api/admin, não mexemos.
-    
     const url = new URL(finalPath, `${API_BASE_URL}/`)
+    
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         url.searchParams.set(key, value)
