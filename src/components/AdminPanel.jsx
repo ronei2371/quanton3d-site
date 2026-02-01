@@ -135,7 +135,7 @@ export function AdminPanel({ onClose }) {
   const [addingVisual, setAddingVisual] = useState(false)
   
   // Parametros
- const buildAdminUrl = useCallback((path, params = {}) => {
+const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
     // 🔧 CORREÇÃO TÉCNICA DO RONEI:
