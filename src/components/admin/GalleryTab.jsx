@@ -5,15 +5,15 @@ import { Input } from '@/components/ui/input.jsx'
 import { Camera, Check, Edit3, Image, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange }) {
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl }) {
   const API_BASE_URL = useMemo(
     () => (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, ''),
     []
   )
 
   const buildGalleryUrl = useCallback(
-    (path) => new URL(path, `${API_BASE_URL}/`).toString(),
-    [API_BASE_URL]
+    (path) => (buildUrl ? buildUrl(path) : new URL(path, `${API_BASE_URL}/`).toString()),
+    [API_BASE_URL, buildUrl]
   )
 
   const [galleryEntries, setGalleryEntries] = useState([])
