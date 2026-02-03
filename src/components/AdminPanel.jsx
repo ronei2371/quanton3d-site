@@ -158,14 +158,16 @@ export function AdminPanel({ onClose }) {
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
-    // 🔧 CORREÇÃO DE ROTA:
-    // Se o pedido começar com /params, manda para /api/admin/params
+    // 🔧 CORREÇÃO DE ROTA PARA BACKEND ANTIGO:
+    // Garante que todas as rotas comecem com /admin/ (SEM /api/)
     if (finalPath.startsWith('/params/')) {
-      finalPath = `/api/admin${finalPath}`
+      finalPath = `/admin${finalPath}`  // /params/resins → /admin/params/resins
     }
-    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
-    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
-      finalPath = `/api${finalPath}`
+    else if (finalPath.startsWith('/api/admin/')) {
+      finalPath = finalPath.replace('/api/admin/', '/admin/')  // Remove o /api/
+    }
+    else if (!finalPath.startsWith('/admin/') && !finalPath.startsWith('/auth/')) {
+      finalPath = `/admin${finalPath}`  // Adiciona /admin/ no início
     }
 
     const url = new URL(finalPath, `${API_BASE_URL}/`)
