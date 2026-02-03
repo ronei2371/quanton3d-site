@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -241,6 +241,12 @@ export function AdminPanel({ onClose }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshAllData()
+    }
+  }, [isAuthenticated])
 
   const loadCustomRequests = async (tokenToUse) => {
     try {
@@ -847,6 +853,7 @@ export function AdminPanel({ onClose }) {
             isVisible={activeTab === 'gallery'}
             refreshKey={galleryRefreshKey}
             onPendingCountChange={setGalleryPendingCount}
+            buildUrl={buildAdminUrl}
           />
         )}
 
