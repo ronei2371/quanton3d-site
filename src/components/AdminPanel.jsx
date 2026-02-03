@@ -121,6 +121,17 @@ export function AdminPanel({ onClose }) {
   const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
+
+  const [paramsLoading, setParamsLoading] = useState(false)
+  const [paramsResins, setParamsResins] = useState([])
+  const [paramsPrinters, setParamsPrinters] = useState([])
+  const [paramsProfiles, setParamsProfiles] = useState([])
+  const [paramsStats, setParamsStats] = useState(null)
+  const [newResinName, setNewResinName] = useState('')
+  const [newPrinterBrand, setNewPrinterBrand] = useState('')
+  const [newPrinterModel, setNewPrinterModel] = useState('')
+  const [editingProfile, setEditingProfile] = useState(null)
+  const [profileFormData, setProfileFormData] = useState({})
   
   // Visual RAG states
   const [visualKnowledge, setVisualKnowledge] = useState([])
