@@ -677,7 +677,7 @@ export function AdminPanel({ onClose }) {
           <Button 
             onClick={() => setActiveTab('suggestions')}
             variant={activeTab === 'suggestions' ? 'default' : 'outline'}
-            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to purple-600' : ''}
           >
             <MessageSquare className="h-4 w-4 mr-2" />
             Sugestões ({suggestionsCount})
