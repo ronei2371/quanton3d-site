@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -107,6 +107,11 @@ export function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   // ESTADO NOVO: Armazena o Token (crachá) recebido do login
   const [adminToken, setAdminToken] = useState('') 
+  const adminAuthToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
+  const buildAuthHeaders = useCallback((headers = {}) => {
+    if (!adminAuthToken) return headers
+    return { ...headers, Authorization: `Bearer ${adminAuthToken}` }
+  }, [adminAuthToken])
   
   const [activeTab, setActiveTab] = useState('metrics')
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
@@ -121,6 +126,17 @@ export function AdminPanel({ onClose }) {
   const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
+
+  const [paramsLoading, setParamsLoading] = useState(false)
+  const [paramsResins, setParamsResins] = useState([])
+  const [paramsPrinters, setParamsPrinters] = useState([])
+  const [paramsProfiles, setParamsProfiles] = useState([])
+  const [paramsStats, setParamsStats] = useState(null)
+  const [newResinName, setNewResinName] = useState('')
+  const [newPrinterBrand, setNewPrinterBrand] = useState('')
+  const [newPrinterModel, setNewPrinterModel] = useState('')
+  const [editingProfile, setEditingProfile] = useState(null)
+  const [profileFormData, setProfileFormData] = useState({})
   
   // Visual RAG states
   const [visualKnowledge, setVisualKnowledge] = useState([])
@@ -135,48 +151,6 @@ export function AdminPanel({ onClose }) {
   const [addingVisual, setAddingVisual] = useState(false)
   
   // Parametros
-const buildAdminUrl = useCallback((path, params = {}) => {
-    let finalPath = path
-
-    // 🔧 CORREÇÃO DE ROTA:
-    // Se o pedido começar com /params, manda para /api/admin/params
-    if (finalPath.startsWith('/params/')) {
-      finalPath = `/api/admin${finalPath}`
-    }
-    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
-    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
-      finalPath = `/api${finalPath}`
-    }
-
-    const url = new URL(finalPath, `${API_BASE_URL}/`)
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
-  }, [])
-    // 🔧 CORREÇÃO DE ROTA:
-    // Se o pedido começar com /params, manda para /api/admin/params
-    if (finalPath.startsWith('/params/')) {
-      finalPath = `/api/admin${finalPath}`
-    }
-    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
-    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
-      finalPath = `/api${finalPath}`
-    }
-
-    const url = new URL(finalPath, `${API_BASE_URL}/`)
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
-  }, [])
-
   // FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
   const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
@@ -189,10 +163,12 @@ const buildAdminUrl = useCallback((path, params = {}) => {
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
-    // 🔧 CORREÇÃO DE ROTA (Para Galeria e Listas funcionarem):
+    // 🔧 CORREÇÃO DE ROTA:
+    // Se o pedido começar com /params, manda para /api/admin/params
     if (finalPath.startsWith('/params/')) {
       finalPath = `/api/admin${finalPath}`
     }
+    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
     else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
       finalPath = `/api${finalPath}`
     }
@@ -206,25 +182,6 @@ const buildAdminUrl = useCallback((path, params = {}) => {
     })
     return url.toString()
   }, [])
-
-// FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
-const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
-
-  // Senhas de fallback local
-  const ADMIN_PASSWORD = 'Rmartins1201'
-  const TEAM_SECRET = 'suporte_quanton_2025'
-  
-  const isAdmin = accessLevel === 'admin'
-
-  const buildAdminUrl = useCallback((path, params = {}) => {
-    const url = new URL(path, `${API_BASE_URL}/`)
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
-  }, [API_BASE_URL])
 
   // LOGIN INTELIGENTE: Tenta pegar o token do servidor
   const handleLogin = async () => {
@@ -268,7 +225,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
   }
 
   const refreshAllData = async (tokenOverride) => {
-    const tokenToUse = tokenOverride || adminToken
+    const tokenToUse = tokenOverride || adminAuthToken
     setLoading(true)
     try {
       setMetricsRefreshKey((key) => key + 1)
@@ -290,9 +247,15 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     }
   }
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshAllData()
+    }
+  }, [isAuthenticated])
+
   const loadCustomRequests = async (tokenToUse) => {
     try {
-      const token = tokenToUse || adminToken
+      const token = tokenToUse || adminAuthToken
       const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
@@ -307,7 +270,9 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge'))
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+        headers: buildAuthHeaders()
+      })
       const data = await response.json()
       setVisualKnowledge(data.documents || [])
     } catch (error) {
@@ -320,7 +285,9 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
   const loadPendingVisualPhotos = async () => {
     setPendingVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'))
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
+        headers: buildAuthHeaders()
+      })
       const data = await response.json()
       setPendingVisualPhotos(data.documents || [])
     } catch (error) {
@@ -338,7 +305,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ defectType, diagnosis, solution })
       })
       const data = await response.json()
@@ -366,7 +333,8 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -396,6 +364,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
       const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
         method: 'POST',
+        headers: buildAuthHeaders(),
         body: formData
       })
       const data = await response.json()
@@ -428,7 +397,8 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -447,10 +417,10 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     setParamsLoading(true)
     try {
       const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-        fetch(buildAdminUrl('/params/resins')),
-        fetch(buildAdminUrl('/params/printers')),
-        fetch(buildAdminUrl('/params/profiles')),
-        fetch(buildAdminUrl('/params/stats'))
+        fetch(buildAdminUrl('/params/resins'), { headers: buildAuthHeaders() }),
+        fetch(buildAdminUrl('/params/printers'), { headers: buildAuthHeaders() }),
+        fetch(buildAdminUrl('/params/profiles'), { headers: buildAuthHeaders() }),
+        fetch(buildAdminUrl('/params/stats'), { headers: buildAuthHeaders() })
       ])
       const [resinsData, printersData, profilesData, statsData] = await Promise.all([
         resinsRes.json(),
@@ -477,7 +447,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     try {
       const response = await fetch(buildAdminUrl('/params/resins'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name: newResinName.trim() })
       })
       const data = await response.json()
@@ -502,7 +472,8 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -525,7 +496,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     try {
       const response = await fetch(buildAdminUrl('/params/printers'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
       })
       const data = await response.json()
@@ -551,7 +522,8 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/printers/${printerId}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -592,7 +564,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     try {
       const response = await fetch(buildAdminUrl('/params/profiles'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           resinId: profileFormData.resinId,
           printerId: profileFormData.printerId,
@@ -633,7 +605,8 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
     if (!confirm('Tem certeza que deseja deletar este perfil?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/profiles/${profileId}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -792,7 +765,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
         {/* Content */}
         {activeTab === 'metrics' && (
-          <MetricsTab apiToken={adminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+          <MetricsTab apiToken={adminAuthToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
         )}
 
         {activeTab === 'knowledge' && (
@@ -870,7 +843,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
           isVisible={activeTab === 'messages'}
           onCountChange={setContactCount}
           refreshKey={contactRefreshKey}
-          adminToken={adminToken}
+          adminToken={adminAuthToken}
         />
 
         <SuggestionsTab
@@ -879,6 +852,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
           isVisible={activeTab === 'suggestions'}
           onCountChange={setSuggestionsCount}
           refreshKey={suggestionsRefreshKey}
+          adminToken={adminAuthToken}
         />
 
         <OrdersTab
@@ -887,6 +861,7 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
           isVisible={activeTab === 'orders'}
           onCountChange={setOrdersPendingCount}
           refreshKey={ordersRefreshKey}
+          adminToken={adminAuthToken}
         />
 
         {activeTab === 'gallery' && (
@@ -895,6 +870,8 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
             isVisible={activeTab === 'gallery'}
             refreshKey={galleryRefreshKey}
             onPendingCountChange={setGalleryPendingCount}
+            buildUrl={buildAdminUrl}
+            adminToken={adminAuthToken}
           />
         )}
 

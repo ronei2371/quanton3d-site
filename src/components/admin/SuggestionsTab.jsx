@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Calendar, Check, Clock, Edit3, Phone, User, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey }) {
+export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey, adminToken }) {
   const [suggestions, setSuggestions] = useState([])
   const [editingSuggestion, setEditingSuggestion] = useState(null)
   const [editedText, setEditedText] = useState('')
@@ -15,7 +15,9 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
 
   const loadSuggestions = useCallback(async () => {
     try {
-      const response = await fetch(buildAdminUrl('/suggestions'))
+      const response = await fetch(buildAdminUrl('/suggestions'), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       const textOnlySuggestions = (data.suggestions || []).filter((suggestion) => !suggestion.imageUrl)
       setSuggestions(textOnlySuggestions)
@@ -24,7 +26,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
       console.error('Erro ao carregar sugestões:', error)
       toast.error('Erro ao carregar sugestões')
     }
-  }, [buildAdminUrl, updateCount])
+  }, [adminToken, buildAdminUrl, updateCount])
 
   useEffect(() => {
     loadSuggestions()
@@ -47,7 +49,13 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
         requestConfig.body = JSON.stringify({ editedAnswer })
       }
 
-      const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestionId}`), requestConfig)
+      const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestionId}`), {
+        ...requestConfig,
+        headers: {
+          ...(requestConfig.headers || {}),
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+        }
+      })
       const data = await response.json()
 
       if (data.success) {
@@ -64,13 +72,16 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
       toast.error('Erro ao aprovar: ' + error.message)
       return false
     }
-  }, [buildAdminUrl, removeSuggestion])
+  }, [adminToken, buildAdminUrl, removeSuggestion])
 
   const rejectSuggestion = useCallback(async (suggestionId) => {
     try {
       const response = await fetch(buildAdminUrl(`/reject-suggestion/${suggestionId}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+        }
       })
       const data = await response.json()
 
@@ -86,7 +97,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
       toast.error('Erro ao rejeitar: ' + error.message)
       return false
     }
-  }, [buildAdminUrl, removeSuggestion])
+  }, [adminToken, buildAdminUrl, removeSuggestion])
 
   return (
     <div className={`space-y-4 ${isVisible ? '' : 'hidden'}`}>
