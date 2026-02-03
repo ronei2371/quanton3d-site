@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -101,8 +101,8 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 }
 
 export function AdminPanel({ onClose }) {
-  // MUDANÇA: Começa como FALSE (deslogado) para pedir senha!
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // MUDANÇA: Começa como TRUE (logado) e nível ADMIN direto!
+ const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [accessLevel, setAccessLevel] = useState('admin')
   const [password, setPassword] = useState('')
   // ESTADO NOVO: Armazena o Token (crachá) recebido do login
@@ -241,15 +241,6 @@ export function AdminPanel({ onClose }) {
       setLoading(false)
     }
   }
-
-  // =================================================================
-  // 🚀 O MOTOR DE ARRANQUE (Faltava isso!)
-  // =================================================================
-  useEffect(() => {
-    if (isAuthenticated) {
-      refreshAllData()
-    }
-  }, [isAuthenticated])
 
   const loadCustomRequests = async (tokenToUse) => {
     try {
@@ -672,7 +663,7 @@ export function AdminPanel({ onClose }) {
           <Button 
             onClick={() => setActiveTab('metrics')}
             variant={activeTab === 'metrics' ? 'default' : 'outline'}
-            className={activeTab === 'metrics' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            className={activeTab === 'metrics' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             Métricas
@@ -680,481 +671,733 @@ export function AdminPanel({ onClose }) {
           <Button 
             onClick={() => setActiveTab('suggestions')}
             variant={activeTab === 'suggestions' ? 'default' : 'outline'}
-            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
             <MessageSquare className="h-4 w-4 mr-2" />
-            Sugestões
-            {suggestionsCount > 0 && (
-              <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                {suggestionsCount}
-              </span>
-            )}
+            Sugestões ({suggestionsCount})
           </Button>
           <Button 
             onClick={() => setActiveTab('orders')}
             variant={activeTab === 'orders' ? 'default' : 'outline'}
-            className={activeTab === 'orders' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            className={activeTab === 'orders' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
             <ShoppingBag className="h-4 w-4 mr-2" />
-            Pedidos
-            {ordersPendingCount > 0 && (
-              <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                {ordersPendingCount}
-              </span>
-            )}
+            Pedidos ({ordersPendingCount})
+          </Button>
+          <Button 
+            onClick={() => { setActiveTab('knowledge'); setKnowledgeRefreshKey((key) => key + 1); }}
+            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
+            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Gestão de Conhecimento
+          </Button>
+          <Button 
+            onClick={() => { setActiveTab('custom'); loadCustomRequests(); }}
+            variant={activeTab === 'custom' ? 'default' : 'outline'}
+            className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Beaker className="h-4 w-4 mr-2" />
+            Formulações ({customRequests.length})
+          </Button>
+          <Button 
+            onClick={() => { setActiveTab('messages'); setContactRefreshKey((key) => key + 1); }}
+            variant={activeTab === 'messages' ? 'default' : 'outline'}
+            className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Mensagens ({contactCount})
           </Button>
           <Button 
             onClick={() => setActiveTab('gallery')}
             variant={activeTab === 'gallery' ? 'default' : 'outline'}
-            className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
             <Camera className="h-4 w-4 mr-2" />
-            Galeria
-            {galleryPendingCount > 0 && (
-              <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                {galleryPendingCount}
-              </span>
-            )}
+            Galeria ({galleryPendingCount})
           </Button>
           <Button 
-            onClick={() => setActiveTab('documents')}
-            variant={activeTab === 'documents' ? 'default' : 'outline'}
-            className={activeTab === 'documents' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            onClick={() => setActiveTab('visual')}
+            variant={activeTab === 'visual' ? 'default' : 'outline'}
+            className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Documentos
-          </Button>
-          <Button 
-            onClick={() => setActiveTab('knowledge')}
-            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
-            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
-          >
-            <Beaker className="h-4 w-4 mr-2" />
-            Parâmetros
+            <Eye className="h-4 w-4 mr-2" />
+            Treinamento Visual ({visualKnowledge.length})
           </Button>
           <Button 
             onClick={() => setActiveTab('partners')}
             variant={activeTab === 'partners' ? 'default' : 'outline'}
-            className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
             <Handshake className="h-4 w-4 mr-2" />
             Parceiros
           </Button>
-           <Button 
-            onClick={() => setActiveTab('contacts')}
-            variant={activeTab === 'contacts' ? 'default' : 'outline'}
-            className={activeTab === 'contacts' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+          <Button 
+            onClick={() => { setActiveTab('params'); loadParamsData(); }}
+            variant={activeTab === 'params' ? 'default' : 'outline'}
+            className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
           >
-            <Phone className="h-4 w-4 mr-2" />
-            Contatos
-             {contactCount > 0 && (
-              <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                {contactCount}
-              </span>
-            )}
+            <Beaker className="h-4 w-4 mr-2" />
+            Gerenciar Parametros
           </Button>
         </div>
 
         {/* Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
-          {activeTab === 'metrics' && (
-            <MetricsTab 
-              isAdmin={isAdmin}
-              isVisible={activeTab === 'metrics'}
-              refreshKey={metricsRefreshKey}
-            />
-          )}
+        {activeTab === 'metrics' && (
+          <MetricsTab apiToken={adminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+        )}
 
-          {activeTab === 'suggestions' && (
-             <SuggestionsTab
-               isAdmin={isAdmin}
-               isVisible={activeTab === 'suggestions'}
-               refreshKey={suggestionsRefreshKey}
-               onCountChange={setSuggestionsCount}
-             />
-          )}
+        {activeTab === 'knowledge' && (
+          <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />
+        )}
 
-          {activeTab === 'orders' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Pedidos de Formulação & Customização</h3>
+        {activeTab === 'custom' && (
+          <div className="space-y-4">
+            {customRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Beaker className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhum pedido de formulação customizada ainda
+                </p>
+              </Card>
+            ) : (
+              customRequests.map((request, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                  <div>
+                    <p className="font-semibold">{request.name || request.fullName || request.nome || 'Cliente'}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {request.phone || request.telefone || 'Não informado'}
+                      </span>
+                      <span className="truncate">{request.email || 'Sem e-mail'}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">
+                      {new Date(request.createdAt || request.timestamp).toLocaleString('pt-BR')}
+                </span>
               </div>
+
+              <div className="space-y-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
+                      <p className="text-sm">{request.caracteristica || request.caracteristicaDesejada || '-'}</p>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
+                      <p className="text-sm">{request.cor || '-'}</p>
+                </div>
+                    {request.complementos && (
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">COMPLEMENTOS</p>
+                        <p className="text-sm whitespace-pre-wrap">{request.complementos}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => window.open(`https://wa.me/55${(request.phone || '').replace(/\D/g, '')}?text=Olá ${request.name || 'cliente'}, sobre sua solicitação de formulação customizada...`, '_blank')}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contatar via WhatsApp
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        <ContactsTab
+          buildAdminUrl={buildAdminUrl}
+          isVisible={activeTab === 'messages'}
+          onCountChange={setContactCount}
+          refreshKey={contactRefreshKey}
+          adminToken={adminToken}
+        />
+
+        <SuggestionsTab
+          buildAdminUrl={buildAdminUrl}
+          isAdmin={isAdmin}
+          isVisible={activeTab === 'suggestions'}
+          onCountChange={setSuggestionsCount}
+          refreshKey={suggestionsRefreshKey}
+        />
+
+        <OrdersTab
+          buildAdminUrl={buildAdminUrl}
+          isAdmin={isAdmin}
+          isVisible={activeTab === 'orders'}
+          onCountChange={setOrdersPendingCount}
+          refreshKey={ordersRefreshKey}
+        />
+
+        {activeTab === 'gallery' && (
+          <GalleryTab
+            isAdmin={isAdmin}
+            isVisible={activeTab === 'gallery'}
+            refreshKey={galleryRefreshKey}
+            onPendingCountChange={setGalleryPendingCount}
+          />
+        )}
+
+        {/* Visual RAG Tab - Treinamento Visual */}
+        {activeTab === 'visual' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Treinamento Visual - Banco de Conhecimento Visual
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Adicione fotos de problemas com diagnostico e solucao. Quando um cliente enviar uma foto similar, o bot usara sua resposta treinada.
+              </p>
+
+              {/* Secao de fotos pendentes - enviadas automaticamente pelo bot */}
+              {pendingVisualLoading ? (
+                <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <p className="text-sm">Carregando fotos pendentes...</p>
+                </div>
+              ) : (
+                pendingVisualPhotos.length > 0 && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                    <h4 className="font-semibold flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-3">
+                      <AlertCircle className="h-5 w-5" />
+                      Fotos Pendentes para Treinamento ({pendingVisualPhotos.length})
+                    </h4>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                      Estas fotos foram enviadas por clientes e o bot nao conseguiu identificar o problema. Adicione o conhecimento para treinar o bot.
+                    </p>
+                    <div className="space-y-4">
+                      {pendingVisualPhotos.map((item) => (
+                        <PendingVisualItemForm 
+                          key={item._id} 
+                          item={item} 
+                          onApprove={approvePendingVisual}
+                          onDelete={deletePendingVisual}
+                          canDelete={isAdmin}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+
+              {/* Form para adicionar novo conhecimento visual */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Adicionar Novo Exemplo Visual
+                </h4>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Foto do Problema</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      setVisualImage(file)
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setVisualImagePreview(reader.result)
+                        }
+                        reader.readAsDataURL(file)
+                      } else {
+                        setVisualImagePreview(null)
+                      }
+                    }}
+                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
+                  />
+                  {visualImagePreview && (
+                    <div className="mt-3 relative">
+                      <p className="text-sm text-green-600 mb-2">Preview da imagem:</p>
+                      <img 
+                        src={visualImagePreview} 
+                        alt="Preview" 
+                        className="max-w-xs max-h-48 object-contain rounded-lg border shadow-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVisualImage(null)
+                          setVisualImagePreview(null)
+                        }}
+                        className="absolute top-8 left-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transform -translate-x-1/2 -translate-y-1/2"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tipo de Defeito</label>
+                  <select
+                    value={visualDefectType}
+                    onChange={(e) => setVisualDefectType(e.target.value)}
+                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700"
+                  >
+                    <option value="">Selecione o tipo de defeito...</option>
+                    <option value="descolamento da base">Descolamento da base</option>
+                    <option value="falha de suportes">Falha de suportes</option>
+                    <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
+                    <option value="falha de adesao entre camadas / delaminacao">Delaminacao</option>
+                    <option value="deformacao/warping">Deformacao/warping</option>
+                    <option value="problema de superficie/acabamento">Problema de superficie</option>
+                    <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+                    <option value="problema de LCD">Problema de LCD</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Diagnostico Tecnico</label>
+                  <textarea
+                    value={visualDiagnosis}
+                    onChange={(e) => setVisualDiagnosis(e.target.value)}
+                    placeholder="Descreva o diagnostico tecnico do problema..."
+                    className="w-full p-3 border rounded-lg bg-white dark:bg-gray-700 min-h-[80px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Solucao Recomendada</label>
+                  <textarea
+                    value={visualSolution}
+                    onChange={(e) => setVisualSolution(e.target.value)}
+                    placeholder="Descreva a solucao passo a passo..."
+                    className="w-full p-3 border rounded-lg bg-white dark:bg-gray-700 min-h-[80px]"
+                  />
+                </div>
+
+                <Button 
+                  onClick={addVisualKnowledgeEntry}
+                  disabled={addingVisual}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                >
+                  {addingVisual ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar ao Banco Visual
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Lista de conhecimentos visuais existentes */}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">Exemplos Visuais Cadastrados ({visualKnowledge.length})</h3>
               
-              <OrdersTab
-                isAdmin={isAdmin}
-                isVisible={activeTab === 'orders'}
-                refreshKey={ordersRefreshKey}
-                onPendingCountChange={setOrdersPendingCount}
-              />
-              
-              {/* Seção de Pedidos Customizados (Formulário Antigo) */}
-              {customRequests.length > 0 && (
-                <div className="mt-8 border-t pt-6">
-                   <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">
-                     Solicitações via Formulário (Legado)
-                   </h3>
-                   <div className="grid gap-4">
-                     {customRequests.map((req, i) => (
-                       <Card key={i} className="p-4">
-                         <div className="flex justify-between items-start">
-                           <div>
-                             <p className="font-medium">{req.userName || req.name || 'Usuário Anônimo'}</p>
-                             <p className="text-sm text-gray-500">{req.userEmail || req.email}</p>
-                             <p className="text-xs text-gray-400 mt-1">
-                               {new Date(req.createdAt).toLocaleString('pt-BR')}
-                             </p>
-                           </div>
-                           <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                             {req.status || 'Pendente'}
-                           </span>
-                         </div>
-                         <div className="mt-3 bg-gray-50 dark:bg-gray-900 p-3 rounded text-sm">
-                           <p><strong>Aplicação:</strong> {req.applicationDescription || req.message}</p>
-                           {req.requirements && <p><strong>Requisitos:</strong> {req.requirements}</p>}
-                         </div>
-                       </Card>
-                     ))}
-                   </div>
+              {visualLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+              ) : visualKnowledge.length === 0 ? (
+                <div className="text-center py-8">
+                  <Eye className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                  <p className="text-gray-500">Nenhum exemplo visual cadastrado ainda.</p>
+                  <p className="text-sm text-gray-400 mt-2">Adicione fotos de problemas para treinar o bot.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {visualKnowledge.map((item) => (
+                    <div key={item._id} className="flex gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      {/* Imagem */}
+                      <img
+                        src={item.imageUrl}
+                        alt={item.defectType}
+                        className="w-32 h-32 object-cover rounded-lg border flex-shrink-0"
+                      />
+                      
+                      {/* Detalhes */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded-full text-sm font-semibold">
+                            {item.defectType}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-semibold text-blue-600">Diagnostico:</span>
+                            <p className="text-gray-700 dark:text-gray-300">{item.diagnosis}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-green-600">Solucao:</span>
+                            <p className="text-gray-700 dark:text-gray-300">{item.solution}</p>
+                          </div>
+                        </div>
+                        
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="mt-3 text-red-600 border-red-300 hover:bg-red-50"
+                            onClick={() => deleteVisualKnowledgeEntry(item._id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Deletar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
-          )}
+            </Card>
+          </div>
+        )}
 
-          {activeTab === 'gallery' && (
-            <GalleryTab
-              buildUrl={buildAdminUrl}
-              isAdmin={isAdmin}
-              isVisible={activeTab === 'gallery'}
-              refreshKey={galleryRefreshKey}
-              onPendingCountChange={setGalleryPendingCount}
-            />
-          )}
+        {/* Partners Tab */}
+        {activeTab === 'partners' && (
+          <PartnersManager />
+        )}
 
-          {activeTab === 'documents' && <DocumentsTab />}
-          
-          {activeTab === 'contacts' && (
-            <ContactsTab 
-               isAdmin={isAdmin}
-               isVisible={activeTab === 'contacts'}
-               refreshKey={contactRefreshKey}
-               onCountChange={setContactCount}
-            />
-          )}
+        {/* Params Tab - Gerenciar Parametros de Impressao */}
+        {activeTab === 'params' && (
+          <div className="space-y-6">
+            {paramsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <span className="ml-2">Carregando parametros...</span>
+              </div>
+            ) : (
+              <>
+                {/* Stats Cards */}
+                {paramsStats && (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total de Resinas</p>
+                      <p className="text-2xl font-bold text-blue-600">{paramsStats.totalResins || 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total de Impressoras</p>
+                      <p className="text-2xl font-bold text-green-600">{paramsStats.totalPrinters || 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Perfis Ativos</p>
+                      <p className="text-2xl font-bold text-purple-600">{paramsStats.activeProfiles || 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Perfis Em Breve</p>
+                      <p className="text-2xl font-bold text-yellow-600">{paramsStats.comingSoonProfiles || 0}</p>
+                    </Card>
+                  </div>
+                )}
 
-          {activeTab === 'partners' && <PartnersManager isAdmin={isAdmin} />}
-
-          {activeTab === 'knowledge' && (
-            <div className="space-y-8">
-              {/* Estatísticas Rápidas */}
-              {paramsStats && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <Card className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
-                      <Beaker className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Resinas Ativas</p>
-                      <p className="text-2xl font-bold">{paramsStats.totalResins || 0}</p>
-                    </div>
-                  </Card>
-                  <Card className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
-                      <Plus className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Impressoras</p>
-                      <p className="text-2xl font-bold">{paramsStats.totalPrinters || 0}</p>
-                    </div>
-                  </Card>
-                  <Card className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-green-100 text-green-600 rounded-full">
-                      <BookOpen className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Perfis Configurados</p>
-                      <p className="text-2xl font-bold">{paramsStats.totalProfiles || 0}</p>
-                    </div>
-                  </Card>
-                </div>
-              )}
-
-              {/* Seção de Resinas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Resinas Section */}
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Beaker className="h-5 w-5 text-blue-500" />
-                    Gerenciar Resinas
-                  </h3>
+                  <h3 className="text-xl font-bold mb-4">Resinas</h3>
                   <div className="flex gap-2 mb-4">
                     <Input
-                      placeholder="Nome da nova resina"
+                      placeholder="Nome da nova resina..."
                       value={newResinName}
                       onChange={(e) => setNewResinName(e.target.value)}
+                      className="max-w-xs"
                     />
-                    <Button onClick={addResin} disabled={paramsLoading}>
-                      <Plus className="h-4 w-4" />
+                    <Button onClick={addResin} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
                     </Button>
                   </div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {paramsResins.map(resin => (
-                      <div key={resin._id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded border">
-                        <span>{resin.name}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => deleteResin(resin._id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {paramsResins.map((resin) => (
+                      <div key={resin.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                        <span className="text-sm truncate">{resin.name}</span>
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => deleteResin(resin.id)}
+                            className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     ))}
-                    {paramsResins.length === 0 && <p className="text-gray-500 text-sm text-center py-4">Nenhuma resina cadastrada</p>}
                   </div>
                 </Card>
 
-                {/* Seção de Impressoras */}
+                {/* Impressoras Section */}
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-purple-500" />
-                    Gerenciar Impressoras
-                  </h3>
+                  <h3 className="text-xl font-bold mb-4">Impressoras</h3>
                   <div className="flex gap-2 mb-4">
                     <Input
-                      placeholder="Marca"
+                      placeholder="Marca..."
                       value={newPrinterBrand}
                       onChange={(e) => setNewPrinterBrand(e.target.value)}
+                      className="max-w-[150px]"
                     />
                     <Input
-                      placeholder="Modelo"
+                      placeholder="Modelo..."
                       value={newPrinterModel}
                       onChange={(e) => setNewPrinterModel(e.target.value)}
+                      className="max-w-[200px]"
                     />
-                    <Button onClick={addPrinter} disabled={paramsLoading}>
-                      <Plus className="h-4 w-4" />
+                    <Button onClick={addPrinter} className="bg-green-600 hover:bg-green-700">
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar
                     </Button>
                   </div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {paramsPrinters.map(printer => (
-                      <div key={printer._id} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded border">
-                        <span>{printer.brand} - {printer.model}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => deletePrinter(printer._id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {paramsPrinters.map((printer) => (
+                      <div key={printer.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                        <span className="text-sm truncate">{printer.brand} {printer.model}</span>
+                        {isAdmin && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => deletePrinter(printer.id)}
+                            className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     ))}
-                    {paramsPrinters.length === 0 && <p className="text-gray-500 text-sm text-center py-4">Nenhuma impressora cadastrada</p>}
                   </div>
                 </Card>
-              </div>
 
-              {/* Seção de Perfis */}
-              <Card className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-green-500" />
-                    Perfis de Impressão
-                  </h3>
-                  <Button onClick={() => openEditProfile({})} className="bg-green-600 hover:bg-green-700 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Novo Perfil
-                  </Button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-gray-50 dark:bg-gray-800">
-                        <th className="p-3 text-left">Resina</th>
-                        <th className="p-3 text-left">Impressora</th>
-                        <th className="p-3 text-left">Camada</th>
-                        <th className="p-3 text-left">Exp. Normal</th>
-                        <th className="p-3 text-left">Exp. Base</th>
-                        <th className="p-3 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paramsProfiles.map(profile => {
-                        const resin = paramsResins.find(r => r._id === profile.resinId)
-                        const printer = paramsPrinters.find(p => p._id === profile.printerId)
-                        return (
-                          <tr key={profile._id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            <td className="p-3 font-medium">{resin?.name || '---'}</td>
-                            <td className="p-3">{printer ? `${printer.brand} ${printer.model}` : '---'}</td>
-                            <td className="p-3">{profile.params?.layerHeightMm}mm</td>
-                            <td className="p-3">{profile.params?.exposureTimeS}s</td>
-                            <td className="p-3">{profile.params?.baseExposureTimeS}s</td>
-                            <td className="p-3 text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => openEditProfile(profile)}>
-                                  <Edit3 className="h-4 w-4 text-blue-500" />
+                {/* Perfis Section */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold mb-4">Perfis de Impressao ({paramsProfiles.length})</h3>
+                  <div className="mb-4">
+                    <Button 
+                      onClick={() => {
+                        setEditingProfile({})
+                        setProfileFormData({ status: 'active' })
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Novo Perfil
+                    </Button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">Resina</th>
+                          <th className="text-left p-2">Impressora</th>
+                          <th className="text-left p-2">Status</th>
+                          <th className="text-left p-2">Camada</th>
+                          <th className="text-left p-2">Exposicao</th>
+                          <th className="text-left p-2">Acoes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paramsProfiles.slice(0, 50).map((profile) => (
+                          <tr key={profile.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                            <td className="p-2">{profile.resinName}</td>
+                            <td className="p-2">{profile.brand} {profile.model}</td>
+                            <td className="p-2">
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                profile.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {profile.status === 'active' ? 'Ativo' : 'Em Breve'}
+                              </span>
+                            </td>
+                            <td className="p-2">{profile.params?.layerHeightMm || '-'}</td>
+                            <td className="p-2">{profile.params?.exposureTimeS || '-'}</td>
+                            <td className="p-2">
+                              <div className="flex gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => openEditProfile(profile)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Edit3 className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => deleteProfile(profile._id)}>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
+                                {isAdmin && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => deleteProfile(profile.id)}
+                                    className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
                               </div>
                             </td>
                           </tr>
-                        )
-                      })}
-                      {paramsProfiles.length === 0 && (
-                        <tr>
-                          <td colSpan="6" className="p-8 text-center text-gray-500">
-                            Nenhum perfil configurado ainda.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+                        ))}
+                      </tbody>
+                    </table>
+                    {paramsProfiles.length > 50 && (
+                      <p className="text-sm text-gray-500 mt-2">Mostrando 50 de {paramsProfiles.length} perfis</p>
+                    )}
+                  </div>
+                </Card>
 
-              {/* Modal de Edição de Perfil */}
-              {editingProfile && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                  <Card className="p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                    <h3 className="text-xl font-bold mb-6">
-                      {editingProfile._id ? 'Editar Perfil' : 'Novo Perfil'}
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Resina</label>
-                        <select 
-                          className="w-full p-2 border rounded-md bg-white dark:bg-gray-700"
-                          value={profileFormData.resinId || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, resinId: e.target.value})}
+                {/* Modal de Edicao de Perfil */}
+                {editingProfile && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                      <h3 className="text-xl font-bold mb-4">
+                        {editingProfile.id ? 'Editar Perfil' : 'Novo Perfil'}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Resina</label>
+                          <select
+                            value={profileFormData.resinId || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, resinId: e.target.value})}
+                            className="w-full p-2 border rounded mt-1"
+                          >
+                            <option value="">Selecione...</option>
+                            {paramsResins.map((r) => (
+                              <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Impressora</label>
+                          <select
+                            value={profileFormData.printerId || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, printerId: e.target.value})}
+                            className="w-full p-2 border rounded mt-1"
+                          >
+                            <option value="">Selecione...</option>
+                            {paramsPrinters.map((p) => (
+                              <option key={p.id} value={p.id}>{p.brand} {p.model}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Status</label>
+                          <select
+                            value={profileFormData.status || 'active'}
+                            onChange={(e) => setProfileFormData({...profileFormData, status: e.target.value})}
+                            className="w-full p-2 border rounded mt-1"
+                          >
+                            <option value="active">Ativo</option>
+                            <option value="coming_soon">Em Breve</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Altura de Camada (mm)</label>
+                          <Input
+                            value={profileFormData.layerHeightMm || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, layerHeightMm: e.target.value})}
+                            placeholder="0.05"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Tempo de Exposicao (s)</label>
+                          <Input
+                            value={profileFormData.exposureTimeS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, exposureTimeS: e.target.value})}
+                            placeholder="2.5"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Exposicao Base (s)</label>
+                          <Input
+                            value={profileFormData.baseExposureTimeS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, baseExposureTimeS: e.target.value})}
+                            placeholder="30"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Camadas de Base</label>
+                          <Input
+                            value={profileFormData.baseLayers || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, baseLayers: e.target.value})}
+                            placeholder="5"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Retardo UV (s)</label>
+                          <Input
+                            value={profileFormData.uvOffDelayS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, uvOffDelayS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Descanso Antes Elevacao (s)</label>
+                          <Input
+                            value={profileFormData.restBeforeLiftS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, restBeforeLiftS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Descanso Apos Elevacao (s)</label>
+                          <Input
+                            value={profileFormData.restAfterLiftS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, restAfterLiftS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Descanso Apos Retracao (s)</label>
+                          <Input
+                            value={profileFormData.restAfterRetractS || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, restAfterRetractS: e.target.value})}
+                            placeholder="0"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Potencia UV</label>
+                          <Input
+                            value={profileFormData.uvPower || ''}
+                            onChange={(e) => setProfileFormData({...profileFormData, uvPower: e.target.value})}
+                            placeholder="100%"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 mt-6">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setEditingProfile(null)
+                            setProfileFormData({})
+                          }}
                         >
-                          <option value="">Selecione...</option>
-                          {paramsResins.map(r => (
-                            <option key={r._id} value={r._id}>{r.name}</option>
-                          ))}
-                        </select>
+                          Cancelar
+                        </Button>
+                        <Button onClick={saveProfile} className="bg-blue-600 hover:bg-blue-700">
+                          Salvar Perfil
+                        </Button>
                       </div>
-                      <div>
-                        <label className="text-sm font-medium mb-1 block">Impressora</label>
-                        <select 
-                          className="w-full p-2 border rounded-md bg-white dark:bg-gray-700"
-                          value={profileFormData.printerId || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, printerId: e.target.value})}
-                        >
-                          <option value="">Selecione...</option>
-                          {paramsPrinters.map(p => (
-                            <option key={p._id} value={p._id}>{p.brand} {p.model}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <h4 className="font-semibold mb-3 text-gray-500 border-b pb-1">Parâmetros de Impressão</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-sm font-medium">Altura Camada (mm)</label>
-                        <Input
-                          value={profileFormData.layerHeightMm || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, layerHeightMm: e.target.value})}
-                          placeholder="0.05"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Exp. Normal (s)</label>
-                        <Input
-                          value={profileFormData.exposureTimeS || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, exposureTimeS: e.target.value})}
-                          placeholder="2.5"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Exp. Base (s)</label>
-                        <Input
-                          value={profileFormData.baseExposureTimeS || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, baseExposureTimeS: e.target.value})}
-                          placeholder="30"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Camadas Base</label>
-                        <Input
-                          value={profileFormData.baseLayers || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, baseLayers: e.target.value})}
-                          placeholder="5"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Delay UV Off (s)</label>
-                        <Input
-                          value={profileFormData.uvOffDelayS || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, uvOffDelayS: e.target.value})}
-                          placeholder="0"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Descanso Antes Lift (s)</label>
-                        <Input
-                          value={profileFormData.restBeforeLiftS || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, restBeforeLiftS: e.target.value})}
-                          placeholder="0"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Descanso Após Lift (s)</label>
-                        <Input
-                          value={profileFormData.restAfterLiftS || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, restAfterLiftS: e.target.value})}
-                          placeholder="0"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Descanso Após Retract (s)</label>
-                        <Input
-                          value={profileFormData.restAfterRetractS || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, restAfterRetractS: e.target.value})}
-                          placeholder="0"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Potencia UV</label>
-                        <Input
-                          value={profileFormData.uvPower || ''}
-                          onChange={(e) => setProfileFormData({...profileFormData, uvPower: e.target.value})}
-                          placeholder="100%"
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-6">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setEditingProfile(null)
-                          setProfileFormData({})
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button onClick={saveProfile} className="bg-blue-600 hover:bg-blue-700">
-                        Salvar Perfil
-                      </Button>
-                    </div>
-                  </Card>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
