@@ -135,48 +135,6 @@ export function AdminPanel({ onClose }) {
   const [addingVisual, setAddingVisual] = useState(false)
   
   // Parametros
-const buildAdminUrl = useCallback((path, params = {}) => {
-    let finalPath = path
-
-    // 🔧 CORREÇÃO DE ROTA:
-    // Se o pedido começar com /params, manda para /api/admin/params
-    if (finalPath.startsWith('/params/')) {
-      finalPath = `/api/admin${finalPath}`
-    }
-    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
-    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
-      finalPath = `/api${finalPath}`
-    }
-
-    const url = new URL(finalPath, `${API_BASE_URL}/`)
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
-  }, [])
-    // 🔧 CORREÇÃO DE ROTA:
-    // Se o pedido começar com /params, manda para /api/admin/params
-    if (finalPath.startsWith('/params/')) {
-      finalPath = `/api/admin${finalPath}`
-    }
-    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
-    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
-      finalPath = `/api${finalPath}`
-    }
-
-    const url = new URL(finalPath, `${API_BASE_URL}/`)
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
-  }, [])
-
   // FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
   const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
@@ -189,10 +147,12 @@ const buildAdminUrl = useCallback((path, params = {}) => {
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
-    // 🔧 CORREÇÃO DE ROTA (Para Galeria e Listas funcionarem):
+    // 🔧 CORREÇÃO DE ROTA:
+    // Se o pedido começar com /params, manda para /api/admin/params
     if (finalPath.startsWith('/params/')) {
       finalPath = `/api/admin${finalPath}`
     }
+    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
     else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
       finalPath = `/api${finalPath}`
     }
@@ -206,25 +166,6 @@ const buildAdminUrl = useCallback((path, params = {}) => {
     })
     return url.toString()
   }, [])
-
-// FORÇANDO O ENDEREÇO CERTO (FIX EMERGENCIAL)
-const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
-
-  // Senhas de fallback local
-  const ADMIN_PASSWORD = 'Rmartins1201'
-  const TEAM_SECRET = 'suporte_quanton_2025'
-  
-  const isAdmin = accessLevel === 'admin'
-
-  const buildAdminUrl = useCallback((path, params = {}) => {
-    const url = new URL(path, `${API_BASE_URL}/`)
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
-  }, [API_BASE_URL])
 
   // LOGIN INTELIGENTE: Tenta pegar o token do servidor
   const handleLogin = async () => {
