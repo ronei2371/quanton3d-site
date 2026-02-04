@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -106,13 +106,6 @@ export function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [adminToken, setAdminToken] = useState('') 
   
-  const adminAuthToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
-  
-  const buildAuthHeaders = useCallback((headers = {}) => {
-    if (!adminAuthToken) return headers
-    return { ...headers, Authorization: `Bearer ${adminAuthToken}` }
-  }, [adminAuthToken])
-  
   const [activeTab, setActiveTab] = useState('metrics')
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
   const [suggestionsCount, setSuggestionsCount] = useState(0)
@@ -155,16 +148,19 @@ export function AdminPanel({ onClose }) {
   
   const isAdmin = accessLevel === 'admin'
 
+  // FUNÇÃO DE ROTAS BLINDADA E CORRIGIDA
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
-    // Lógica corrigida e limpa das rotas
-    if (finalPath.startsWith('/params/')) {
-      finalPath = `/admin${finalPath}`
-    } else if (finalPath.startsWith('/api/admin/')) {
-      finalPath = finalPath.replace('/api/admin/', '/admin/')
-    } else if (!finalPath.startsWith('/admin/') && !finalPath.startsWith('/auth/') && !finalPath.startsWith('/api/')) {
-      finalPath = `/admin${finalPath}`
+    // Se já começar com /api, respeita
+    if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
+        // Se começar com /admin, converte para /api/admin
+        if (finalPath.startsWith('/admin')) {
+            finalPath = '/api' + finalPath
+        } else {
+            // Se for rota solta (ex: /params), adiciona o prefixo completo
+            finalPath = `/api/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
+        }
     }
 
     const url = new URL(finalPath, `${API_BASE_URL}/`)
@@ -216,7 +212,7 @@ export function AdminPanel({ onClose }) {
   }
 
   const refreshAllData = async (tokenOverride) => {
-    const tokenToUse = tokenOverride || adminAuthToken
+    const tokenToUse = tokenOverride || adminToken
     setLoading(true)
     try {
       setMetricsRefreshKey((key) => key + 1)
@@ -246,7 +242,7 @@ export function AdminPanel({ onClose }) {
 
   const loadCustomRequests = async (tokenToUse) => {
     try {
-      const token = tokenToUse || adminAuthToken
+      const token = tokenToUse || adminToken
       const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
@@ -260,9 +256,7 @@ export function AdminPanel({ onClose }) {
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
-        headers: buildAuthHeaders()
-      })
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'))
       const data = await response.json()
       setVisualKnowledge(data.documents || [])
     } catch (error) {
@@ -275,9 +269,7 @@ export function AdminPanel({ onClose }) {
   const loadPendingVisualPhotos = async () => {
     setPendingVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
-        headers: buildAuthHeaders()
-      })
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'))
       const data = await response.json()
       setPendingVisualPhotos(data.documents || [])
     } catch (error) {
@@ -295,7 +287,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
         method: 'PUT',
-        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ defectType, diagnosis, solution })
       })
       const data = await response.json()
@@ -323,8 +315,7 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-        method: 'DELETE',
-        headers: buildAuthHeaders()
+        method: 'DELETE'
       })
       const data = await response.json()
       if (data.success) {
@@ -354,7 +345,6 @@ export function AdminPanel({ onClose }) {
 
       const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
         method: 'POST',
-        headers: buildAuthHeaders(),
         body: formData
       })
       const data = await response.json()
@@ -387,8 +377,7 @@ export function AdminPanel({ onClose }) {
 
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-        method: 'DELETE',
-        headers: buildAuthHeaders()
+        method: 'DELETE'
       })
       const data = await response.json()
       if (data.success) {
@@ -406,10 +395,10 @@ export function AdminPanel({ onClose }) {
     setParamsLoading(true)
     try {
       const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-        fetch(buildAdminUrl('/params/resins'), { headers: buildAuthHeaders() }),
-        fetch(buildAdminUrl('/params/printers'), { headers: buildAuthHeaders() }),
-        fetch(buildAdminUrl('/params/profiles'), { headers: buildAuthHeaders() }),
-        fetch(buildAdminUrl('/params/stats'), { headers: buildAuthHeaders() })
+        fetch(buildAdminUrl('/params/resins')),
+        fetch(buildAdminUrl('/params/printers')),
+        fetch(buildAdminUrl('/params/profiles')),
+        fetch(buildAdminUrl('/params/stats'))
       ])
       const [resinsData, printersData, profilesData, statsData] = await Promise.all([
         resinsRes.json(),
@@ -436,7 +425,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl('/params/resins'), {
         method: 'POST',
-        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newResinName.trim() })
       })
       const data = await response.json()
@@ -461,8 +450,7 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), {
-        method: 'DELETE',
-        headers: buildAuthHeaders()
+        method: 'DELETE'
       })
       const data = await response.json()
       if (data.success) {
@@ -485,7 +473,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl('/params/printers'), {
         method: 'POST',
-        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
       })
       const data = await response.json()
@@ -511,8 +499,7 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/printers/${printerId}`), {
-        method: 'DELETE',
-        headers: buildAuthHeaders()
+        method: 'DELETE'
       })
       const data = await response.json()
       if (data.success) {
@@ -553,7 +540,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl('/params/profiles'), {
         method: 'POST',
-        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resinId: profileFormData.resinId,
           printerId: profileFormData.printerId,
@@ -594,8 +581,7 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar este perfil?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/profiles/${profileId}`), {
-        method: 'DELETE',
-        headers: buildAuthHeaders()
+        method: 'DELETE'
       })
       const data = await response.json()
       if (data.success) {
@@ -703,44 +689,33 @@ export function AdminPanel({ onClose }) {
             )}
           </Button>
           <Button 
-            onClick={() => { setActiveTab('knowledge'); setKnowledgeRefreshKey((key) => key + 1); }}
-            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
-            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Gestão de Conhecimento
-          </Button>
-          <Button 
-            onClick={() => { setActiveTab('custom'); loadCustomRequests(); }}
-            variant={activeTab === 'custom' ? 'default' : 'outline'}
-            className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
-          >
-            <Beaker className="h-4 w-4 mr-2" />
-            Formulações ({customRequests.length})
-          </Button>
-          <Button 
-            onClick={() => { setActiveTab('messages'); setContactRefreshKey((key) => key + 1); }}
-            variant={activeTab === 'messages' ? 'default' : 'outline'}
-            className={activeTab === 'messages' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Mensagens ({contactCount})
-          </Button>
-          <Button 
             onClick={() => setActiveTab('gallery')}
             variant={activeTab === 'gallery' ? 'default' : 'outline'}
             className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
           >
             <Camera className="h-4 w-4 mr-2" />
-            Galeria ({galleryPendingCount})
+            Galeria
+            {galleryPendingCount > 0 && (
+              <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                {galleryPendingCount}
+              </span>
+            )}
           </Button>
           <Button 
-            onClick={() => setActiveTab('visual')}
-            variant={activeTab === 'visual' ? 'default' : 'outline'}
-            className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            onClick={() => setActiveTab('documents')}
+            variant={activeTab === 'documents' ? 'default' : 'outline'}
+            className={activeTab === 'documents' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
           >
-            <Eye className="h-4 w-4 mr-2" />
-            Treinamento Visual ({visualKnowledge.length})
+            <BookOpen className="h-4 w-4 mr-2" />
+            Documentos
+          </Button>
+          <Button 
+            onClick={() => setActiveTab('knowledge')}
+            variant={activeTab === 'knowledge' ? 'default' : 'outline'}
+            className={activeTab === 'knowledge' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+          >
+            <Beaker className="h-4 w-4 mr-2" />
+            Parâmetros
           </Button>
           <Button 
             onClick={() => setActiveTab('partners')}
@@ -750,20 +725,41 @@ export function AdminPanel({ onClose }) {
             <Handshake className="h-4 w-4 mr-2" />
             Parceiros
           </Button>
+           <Button 
+            onClick={() => setActiveTab('contacts')}
+            variant={activeTab === 'contacts' ? 'default' : 'outline'}
+            className={activeTab === 'contacts' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+          >
+            <Phone className="h-4 w-4 mr-2" />
+            Contatos
+             {contactCount > 0 && (
+              <span className="ml-2 bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-bold">
+                {contactCount}
+              </span>
+            )}
+          </Button>
           <Button 
-            onClick={() => { setActiveTab('params'); loadParamsData(); }}
-            variant={activeTab === 'params' ? 'default' : 'outline'}
-            className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+            onClick={() => setActiveTab('visual')}
+            variant={activeTab === 'visual' ? 'default' : 'outline'}
+            className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Treinamento Visual ({visualKnowledge.length})
+          </Button>
+           <Button 
+            onClick={() => { setActiveTab('custom'); loadCustomRequests(); }}
+            variant={activeTab === 'custom' ? 'default' : 'outline'}
+            className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}
           >
             <Beaker className="h-4 w-4 mr-2" />
-            Gerenciar Parametros
+            Formulações ({customRequests.length})
           </Button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
           {activeTab === 'metrics' && (
             <MetricsTab 
-              apiToken={adminAuthToken} 
+              apiToken={adminToken} 
               buildAdminUrl={buildAdminUrl} 
               refreshKey={metricsRefreshKey} 
             />
@@ -774,9 +770,8 @@ export function AdminPanel({ onClose }) {
                buildAdminUrl={buildAdminUrl}
                isAdmin={isAdmin}
                isVisible={activeTab === 'suggestions'}
-               onCountChange={setSuggestionsCount}
                refreshKey={suggestionsRefreshKey}
-               adminToken={adminAuthToken}
+               onCountChange={setSuggestionsCount}
              />
           )}
 
@@ -785,9 +780,8 @@ export function AdminPanel({ onClose }) {
                 buildAdminUrl={buildAdminUrl}
                 isAdmin={isAdmin}
                 isVisible={activeTab === 'orders'}
-                onCountChange={setOrdersPendingCount}
                 refreshKey={ordersRefreshKey}
-                adminToken={adminAuthToken}
+                onPendingCountChange={setOrdersPendingCount}
               />
           )}
 
@@ -798,7 +792,6 @@ export function AdminPanel({ onClose }) {
               isVisible={activeTab === 'gallery'}
               refreshKey={galleryRefreshKey}
               onPendingCountChange={setGalleryPendingCount}
-              adminToken={adminAuthToken}
             />
           )}
 
@@ -811,7 +804,7 @@ export function AdminPanel({ onClose }) {
                isVisible={activeTab === 'contacts'}
                refreshKey={contactRefreshKey}
                onCountChange={setContactCount}
-               adminToken={adminAuthToken}
+               adminToken={adminToken}
             />
           )}
 
