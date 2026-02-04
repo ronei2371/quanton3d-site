@@ -42,7 +42,7 @@ const getStatusTone = (status) => {
   return 'bg-gray-100 text-gray-800'
 }
 
-export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey }) {
+export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey, adminToken }) {
   const [orders, setOrders] = useState([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(false)
@@ -51,7 +51,9 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
   const loadOrders = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/orders'))
+      const response = await fetch(buildAdminUrl('/orders'), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       const fetchedOrders = data.orders || []
       setOrders(fetchedOrders)
@@ -68,7 +70,7 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
     } finally {
       setLoading(false)
     }
-  }, [buildAdminUrl, onCountChange])
+  }, [adminToken, buildAdminUrl, onCountChange])
 
   useEffect(() => {
     loadOrders()
@@ -98,7 +100,10 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
     try {
       const response = await fetch(buildAdminUrl(`/orders/${orderId}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+        },
         body: JSON.stringify({ status: nextStatus })
       })
 
@@ -117,7 +122,7 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
     } finally {
       setUpdatingOrderId(null)
     }
-  }, [buildAdminUrl])
+  }, [adminToken, buildAdminUrl])
 
   const cancelOrder = useCallback(async (order) => {
     await updateOrderStatus(order, 'cancelled')

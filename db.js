@@ -35,6 +35,8 @@ export const getGalleryCollection = () => getCollection('gallery')
 export const getSuggestionsCollection = () => getCollection('suggestions')
 export const getMetricasCollection = () => getCollection('metricas')
 export const getParametrosCollection = () => getCollection('parametros')
+export const getContactsCollection = () => getCollection('contacts')
+export const getCustomRequestsCollection = () => getCollection('custom_requests')
 
 const conversasSchema = new mongoose.Schema({}, { strict: false, collection: 'conversas' })
 
@@ -46,5 +48,10 @@ export default {
   getSuggestionsCollection,
   getMetricasCollection,
   getParametrosCollection,
+
+
+  getContactsCollection,
+  getCustomRequestsCollection,
+ main
   Conversas,
 }
