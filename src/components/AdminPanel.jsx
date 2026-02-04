@@ -2,17 +2,128 @@ import { useCallback, useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag } from 'lucide-react'
+import { X, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag, AlertTriangle, RefreshCw, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
 import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
 import { OrdersTab } from './admin/OrdersTab.jsx'
-import { GalleryTab } from './admin/GalleryTab.jsx'
+// REMOVI A IMPORTAÇÃO EXTERNA DA GALERIA PARA EVITAR ERROS
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
 
-// Componente auxiliar para item visual (Mantido do original)
+// --- NOVA GALERIA BLINDADA (Fica aqui dentro para não ter erro de arquivo) ---
+function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
+  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+  const [photos, setPhotos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [processingId, setProcessingId] = useState(null)
+
+  const loadPhotos = useCallback(async () => {
+    if (!isVisible) return
+    setLoading(true)
+    setError(null)
+    
+    try {
+      console.log("Galeria: Buscando fotos...")
+      // Tenta rota com /api (Padrão novo)
+      let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+      })
+
+      // Se der 404, tenta fallback (caso a rota mude)
+      if (response.status === 404) {
+         response = await fetch(`${API_BASE_URL}/visual-knowledge`, {
+            headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+         })
+      }
+
+      // Lê como TEXTO primeiro (Proteção do Grok contra HTML na resposta)
+      const text = await response.text()
+      
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${text.substring(0, 50)}`)
+
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        throw new Error("Servidor não retornou JSON válido.")
+      }
+      
+      // GARANTIA ANTI-TELA BRANCA: Se não for array, usa array vazio
+      const safeList = Array.isArray(data.documents) ? data.documents : []
+      setPhotos(safeList)
+
+    } catch (err) {
+      console.error("Erro Galeria:", err)
+      setError(err.message)
+      setPhotos([]) // Zera a lista para o site não quebrar
+    } finally {
+      setLoading(false)
+    }
+  }, [isVisible, adminToken])
+
+  useEffect(() => { loadPhotos() }, [loadPhotos])
+
+  const handleAction = async (id, action) => {
+    if (!isAdmin) return
+    setProcessingId(id)
+    try {
+        const endpoint = action === 'delete' ? '' : '/approve'
+        const method = action === 'delete' ? 'DELETE' : 'PUT'
+        
+        await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+            body: action === 'approve' ? JSON.stringify({ defectType: 'Aprovado', diagnosis: 'Ok', solution: 'Ok' }) : undefined
+        })
+        toast.success("Sucesso!")
+        loadPhotos()
+    } catch (e) {
+        toast.error("Erro na ação")
+    } finally {
+        setProcessingId(null)
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded border border-red-200">
+        <p className="flex items-center gap-2"><AlertTriangle className="h-4 w-4"/> {error}</p>
+        <Button onClick={loadPhotos} variant="outline" size="sm" className="mt-2 bg-white">Tentar Novamente</Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="font-bold flex gap-2"><Camera className="h-5 w-5"/> Galeria ({photos.length})</h3>
+        <Button onClick={loadPhotos} size="sm" disabled={loading}>{loading ? <Loader2 className="animate-spin h-4 w-4"/> : <RefreshCw className="h-4 w-4"/>}</Button>
+      </div>
+      
+      {loading ? <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto"/></div> : 
+       photos.length === 0 ? <p className="text-center text-gray-500 py-10">Nenhuma foto.</p> : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {photos.map(p => (
+            <Card key={p._id} className="p-3">
+              <img src={p.imageUrl} className="w-full h-40 object-cover rounded mb-2 bg-gray-100"/>
+              <p className="font-bold text-sm">{p.defectType || 'Sem tipo'}</p>
+              <div className="flex gap-2 mt-2">
+                {isAdmin && !p.approved && <Button size="sm" className="flex-1 bg-green-600" onClick={() => handleAction(p._id, 'approve')} disabled={processingId === p._id}><Check className="h-4 w-4"/></Button>}
+                {isAdmin && <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleAction(p._id, 'delete')} disabled={processingId === p._id}><Trash2 className="h-4 w-4"/></Button>}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// --- RESTO DO CÓDIGO ORIGINAL (MANTIDO) ---
+
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
@@ -107,7 +218,6 @@ export function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [adminToken, setAdminToken] = useState('') 
   
-  // ✅ FIX: Garante token seguro
   const safeAdminToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
   
   const buildAuthHeaders = useCallback((headers = {}) => {
@@ -115,7 +225,6 @@ export function AdminPanel({ onClose }) {
     return { ...headers, Authorization: `Bearer ${safeAdminToken}` }
   }, [safeAdminToken])
   
-  // Estados das Abas
   const [activeTab, setActiveTab] = useState('metrics')
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
   const [suggestionsCount, setSuggestionsCount] = useState(0)
@@ -130,7 +239,6 @@ export function AdminPanel({ onClose }) {
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
 
-  // Estados de Parâmetros
   const [paramsLoading, setParamsLoading] = useState(false)
   const [paramsResins, setParamsResins] = useState([])
   const [paramsPrinters, setParamsPrinters] = useState([])
@@ -142,7 +250,6 @@ export function AdminPanel({ onClose }) {
   const [editingProfile, setEditingProfile] = useState(null)
   const [profileFormData, setProfileFormData] = useState({})
   
-  // Estados de Visual RAG
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
   const [visualImage, setVisualImage] = useState(null)
@@ -160,7 +267,6 @@ export function AdminPanel({ onClose }) {
   
   const isAdmin = accessLevel === 'admin'
 
-  // ✅ FIX: Rota Blindada
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
     if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
@@ -257,7 +363,6 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- LÓGICA DO VISUAL (TREINAMENTO) ---
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
     try {
@@ -301,7 +406,7 @@ export function AdminPanel({ onClose }) {
       })
       const data = await response.json()
       if (data.success) {
-        toast.success('Aprovado com sucesso!')
+        toast.success('Conhecimento visual aprovado com sucesso!')
         loadPendingVisualPhotos()
         loadVisualKnowledge()
         return true
@@ -315,7 +420,7 @@ export function AdminPanel({ onClose }) {
 
   const deletePendingVisual = async (id) => {
     if (!isAdmin) return
-    if (!confirm('Deletar foto?')) return
+    if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
     try {
       await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
         method: 'DELETE',
@@ -371,7 +476,6 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // --- LÓGICA DE PARÂMETROS ---
   const loadParamsData = async () => {
     setParamsLoading(true)
     try {
@@ -398,7 +502,6 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  // (Funções auxiliares de Params simplificadas para caber, mantendo lógica)
   const addResin = async () => {
     if (!newResinName.trim()) return
     await fetch(buildAdminUrl('/params/resins'), {
@@ -470,12 +573,12 @@ export function AdminPanel({ onClose }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
         <Card className="p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-6 text-center">Painel Administrativo</h2>
+          <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
           <div className="space-y-4">
             <Input type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
-            <Button onClick={handleLogin} disabled={loading} className="w-full">{loading ? 'Entrando...' : 'Entrar'}</Button>
+            <Button onClick={handleLogin} disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">{loading ? 'Entrando...' : 'Entrar'}</Button>
           </div>
         </Card>
       </div>
@@ -483,74 +586,69 @@ export function AdminPanel({ onClose }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
       <div className="container mx-auto max-w-7xl py-8">
         <div className="flex justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Painel Administrativo</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h1>
           <div className="flex gap-3">
             <Button onClick={() => refreshAllData()} disabled={loading}><Loader2 className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar</Button>
             <Button onClick={onClose} variant="outline"><X className="h-4 w-4" /></Button>
           </div>
         </div>
 
-        {/* Menu de Abas */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'outline'}><BarChart3 className="mr-2 h-4 w-4"/> Métricas</Button>
-          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'outline'}><MessageSquare className="mr-2 h-4 w-4"/> Sugestões</Button>
-          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'outline'}><ShoppingBag className="mr-2 h-4 w-4"/> Pedidos</Button>
-          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'outline'}><Camera className="mr-2 h-4 w-4"/> Galeria</Button>
-          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'outline'}><Eye className="mr-2 h-4 w-4"/> Treinamento Visual</Button>
-          <Button onClick={() => {setActiveTab('params'); loadParamsData();}} variant={activeTab === 'params' ? 'default' : 'outline'}><Beaker className="mr-2 h-4 w-4"/> Parâmetros</Button>
-          <Button onClick={() => setActiveTab('documents')} variant={activeTab === 'documents' ? 'default' : 'outline'}><BookOpen className="mr-2 h-4 w-4"/> Documentos</Button>
-          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'outline'}><Handshake className="mr-2 h-4 w-4"/> Parceiros</Button>
-          <Button onClick={() => setActiveTab('contacts')} variant={activeTab === 'contacts' ? 'default' : 'outline'}><Phone className="mr-2 h-4 w-4"/> Contatos</Button>
-          <Button onClick={() => {setActiveTab('custom'); loadCustomRequests();}} variant={activeTab === 'custom' ? 'default' : 'outline'}><Beaker className="mr-2 h-4 w-4"/> Formulações</Button>
+          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'outline'} className={activeTab === 'metrics' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><BarChart3 className="mr-2 h-4 w-4"/> Métricas</Button>
+          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'outline'} className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><MessageSquare className="mr-2 h-4 w-4"/> Sugestões</Button>
+          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'outline'} className={activeTab === 'orders' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><ShoppingBag className="mr-2 h-4 w-4"/> Pedidos</Button>
+          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'outline'} className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Camera className="mr-2 h-4 w-4"/> Galeria</Button>
+          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'outline'} className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Eye className="mr-2 h-4 w-4"/> Treinamento Visual</Button>
+          <Button onClick={() => {setActiveTab('params'); loadParamsData();}} variant={activeTab === 'params' ? 'default' : 'outline'} className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4"/> Parâmetros</Button>
+          <Button onClick={() => setActiveTab('documents')} variant={activeTab === 'documents' ? 'default' : 'outline'} className={activeTab === 'documents' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><BookOpen className="mr-2 h-4 w-4"/> Documentos</Button>
+          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'outline'} className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Handshake className="mr-2 h-4 w-4"/> Parceiros</Button>
+          <Button onClick={() => setActiveTab('contacts')} variant={activeTab === 'contacts' ? 'default' : 'outline'} className={activeTab === 'contacts' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Phone className="mr-2 h-4 w-4"/> Contatos</Button>
+          <Button onClick={() => {setActiveTab('custom'); loadCustomRequests();}} variant={activeTab === 'custom' ? 'default' : 'outline'} className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4"/> Formulações</Button>
         </div>
 
-        {/* Conteúdo das Abas */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
           {activeTab === 'metrics' && <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />}
           
           {activeTab === 'suggestions' && <SuggestionsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setSuggestionsCount} refreshKey={suggestionsRefreshKey} />}
           
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
-          {/* ✅ FIX: Galeria com Token */}
-          {activeTab === 'gallery' && <GalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildUrl={buildAdminUrl} onPendingCountChange={setGalleryPendingCount} refreshKey={galleryRefreshKey} />}
+          {/* ✅ USANDO A GALERIA INTERNA BLINDADA */}
+          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} />}
           
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} refreshKey={contactRefreshKey} />}
           
-          {activeTab === 'partners' && <PartnersManager />}
+          {activeTab === 'partners' && <PartnersManager isAdmin={isAdmin} />}
 
-          {/* ABA VISUAL (TREINAMENTO) - Mantida Inline */}
           {activeTab === 'visual' && (
             <div className="space-y-4">
               <Card className="p-6">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Eye className="h-5 w-5"/> Treinamento Visual</h3>
                 
-                {/* Upload Novo */}
-                <div className="bg-gray-50 p-4 rounded-lg space-y-4 mb-6">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-4 mb-6">
                   <h4 className="font-semibold flex gap-2"><Upload className="h-4 w-4"/> Adicionar Novo</h4>
                   <input type="file" onChange={(e) => {
                     const file = e.target.files[0]; setVisualImage(file);
                     if(file) { const r = new FileReader(); r.onload = () => setVisualImagePreview(r.result); r.readAsDataURL(file); }
-                  }} className="w-full border rounded p-2"/>
+                  }} className="w-full border rounded p-2 bg-white dark:bg-gray-600"/>
                   {visualImagePreview && <img src={visualImagePreview} className="h-32 object-contain"/>}
                   
-                  <select value={visualDefectType} onChange={(e) => setVisualDefectType(e.target.value)} className="w-full p-2 border rounded">
+                  <select value={visualDefectType} onChange={(e) => setVisualDefectType(e.target.value)} className="w-full p-2 border rounded bg-white dark:bg-gray-600">
                     <option value="">Tipo de Defeito...</option>
                     <option value="descolamento da base">Descolamento</option>
                     <option value="falha de suportes">Suportes</option>
                     <option value="outro">Outro</option>
                   </select>
-                  <textarea value={visualDiagnosis} onChange={(e) => setVisualDiagnosis(e.target.value)} placeholder="Diagnóstico" className="w-full p-2 border rounded"/>
-                  <textarea value={visualSolution} onChange={(e) => setVisualSolution(e.target.value)} placeholder="Solução" className="w-full p-2 border rounded"/>
-                  <Button onClick={addVisualKnowledgeEntry} disabled={addingVisual} className="w-full">{addingVisual ? 'Enviando...' : 'Adicionar'}</Button>
+                  <textarea value={visualDiagnosis} onChange={(e) => setVisualDiagnosis(e.target.value)} placeholder="Diagnóstico" className="w-full p-2 border rounded bg-white dark:bg-gray-600"/>
+                  <textarea value={visualSolution} onChange={(e) => setVisualSolution(e.target.value)} placeholder="Solução" className="w-full p-2 border rounded bg-white dark:bg-gray-600"/>
+                  <Button onClick={addVisualKnowledgeEntry} disabled={addingVisual} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">{addingVisual ? 'Enviando...' : 'Adicionar'}</Button>
                 </div>
 
-                {/* Pendentes */}
                 {pendingVisualPhotos.length > 0 && (
                   <div className="space-y-4 mb-6">
                     <h4 className="font-bold text-yellow-600">Pendentes ({pendingVisualPhotos.length})</h4>
@@ -560,15 +658,14 @@ export function AdminPanel({ onClose }) {
                   </div>
                 )}
 
-                {/* Lista */}
                 <div className="grid gap-4">
                   {visualKnowledge.map(item => (
-                    <div key={item._id} className="flex gap-4 p-4 border rounded hover:bg-gray-50">
+                    <div key={item._id} className="flex gap-4 p-4 border rounded hover:bg-gray-50 dark:hover:bg-gray-700">
                       <img src={item.imageUrl} className="w-24 h-24 object-cover rounded"/>
                       <div className="flex-1">
                         <p className="font-bold">{item.defectType}</p>
-                        <p className="text-sm text-gray-600">{item.diagnosis}</p>
-                        {isAdmin && <Button size="sm" variant="outline" onClick={() => deleteVisualKnowledgeEntry(item._id)} className="mt-2 text-red-500"><Trash2 className="h-4 w-4"/> Deletar</Button>}
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{item.diagnosis}</p>
+                        {isAdmin && <Button size="sm" variant="outline" onClick={() => deleteVisualKnowledgeEntry(item._id)} className="mt-2 text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4"/> Deletar</Button>}
                       </div>
                     </div>
                   ))}
@@ -577,10 +674,8 @@ export function AdminPanel({ onClose }) {
             </div>
           )}
 
-          {/* ABA PARÂMETROS - Mantida Inline */}
           {activeTab === 'params' && (
             <div className="space-y-6">
-              {/* Stats */}
               {paramsStats && (
                 <div className="grid grid-cols-4 gap-4">
                   <Card className="p-4"><p>Resinas</p><p className="text-2xl font-bold">{paramsStats.totalResins}</p></Card>
@@ -589,7 +684,6 @@ export function AdminPanel({ onClose }) {
                 </div>
               )}
               
-              {/* Resinas e Impressoras (Simplificado para caber) */}
               <div className="grid md:grid-cols-2 gap-4">
                 <Card className="p-4">
                   <h3 className="font-bold mb-2">Resinas</h3>
@@ -603,7 +697,6 @@ export function AdminPanel({ onClose }) {
                 </Card>
               </div>
 
-              {/* Perfis */}
               <Card className="p-4">
                 <div className="flex justify-between mb-4"><h3 className="font-bold">Perfis</h3><Button onClick={()=>openEditProfile({})}>Novo</Button></div>
                 <table className="w-full text-sm">
@@ -619,16 +712,15 @@ export function AdminPanel({ onClose }) {
                 </table>
               </Card>
 
-              {/* Modal Edição (Simplificado) */}
               {editingProfile && (
                 <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-                  <Card className="p-6 w-full max-w-lg bg-white overflow-y-auto max-h-[90vh]">
+                  <Card className="p-6 w-full max-w-lg bg-white dark:bg-gray-800 overflow-y-auto max-h-[90vh]">
                     <h3 className="font-bold mb-4">Editar Perfil</h3>
                     <div className="grid grid-cols-2 gap-2">
-                      <select value={profileFormData.resinId} onChange={e=>setProfileFormData({...profileFormData, resinId: e.target.value})} className="border p-2 rounded">
+                      <select value={profileFormData.resinId} onChange={e=>setProfileFormData({...profileFormData, resinId: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
                         <option value="">Resina...</option>{paramsResins.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
                       </select>
-                      <select value={profileFormData.printerId} onChange={e=>setProfileFormData({...profileFormData, printerId: e.target.value})} className="border p-2 rounded">
+                      <select value={profileFormData.printerId} onChange={e=>setProfileFormData({...profileFormData, printerId: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
                         <option value="">Impressora...</option>{paramsPrinters.map(p=><option key={p.id} value={p.id}>{p.brand} {p.model}</option>)}
                       </select>
                       <Input placeholder="Camada (mm)" value={profileFormData.layerHeightMm} onChange={e=>setProfileFormData({...profileFormData, layerHeightMm: e.target.value})}/>
