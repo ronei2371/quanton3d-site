@@ -21,6 +21,13 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
   const [error, setError] = useState(null)
   const [processingId, setProcessingId] = useState(null)
 
+  const fetchVisualKnowledge = async (url) => {
+    const response = await fetch(url, {
+      headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+    })
+    return response
+  }
+
   const loadPhotos = useCallback(async () => {
     if (!isVisible) return
     setLoading(true)
@@ -29,15 +36,11 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
     try {
       console.log("Galeria: Buscando fotos...")
       // Tenta rota com /api (Padrão novo)
-      let response = await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge`, {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
-      })
+      let response = await fetchVisualKnowledge(`${ADMIN_BASE_URL}/api/visual-knowledge`)
 
       // Se der 404, tenta fallback (caso a rota mude)
       if (response.status === 404) {
-         response = await fetch(`${ADMIN_BASE_URL}/visual-knowledge`, {
-            headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
-         })
+         response = await fetchVisualKnowledge(`${ADMIN_BASE_URL}/visual-knowledge`)
       }
 
       // Lê como TEXTO primeiro (Proteção do Grok contra HTML na resposta)
