@@ -5,15 +5,15 @@ import { Input } from '@/components/ui/input.jsx'
 import { Camera, Check, Edit3, Image, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange }) {
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl, adminToken }) {
   const API_BASE_URL = useMemo(
     () => (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, ''),
     []
   )
 
   const buildGalleryUrl = useCallback(
-    (path) => new URL(path, `${API_BASE_URL}/`).toString(),
-    [API_BASE_URL]
+    (path) => (buildUrl ? buildUrl(path) : new URL(path, `${API_BASE_URL}/`).toString()),
+    [API_BASE_URL, buildUrl]
   )
 
   const [galleryEntries, setGalleryEntries] = useState([])
@@ -25,7 +25,9 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
   const loadGalleryEntries = useCallback(async () => {
     setGalleryLoading(true)
     try {
-      const response = await fetch(buildGalleryUrl('/api/gallery/all'))
+      const response = await fetch(buildGalleryUrl('/api/gallery/all'), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       const entries = data.entries || []
       setGalleryEntries(entries)
@@ -36,7 +38,7 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     } finally {
       setGalleryLoading(false)
     }
-  }, [buildGalleryUrl, onPendingCountChange])
+  }, [adminToken, buildGalleryUrl, onPendingCountChange])
 
   useEffect(() => {
     loadGalleryEntries()
@@ -45,7 +47,8 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
   const approveGalleryEntry = async (id) => {
     try {
       const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/approve`), {
-        method: 'PUT'
+        method: 'PUT',
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()
       if (data.success) {
@@ -67,7 +70,8 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
     try {
       const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/reject`), {
-        method: 'PUT'
+        method: 'PUT',
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()
       if (data.success) {
@@ -120,7 +124,10 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     try {
       const response = await fetch(buildGalleryUrl(`/api/gallery/${editingGalleryEntry._id}`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+        },
         body: JSON.stringify(editGalleryData)
       })
       const data = await response.json()
