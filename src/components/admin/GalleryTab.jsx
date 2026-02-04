@@ -4,6 +4,18 @@ import { Button } from '@/components/ui/button.jsx'
 import { Camera, RefreshCw, AlertTriangle, Loader2, Trash2, Check, X, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 
+
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildAdminUrl, adminToken }) {
+  const API_BASE_URL = useMemo(
+    () => (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, ''),
+    []
+  )
+
+  const buildGalleryUrl = useCallback(
+    (path) => (buildAdminUrl ? buildAdminUrl(path) : new URL(path, `${API_BASE_URL}/`).toString()),
+    [API_BASE_URL, buildAdminUrl]
+  )
+
 export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange }) {
   // URL FIXA PARA NÃO DEPENDER DE NINGUÉM
   const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
@@ -36,6 +48,7 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
         }
         throw new Error(`Erro do servidor: ${response.status}`)
       }
+ main
 
       // Tenta converter
       let data
@@ -55,23 +68,65 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
         onPendingCountChange(pendingCount)
       }
 
+
+  const loadGalleryEntries = useCallback(async () => {
+    setGalleryLoading(true)
+    try {
+      const response = await fetch(buildGalleryUrl('/api/gallery/all'), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
+      const data = await response.json()
+      const entries = data.entries || []
+      setGalleryEntries(entries)
+      onPendingCountChange?.(entries.filter((entry) => entry.status === 'pending').length)
+    } catch (error) {
+      console.error('Erro ao carregar galeria:', error)
+      toast.error('Erro ao carregar galeria')
+
     } catch (err) {
       console.error("Erro na galeria:", err)
       setError(err.message)
       setPhotos([]) // Zera a lista para não dar tela branca
+ main
     } finally {
       setLoading(false)
     }
+
+  }, [adminToken, buildGalleryUrl, onPendingCountChange])
+
   }, [isVisible, adminToken, onPendingCountChange])
+ main
 
   // Carrega ao abrir
   useEffect(() => {
     loadPhotos()
   }, [loadPhotos])
 
+
+  const approveGalleryEntry = async (id) => {
+    try {
+      const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/approve`), {
+        method: 'PUT',
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
+      const data = await response.json()
+      if (data.success) {
+        loadGalleryEntries()
+      } else {
+        toast.error('Erro ao aprovar: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao aprovar:', error)
+      toast.error('Erro ao aprovar foto')
+    }
+  }
+
+  const rejectGalleryEntry = async (id) => {
+
   // --- 2. AÇÕES (Aprovar, Rejeitar, Deletar) ---
   
   const handleAction = async (id, action) => {
+ main
     if (!isAdmin) {
         toast.error("Apenas admins podem fazer isso.")
         return
@@ -79,6 +134,21 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
     
     setProcessingId(id)
     try {
+
+      const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/reject`), {
+        method: 'PUT',
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
+      const data = await response.json()
+      if (data.success) {
+        loadGalleryEntries()
+      } else {
+        toast.error('Erro ao rejeitar: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao rejeitar:', error)
+      toast.error('Erro ao rejeitar foto')
+
         let url, method
         
         if (action === 'approve') {
@@ -118,10 +188,40 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
         toast.error("Erro de conexão.")
     } finally {
         setProcessingId(null)
+main
     }
   }
 
   // --- 3. RENDERIZAÇÃO ---
+
+
+  const saveGalleryEdit = async () => {
+    if (!editingGalleryEntry) return
+    setSavingGalleryEdit(true)
+    try {
+      const response = await fetch(buildGalleryUrl(`/api/gallery/${editingGalleryEntry._id}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+        },
+        body: JSON.stringify(editGalleryData)
+      })
+      const data = await response.json()
+      if (data.success) {
+        setEditingGalleryEntry(null)
+        setEditGalleryData({})
+        loadGalleryEntries()
+        toast.success('Entrada atualizada com sucesso!')
+      } else {
+        toast.error('Erro ao atualizar: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar:', error)
+      toast.error('Erro ao atualizar entrada da galeria')
+    } finally {
+      setSavingGalleryEdit(false)
+    }
 
   if (error) {
     return (
@@ -135,6 +235,7 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
         </Button>
       </div>
     )
+ main
   }
 
   return (

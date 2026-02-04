@@ -31,4 +31,3 @@ Diretrizes Técnicas Atualizadas: Projeto Quanton3D (Jan 2026)
 
 - Backend (v2): Deve conter MONGODB_URI (com a flag retryWrites=true) e OPENAI_API_KEY.
 - Frontend: Apenas VITE_API_URL e VITE_ADMIN_API_TOKEN.
-
