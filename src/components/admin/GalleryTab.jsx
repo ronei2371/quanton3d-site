@@ -5,16 +5,16 @@ import { Input } from '@/components/ui/input.jsx'
 import { Camera, Check, Edit3, Image, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl, adminToken }) {
-  const API_BASE_URL = useMemo(
-    () => (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, ''),
-    []
-  )
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, adminToken }) {
+  // CONFIGURAÇÃO DE URL FIXA E BLINDADA
+  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
-  const buildGalleryUrl = useCallback(
-    (path) => (buildUrl ? buildUrl(path) : new URL(path, `${API_BASE_URL}/`).toString()),
-    [API_BASE_URL, buildUrl]
-  )
+  const buildGalleryUrl = useCallback((path) => {
+    // Garante que o path comece com /api
+    const cleanPath = path.startsWith('/') ? path : `/${path}`
+    const finalPath = cleanPath.startsWith('/api') ? cleanPath : `/api${cleanPath}`
+    return `${API_BASE_URL}${finalPath}`
+  }, [])
 
   const [galleryEntries, setGalleryEntries] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(false)
@@ -25,7 +25,8 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
   const loadGalleryEntries = useCallback(async () => {
     setGalleryLoading(true)
     try {
-      const response = await fetch(buildGalleryUrl('/api/gallery/all'), {
+      // Forçando rota correta: /api/gallery/all
+      const response = await fetch(buildGalleryUrl('/gallery/all'), {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()
@@ -41,12 +42,14 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
   }, [adminToken, buildGalleryUrl, onPendingCountChange])
 
   useEffect(() => {
-    loadGalleryEntries()
+    if (isVisible) {
+      loadGalleryEntries()
+    }
   }, [isVisible, refreshKey, loadGalleryEntries])
 
   const approveGalleryEntry = async (id) => {
     try {
-      const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/approve`), {
+      const response = await fetch(buildGalleryUrl(`/gallery/${id}/approve`), {
         method: 'PUT',
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
@@ -69,7 +72,7 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     }
     if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
     try {
-      const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/reject`), {
+      const response = await fetch(buildGalleryUrl(`/gallery/${id}/reject`), {
         method: 'PUT',
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
@@ -122,7 +125,7 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     if (!editingGalleryEntry) return
     setSavingGalleryEdit(true)
     try {
-      const response = await fetch(buildGalleryUrl(`/api/gallery/${editingGalleryEntry._id}`), {
+      const response = await fetch(buildGalleryUrl(`/gallery/${editingGalleryEntry._id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
