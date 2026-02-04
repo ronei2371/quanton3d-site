@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Camera, Check, Edit3, Image, Loader2, Trash2, X } from 'lucide-react'
+import { Camera, RefreshCw, AlertTriangle, Loader2, Trash2, Check, X, Eye } from 'lucide-react'
 import { toast } from 'sonner'
+
 
 export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildAdminUrl, adminToken }) {
   const API_BASE_URL = useMemo(
@@ -16,11 +16,58 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     [API_BASE_URL, buildAdminUrl]
   )
 
-  const [galleryEntries, setGalleryEntries] = useState([])
-  const [galleryLoading, setGalleryLoading] = useState(false)
-  const [editingGalleryEntry, setEditingGalleryEntry] = useState(null)
-  const [editGalleryData, setEditGalleryData] = useState({})
-  const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
+export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange }) {
+  // URL FIXA PARA NÃO DEPENDER DE NINGUÉM
+  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+  
+  const [photos, setPhotos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [processingId, setProcessingId] = useState(null) // Para loading nos botões
+
+  // --- 1. CARREGAMENTO BLINDADO (Anti-Tela Branca) ---
+  const loadPhotos = useCallback(async () => {
+    if (!isVisible) return
+    
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Busca na rota correta
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+      })
+
+      // Lê como texto primeiro (Proteção contra HTML/404)
+      const text = await response.text()
+
+      if (!response.ok) {
+        // Se o servidor deu erro, a gente avisa mas NÃO TRAVA a tela
+        if (text.startsWith('<')) {
+           throw new Error(`Erro de Rota (404/500). O servidor não respondeu JSON.`)
+        }
+        throw new Error(`Erro do servidor: ${response.status}`)
+      }
+ main
+
+      // Tenta converter
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        throw new Error("O servidor respondeu algo que não é dados válidos.")
+      }
+      
+      // Garante que seja um array (Segurança Extra)
+      const safeList = Array.isArray(data.documents) ? data.documents : []
+      setPhotos(safeList)
+
+      // Atualiza o contador de pendentes lá na aba
+      if (onPendingCountChange) {
+        const pendingCount = safeList.filter(p => !p.approved).length
+        onPendingCountChange(pendingCount)
+      }
+
 
   const loadGalleryEntries = useCallback(async () => {
     setGalleryLoading(true)
@@ -35,14 +82,26 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     } catch (error) {
       console.error('Erro ao carregar galeria:', error)
       toast.error('Erro ao carregar galeria')
+
+    } catch (err) {
+      console.error("Erro na galeria:", err)
+      setError(err.message)
+      setPhotos([]) // Zera a lista para não dar tela branca
+ main
     } finally {
-      setGalleryLoading(false)
+      setLoading(false)
     }
+
   }, [adminToken, buildGalleryUrl, onPendingCountChange])
 
+  }, [isVisible, adminToken, onPendingCountChange])
+ main
+
+  // Carrega ao abrir
   useEffect(() => {
-    loadGalleryEntries()
-  }, [isVisible, refreshKey, loadGalleryEntries])
+    loadPhotos()
+  }, [loadPhotos])
+
 
   const approveGalleryEntry = async (id) => {
     try {
@@ -63,12 +122,19 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
   }
 
   const rejectGalleryEntry = async (id) => {
+
+  // --- 2. AÇÕES (Aprovar, Rejeitar, Deletar) ---
+  
+  const handleAction = async (id, action) => {
+ main
     if (!isAdmin) {
-      toast.warning('Seu nivel de acesso nao permite rejeitar/excluir dados.')
-      return
+        toast.error("Apenas admins podem fazer isso.")
+        return
     }
-    if (!confirm('Tem certeza que deseja rejeitar esta foto? As imagens serao deletadas.')) return
+    
+    setProcessingId(id)
     try {
+
       const response = await fetch(buildGalleryUrl(`/api/gallery/${id}/reject`), {
         method: 'PUT',
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
@@ -82,41 +148,52 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     } catch (error) {
       console.error('Erro ao rejeitar:', error)
       toast.error('Erro ao rejeitar foto')
+
+        let url, method
+        
+        if (action === 'approve') {
+            url = `${API_BASE_URL}/api/visual-knowledge/${id}/approve`
+            method = 'PUT'
+        } else if (action === 'delete') {
+            if (!confirm("Tem certeza que deseja apagar essa foto?")) {
+                setProcessingId(null)
+                return
+            }
+            url = `${API_BASE_URL}/api/visual-knowledge/${id}`
+            method = 'DELETE'
+        }
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
+            },
+            body: action === 'approve' ? JSON.stringify({ 
+                // Envia dados padrão se aprovar direto
+                defectType: 'Aprovado via Painel',
+                diagnosis: 'Aprovado manualmente', 
+                solution: 'Verificar imagem'
+            }) : undefined
+        })
+
+        if (res.ok) {
+            toast.success(action === 'approve' ? "Foto Aprovada!" : "Foto Deletada!")
+            loadPhotos() // Recarrega a lista
+        } else {
+            toast.error("Erro ao processar ação.")
+        }
+    } catch (e) {
+        console.error(e)
+        toast.error("Erro de conexão.")
+    } finally {
+        setProcessingId(null)
+main
     }
   }
 
-  const openEditGallery = (entry) => {
-    setEditingGalleryEntry(entry)
-    const params = entry.params || {}
-    const lowerLiftDist = params.lowerLiftDistance || {}
-    const liftDist = params.liftDistance || {}
-    const liftSpd = params.liftSpeed || {}
-    const lowerRetractSpd = params.lowerRetractSpeed || {}
-    const retractSpd = params.retractSpeed || {}
+  // --- 3. RENDERIZAÇÃO ---
 
-    setEditGalleryData({
-      name: entry.name || '',
-      resin: entry.resin || '',
-      printer: entry.printer || '',
-      comment: entry.comment || '',
-      layerHeight: params.layerHeight || entry.layerHeight || '',
-      baseLayers: params.baseLayers || entry.baseLayers || '',
-      exposureTime: params.exposureTime || entry.exposureTime || '',
-      baseExposureTime: params.baseExposureTime || entry.baseExposureTime || '',
-      transitionLayers: params.transitionLayers || entry.transitionLayers || '',
-      uvOffDelay: params.uvOffDelay || entry.uvOffDelay || '',
-      lowerLiftDistance1: lowerLiftDist.value1 || entry.lowerLiftDistance1 || '',
-      lowerLiftDistance2: lowerLiftDist.value2 || entry.lowerLiftDistance2 || '',
-      liftDistance1: liftDist.value1 || entry.liftDistance1 || '',
-      liftDistance2: liftDist.value2 || entry.liftDistance2 || '',
-      liftSpeed1: liftSpd.value1 || entry.liftSpeed1 || '',
-      liftSpeed2: liftSpd.value2 || entry.liftSpeed2 || '',
-      lowerRetractSpeed1: lowerRetractSpd.value1 || entry.lowerRetractSpeed1 || '',
-      lowerRetractSpeed2: lowerRetractSpd.value2 || entry.lowerRetractSpeed2 || '',
-      retractSpeed1: retractSpd.value1 || entry.retractSpeed1 || '',
-      retractSpeed2: retractSpd.value2 || entry.retractSpeed2 || ''
-    })
-  }
 
   const saveGalleryEdit = async () => {
     if (!editingGalleryEntry) return
@@ -145,509 +222,94 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
     } finally {
       setSavingGalleryEdit(false)
     }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 text-red-700 rounded-lg border border-red-200">
+        <h3 className="font-bold flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" /> Erro ao carregar galeria
+        </h3>
+        <p className="mt-2 text-sm">{error}</p>
+        <Button onClick={loadPhotos} variant="outline" className="mt-4 bg-white">
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+        </Button>
+      </div>
+    )
+ main
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="p-6">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Camera className="h-5 w-5" />
-          Galeria de Fotos - Aprovacao
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Aprove ou rejeite as fotos enviadas pelos clientes antes de aparecerem na galeria publica.
-        </p>
-      </Card>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Camera className="h-6 w-6 text-blue-600" />
+          Galeria de Treinamento Visual ({photos.length})
+        </h2>
+        <Button onClick={loadPhotos} disabled={loading} size="sm">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? 'Carregando...' : 'Atualizar'}
+        </Button>
+      </div>
 
-      {galleryLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      {loading ? (
+        <div className="text-center py-10 text-gray-500">
+          <Loader2 className="h-8 w-8 mx-auto animate-spin mb-2" />
+          <p>Buscando fotos no servidor...</p>
         </div>
-      ) : galleryEntries.filter((entry) => entry.status !== 'rejected').length === 0 ? (
-        <Card className="p-8 text-center">
-          <Image className="h-16 w-16 mx-auto mb-4 opacity-30" />
-          <p className="text-gray-500">Nenhuma foto na galeria ainda.</p>
+      ) : photos.length === 0 ? (
+        <Card className="p-8 text-center bg-gray-50">
+          <p className="text-gray-500">Nenhuma foto encontrada no sistema.</p>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {galleryEntries
-            .filter((entry) => entry.status !== 'rejected')
-            .map((entry) => (
-              <Card key={entry._id} className="p-4">
-                <div className="flex gap-4">
-                  <div className="flex gap-2 flex-shrink-0">
-                    {entry.images && entry.images.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img.url}
-                        alt={`Foto ${idx + 1}`}
-                        className="w-24 h-24 object-cover rounded-lg border"
-                      />
-                    ))}
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {photos.map((item) => (
+            <Card key={item._id} className="p-4 overflow-hidden flex flex-col">
+              <div className="aspect-square bg-gray-100 rounded-lg mb-3 relative group">
+                <img 
+                  src={item.imageUrl} 
+                  alt={item.defectType || 'Foto'} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {e.target.style.display = 'none'}} 
+                />
+                {/* Badge de Status */}
+                <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold ${item.approved ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}`}>
+                    {item.approved ? 'Aprovado' : 'Pendente'}
+                </div>
+              </div>
+              
+              <div className="flex-1 space-y-2">
+                <p className="font-bold text-gray-800">{item.defectType || 'Não classificado'}</p>
+                <p className="text-xs text-gray-500 line-clamp-2">
+                  {item.diagnosis || 'Sem diagnóstico'}
+                </p>
+              </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-semibold">{entry.name || 'Anonimo'}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(entry.createdAt).toLocaleString('pt-BR')}
-                        </p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          entry.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : entry.status === 'approved'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {entry.status === 'pending'
-                          ? 'Pendente'
-                          : entry.status === 'approved'
-                          ? 'Aprovado'
-                          : 'Rejeitado'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                      <div>
-                        <span className="text-gray-500">Resina:</span>
-                        <span className="ml-1 font-medium">{entry.resin}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Impressora:</span>
-                        <span className="ml-1 font-medium">{entry.printer}</span>
-                      </div>
-                    </div>
-
-                    {entry.comment && (
-                      <p className="text-sm text-gray-600 bg-gray-50 dark:bg-gray-800 p-2 rounded mb-3">
-                        {entry.comment}
-                      </p>
-                    )}
-
-                    {(() => {
-                      const params = entry.params || {}
-                      const lowerLiftDist = params.lowerLiftDistance || {}
-                      const liftDist = params.liftDistance || {}
-                      const liftSpd = params.liftSpeed || {}
-                      const retractSpd = params.retractSpeed || {}
-                      return (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-3">
-                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                            Configuracoes de Impressao
-                          </p>
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <span className="text-gray-500">Altura Camada:</span>{' '}
-                              <span className="font-medium">{params.layerHeight || entry.layerHeight || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Camadas Base:</span>{' '}
-                              <span className="font-medium">{params.baseLayers || entry.baseLayers || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Tempo Exp.:</span>{' '}
-                              <span className="font-medium">{params.exposureTime || entry.exposureTime || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Tempo Exp. Base:</span>{' '}
-                              <span className="font-medium">{params.baseExposureTime || entry.baseExposureTime || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Camadas Trans.:</span>{' '}
-                              <span className="font-medium">{params.transitionLayers || entry.transitionLayers || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Atraso UV:</span>{' '}
-                              <span className="font-medium">{params.uvOffDelay || entry.uvOffDelay || 'N/A'}</span>
-                            </div>
-                          </div>
-
-                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">
-                            Distancias de Elevacao (mm)
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-gray-500">Inferior:</span>{' '}
-                              <span className="font-medium">
-                                {lowerLiftDist.value1 || entry.lowerLiftDistance1 || 'N/A'} /{' '}
-                                {lowerLiftDist.value2 || entry.lowerLiftDistance2 || 'N/A'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Normal:</span>{' '}
-                              <span className="font-medium">
-                                {liftDist.value1 || entry.liftDistance1 || 'N/A'} / {liftDist.value2 || entry.liftDistance2 || 'N/A'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mt-3 mb-1">
-                            Velocidades (mm/s)
-                          </p>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-gray-500">Elevacao:</span>{' '}
-                              <span className="font-medium">
-                                {liftSpd.value1 || entry.liftSpeed1 || 'N/A'} / {liftSpd.value2 || entry.liftSpeed2 || 'N/A'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Retracao:</span>{' '}
-                              <span className="font-medium">
-                                {retractSpd.value1 || entry.retractSpeed1 || 'N/A'} / {retractSpd.value2 || entry.retractSpeed2 || 'N/A'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })()}
-
-                    {entry.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => approveGalleryEntry(entry._id)}>
-                          <Check className="h-4 w-4 mr-1" />
-                          Aprovar
-                        </Button>
-                        {isAdmin && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                            onClick={() => rejectGalleryEntry(entry._id)}
+              {/* Botões de Ação */}
+              {isAdmin && (
+                  <div className="flex gap-2 mt-4 pt-4 border-t">
+                      {!item.approved && (
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => handleAction(item._id, 'approve')}
+                            disabled={processingId === item._id}
                           >
-                            <X className="h-4 w-4 mr-1" />
-                            Rejeitar
+                             <Check className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {entry.status === 'approved' && isAdmin && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                          onClick={() => openEditGallery(entry)}
-                        >
-                          <Edit3 className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                          onClick={() => rejectGalleryEntry(entry._id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Apagar
-                        </Button>
-                      </div>
-                    )}
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={() => handleAction(item._id, 'delete')}
+                        disabled={processingId === item._id}
+                      >
+                         {processingId === item._id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
+                      </Button>
                   </div>
-                </div>
-              </Card>
-            ))}
-        </div>
-      )}
-
-      {editingGalleryEntry && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Editar Entrada da Galeria</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setEditingGalleryEntry(null)
-                  setEditGalleryData({})
-                }}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="flex gap-2 mb-4">
-              {editingGalleryEntry.images &&
-                editingGalleryEntry.images.map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={img.url}
-                    alt={`Foto ${idx + 1}`}
-                    className="w-20 h-20 object-cover rounded-lg border"
-                  />
-                ))}
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Nome</label>
-                  <Input
-                    value={editGalleryData.name || ''}
-                    onChange={(e) => setEditGalleryData({ ...editGalleryData, name: e.target.value })}
-                    placeholder="Nome do cliente"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Resina</label>
-                  <Input
-                    value={editGalleryData.resin || ''}
-                    onChange={(e) => setEditGalleryData({ ...editGalleryData, resin: e.target.value })}
-                    placeholder="Resina utilizada"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Impressora</label>
-                  <Input
-                    value={editGalleryData.printer || ''}
-                    onChange={(e) => setEditGalleryData({ ...editGalleryData, printer: e.target.value })}
-                    placeholder="Modelo da impressora"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Comentario</label>
-                  <Input
-                    value={editGalleryData.comment || ''}
-                    onChange={(e) => setEditGalleryData({ ...editGalleryData, comment: e.target.value })}
-                    placeholder="Comentario opcional"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">Configuracoes de Impressao</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Altura Camada (mm)</label>
-                    <Input
-                      value={editGalleryData.layerHeight || ''}
-                      onChange={(e) => setEditGalleryData({ ...editGalleryData, layerHeight: e.target.value })}
-                      placeholder="0.05"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Camadas Base</label>
-                    <Input
-                      value={editGalleryData.baseLayers || ''}
-                      onChange={(e) => setEditGalleryData({ ...editGalleryData, baseLayers: e.target.value })}
-                      placeholder="6"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Tempo Exposicao (s)</label>
-                    <Input
-                      value={editGalleryData.exposureTime || ''}
-                      onChange={(e) => setEditGalleryData({ ...editGalleryData, exposureTime: e.target.value })}
-                      placeholder="2.5"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Tempo Exp. Base (s)</label>
-                    <Input
-                      value={editGalleryData.baseExposureTime || ''}
-                      onChange={(e) => setEditGalleryData({ ...editGalleryData, baseExposureTime: e.target.value })}
-                      placeholder="30"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Camadas Transicao</label>
-                    <Input
-                      value={editGalleryData.transitionLayers || ''}
-                      onChange={(e) => setEditGalleryData({ ...editGalleryData, transitionLayers: e.target.value })}
-                      placeholder="5"
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Atraso UV (s)</label>
-                    <Input
-                      value={editGalleryData.uvOffDelay || ''}
-                      onChange={(e) => setEditGalleryData({ ...editGalleryData, uvOffDelay: e.target.value })}
-                      placeholder="0.5"
-                      className="text-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3">Distancias (mm)</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Elevacao Inferior (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.lowerLiftDistance1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, lowerLiftDistance1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.lowerLiftDistance2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, lowerLiftDistance2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Elevacao Normal (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.liftDistance1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, liftDistance1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.liftDistance2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, liftDistance2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Retracao Inferior (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.lowerRetractDistance1 || ''}
-                        onChange={(e) =>
-                          setEditGalleryData({ ...editGalleryData, lowerRetractDistance1: e.target.value })
-                        }
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.lowerRetractDistance2 || ''}
-                        onChange={(e) =>
-                          setEditGalleryData({ ...editGalleryData, lowerRetractDistance2: e.target.value })
-                        }
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Retracao Normal (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.retractDistance1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, retractDistance1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.retractDistance2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, retractDistance2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <h4 className="font-semibold mb-3">Velocidades (mm/s)</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Elevacao Inferior (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.lowerLiftSpeed1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, lowerLiftSpeed1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.lowerLiftSpeed2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, lowerLiftSpeed2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Elevacao Normal (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.liftSpeed1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, liftSpeed1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.liftSpeed2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, liftSpeed2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Retracao Inferior (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.lowerRetractSpeed1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, lowerRetractSpeed1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.lowerRetractSpeed2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, lowerRetractSpeed2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Retracao Normal (1/2)</label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={editGalleryData.retractSpeed1 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, retractSpeed1: e.target.value })}
-                        placeholder="Valor 1"
-                        className="text-sm"
-                      />
-                      <Input
-                        value={editGalleryData.retractSpeed2 || ''}
-                        onChange={(e) => setEditGalleryData({ ...editGalleryData, retractSpeed2: e.target.value })}
-                        placeholder="Valor 2"
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditingGalleryEntry(null)
-                    setEditGalleryData({})
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button onClick={saveGalleryEdit} disabled={savingGalleryEdit} className="bg-blue-600 hover:bg-blue-700">
-                  {savingGalleryEdit ? 'Salvando...' : 'Salvar Alteracoes'}
-                </Button>
-              </div>
-            </div>
-          </Card>
+              )}
+            </Card>
+          ))}
         </div>
       )}
     </div>
