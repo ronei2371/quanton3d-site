@@ -106,6 +106,15 @@ export function AdminPanel({ onClose }) {
   const [password, setPassword] = useState('')
   const [adminToken, setAdminToken] = useState('') 
   
+  // Garante que o token exista mesmo que venha do env (fallback)
+  const safeAdminToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
+
+  // Função auxiliar para cabeçalhos com token
+  const buildAuthHeaders = useCallback((headers = {}) => {
+    if (!safeAdminToken) return headers
+    return { ...headers, Authorization: `Bearer ${safeAdminToken}` }
+  }, [safeAdminToken])
+  
   const [activeTab, setActiveTab] = useState('metrics')
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
   const [suggestionsCount, setSuggestionsCount] = useState(0)
@@ -148,18 +157,16 @@ export function AdminPanel({ onClose }) {
   
   const isAdmin = accessLevel === 'admin'
 
-  // FUNÇÃO DE ROTAS BLINDADA E CORRIGIDA
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
-    // Se já começar com /api, respeita
+    // 🔧 LÓGICA DE ROTAS HÍBRIDA (Compatível com server.js atual)
+    // Se não começar com /api nem /auth, assume que é rota administrativa antiga
     if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
-        // Se começar com /admin, converte para /api/admin
-        if (finalPath.startsWith('/admin')) {
-            finalPath = '/api' + finalPath
-        } else {
-            // Se for rota solta (ex: /params), adiciona o prefixo completo
-            finalPath = `/api/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
+        // Se começar com /admin, deixa como está (o server.js trata)
+        // Se NÃO começar com /admin (ex: /params/resins), adiciona /admin
+        if (!finalPath.startsWith('/admin')) {
+             finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
         }
     }
 
@@ -186,9 +193,12 @@ export function AdminPanel({ onClose }) {
       if (data.success && data.token) {
         setAccessLevel('admin')
         setIsAuthenticated(true)
-        setAdminToken(data.token)
+        setAdminToken(data.token) // SALVA O CRACHÁ NO ESTADO
         toast.success('Login conectado ao servidor!')
-        await refreshAllData(data.token)
+        
+        // Dispara atualização forçando o uso do token recém-obtido
+        // Isso garante que a primeira carga tenha o token, mesmo antes do state atualizar
+        await refreshAllData(data.token) 
         return
       }
     } catch (e) {
@@ -212,19 +222,26 @@ export function AdminPanel({ onClose }) {
   }
 
   const refreshAllData = async (tokenOverride) => {
-    const tokenToUse = tokenOverride || adminToken
+    // Usa o token passado (no login) ou o do estado
+    const tokenToUse = tokenOverride || safeAdminToken
     setLoading(true)
+    
+    // Header helper interno para garantir o uso do token correto NESTA execução
+    const getHeaders = () => tokenToUse ? { Authorization: `Bearer ${tokenToUse}` } : {}
+
     try {
       setMetricsRefreshKey((key) => key + 1)
       setSuggestionsRefreshKey((key) => key + 1)
       setOrdersRefreshKey((key) => key + 1)
       setKnowledgeRefreshKey((key) => key + 1)
       setContactRefreshKey((key) => key + 1)
+      
+      // Carrega tudo em paralelo usando o token correto
       await Promise.all([
         loadCustomRequests(tokenToUse),
-        loadVisualKnowledge(),
-        loadPendingVisualPhotos(),
-        loadParamsData()
+        loadVisualKnowledge(tokenToUse),
+        loadPendingVisualPhotos(tokenToUse),
+        loadParamsData(tokenToUse)
       ])
       setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
@@ -234,6 +251,7 @@ export function AdminPanel({ onClose }) {
     }
   }
 
+  // 🚀 CARREGAR DADOS AO ENTRAR
   useEffect(() => {
     if (isAuthenticated) {
       refreshAllData()
@@ -242,7 +260,7 @@ export function AdminPanel({ onClose }) {
 
   const loadCustomRequests = async (tokenToUse) => {
     try {
-      const token = tokenToUse || adminToken
+      const token = tokenToUse || safeAdminToken
       const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
@@ -253,10 +271,13 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadVisualKnowledge = async () => {
+  const loadVisualKnowledge = async (tokenToUse) => {
     setVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge'))
+      const token = tokenToUse || safeAdminToken
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      })
       const data = await response.json()
       setVisualKnowledge(data.documents || [])
     } catch (error) {
@@ -266,10 +287,13 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadPendingVisualPhotos = async () => {
+  const loadPendingVisualPhotos = async (tokenToUse) => {
     setPendingVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'))
+      const token = tokenToUse || safeAdminToken
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      })
       const data = await response.json()
       setPendingVisualPhotos(data.documents || [])
     } catch (error) {
@@ -287,7 +311,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ defectType, diagnosis, solution })
       })
       const data = await response.json()
@@ -315,7 +339,8 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -345,6 +370,7 @@ export function AdminPanel({ onClose }) {
 
       const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
         method: 'POST',
+        headers: buildAuthHeaders(),
         body: formData
       })
       const data = await response.json()
@@ -377,7 +403,8 @@ export function AdminPanel({ onClose }) {
 
     try {
       const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -391,14 +418,16 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadParamsData = async () => {
+  const loadParamsData = async (tokenToUse) => {
     setParamsLoading(true)
+    const headers = tokenToUse ? { Authorization: `Bearer ${tokenToUse}` } : buildAuthHeaders()
+    
     try {
       const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-        fetch(buildAdminUrl('/params/resins')),
-        fetch(buildAdminUrl('/params/printers')),
-        fetch(buildAdminUrl('/params/profiles')),
-        fetch(buildAdminUrl('/params/stats'))
+        fetch(buildAdminUrl('/params/resins'), { headers }),
+        fetch(buildAdminUrl('/params/printers'), { headers }),
+        fetch(buildAdminUrl('/params/profiles'), { headers }),
+        fetch(buildAdminUrl('/params/stats'), { headers })
       ])
       const [resinsData, printersData, profilesData, statsData] = await Promise.all([
         resinsRes.json(),
@@ -425,7 +454,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl('/params/resins'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name: newResinName.trim() })
       })
       const data = await response.json()
@@ -450,7 +479,8 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -473,7 +503,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl('/params/printers'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
       })
       const data = await response.json()
@@ -499,7 +529,8 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar esta impressora e todos os perfis associados?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/printers/${printerId}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -540,7 +571,7 @@ export function AdminPanel({ onClose }) {
     try {
       const response = await fetch(buildAdminUrl('/params/profiles'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           resinId: profileFormData.resinId,
           printerId: profileFormData.printerId,
@@ -581,7 +612,8 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar este perfil?')) return
     try {
       const response = await fetch(buildAdminUrl(`/params/profiles/${profileId}`), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: buildAuthHeaders()
       })
       const data = await response.json()
       if (data.success) {
@@ -759,7 +791,7 @@ export function AdminPanel({ onClose }) {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
           {activeTab === 'metrics' && (
             <MetricsTab 
-              apiToken={adminToken} 
+              apiToken={safeAdminToken} 
               buildAdminUrl={buildAdminUrl} 
               refreshKey={metricsRefreshKey} 
             />
@@ -770,8 +802,9 @@ export function AdminPanel({ onClose }) {
                buildAdminUrl={buildAdminUrl}
                isAdmin={isAdmin}
                isVisible={activeTab === 'suggestions'}
-               refreshKey={suggestionsRefreshKey}
                onCountChange={setSuggestionsCount}
+               refreshKey={suggestionsRefreshKey}
+               adminToken={safeAdminToken}
              />
           )}
 
@@ -780,8 +813,9 @@ export function AdminPanel({ onClose }) {
                 buildAdminUrl={buildAdminUrl}
                 isAdmin={isAdmin}
                 isVisible={activeTab === 'orders'}
+                onCountChange={setOrdersPendingCount}
                 refreshKey={ordersRefreshKey}
-                onPendingCountChange={setOrdersPendingCount}
+                adminToken={safeAdminToken}
               />
           )}
 
@@ -792,6 +826,7 @@ export function AdminPanel({ onClose }) {
               isVisible={activeTab === 'gallery'}
               refreshKey={galleryRefreshKey}
               onPendingCountChange={setGalleryPendingCount}
+              adminToken={safeAdminToken} // 🔑 A CHAVE QUE FALTAVA!
             />
           )}
 
@@ -804,7 +839,7 @@ export function AdminPanel({ onClose }) {
                isVisible={activeTab === 'contacts'}
                refreshKey={contactRefreshKey}
                onCountChange={setContactCount}
-               adminToken={adminToken}
+               adminToken={safeAdminToken}
             />
           )}
 
@@ -1021,72 +1056,6 @@ export function AdminPanel({ onClose }) {
               )}
             </Card>
           </div>
-          )}
-
-          {activeTab === 'custom' && (
-            <div className="space-y-4">
-            {customRequests.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Beaker className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 dark:text-gray-400">
-                  Nenhum pedido de formulação customizada ainda
-                </p>
-              </Card>
-            ) : (
-              customRequests.map((request, index) => (
-                <Card key={index} className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{request.name || request.fullName || request.nome || 'Cliente'}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {request.phone || request.telefone || 'Não informado'}
-                          </span>
-                          <span className="truncate">{request.email || 'Sem e-mail'}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-xs text-gray-500">
-                          {new Date(request.createdAt || request.timestamp).toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
-                          <p className="text-sm">{request.caracteristica || request.caracteristicaDesejada || '-'}</p>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
-                          <p className="text-sm">{request.cor || '-'}</p>
-                    </div>
-                        {request.complementos && (
-                          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">COMPLEMENTOS</p>
-                            <p className="text-sm whitespace-pre-wrap">{request.complementos}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-4 flex gap-2">
-                        <Button 
-                          size="sm" 
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => window.open(`https://wa.me/55${(request.phone || '').replace(/\D/g, '')}?text=Olá ${request.name || 'cliente'}, sobre sua solicitação de formulação customizada...`, '_blank')}
-                        >
-                          <Phone className="h-4 w-4 mr-2" />
-                          Contatar via WhatsApp
-                        </Button>
-                      </div>
-                    </Card>
-                  ))
-                )}
-              </div>
           )}
 
           {activeTab === 'knowledge' && (
