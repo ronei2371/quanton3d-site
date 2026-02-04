@@ -8,14 +8,21 @@ import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
 import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
 import { OrdersTab } from './admin/OrdersTab.jsx'
-// REMOVI A IMPORTAÇÃO EXTERNA DA GALERIA PARA EVITAR ERROS
+// REMOVI A IMPORTAÇÃO QUEBRADA DA GALERIA
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
+
 
 // --- NOVA GALERIA BLINDADA (Fica aqui dentro para não ter erro de arquivo) ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api'
   const ADMIN_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '')
+
+// --- NOVA GALERIA INTERNA BLINDADA (Sugestão do Grok aplicada) ---
+// Fica aqui dentro para garantir que o Token chegue e o erro de arquivo suma.
+function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange }) {
+  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+ main
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -28,42 +35,61 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
     
     try {
       console.log("Galeria: Buscando fotos...")
+
       // Tenta rota com /api (Padrão novo)
       let response = await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge`, {
+
+      
+      // Tenta a rota padrão (/api)
+      let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
+ main
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
 
-      // Se der 404, tenta fallback (caso a rota mude)
+      // Fallback para rota antiga se der 404
       if (response.status === 404) {
+
          response = await fetch(`${ADMIN_BASE_URL}/visual-knowledge`, {
+
+         console.warn("Rota /api falhou, tentando rota raiz...")
+         response = await fetch(`${API_BASE_URL}/visual-knowledge`, {
+ main
             headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
          })
       }
 
-      // Lê como TEXTO primeiro (Proteção do Grok contra HTML na resposta)
+      // --- PROTEÇÃO DO GROK (Lê Texto antes de JSON) ---
       const text = await response.text()
       
-      if (!response.ok) throw new Error(`Erro ${response.status}: ${text.substring(0, 50)}`)
+      // Se a resposta não for OK, lança erro com o conteúdo (pode ser HTML)
+      if (!response.ok) {
+        throw new Error(`Erro do servidor (${response.status}): ${text.substring(0, 100)}...`)
+      }
 
       let data
       try {
         data = JSON.parse(text)
       } catch (e) {
-        throw new Error("Servidor não retornou JSON válido.")
+        throw new Error("O servidor respondeu, mas não enviou dados válidos (HTML em vez de JSON).")
       }
       
-      // GARANTIA ANTI-TELA BRANCA: Se não for array, usa array vazio
+      // --- PROTEÇÃO CONTRA CRASH (Sempre garante array) ---
       const safeList = Array.isArray(data.documents) ? data.documents : []
       setPhotos(safeList)
+
+      // Atualiza o contador de pendentes na aba principal
+      if (onPendingCountChange) {
+         onPendingCountChange(safeList.filter(p => !p.approved).length)
+      }
 
     } catch (err) {
       console.error("Erro Galeria:", err)
       setError(err.message)
-      setPhotos([]) // Zera a lista para o site não quebrar
+      setPhotos([]) // Zera a lista para EVITAR TELA BRANCA
     } finally {
       setLoading(false)
     }
-  }, [isVisible, adminToken])
+  }, [isVisible, adminToken, onPendingCountChange])
 
   useEffect(() => { loadPhotos() }, [loadPhotos])
 
@@ -79,20 +105,22 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Aprovado', diagnosis: 'Ok', solution: 'Ok' }) : undefined
         })
-        toast.success("Sucesso!")
+        toast.success(action === 'delete' ? "Foto deletada!" : "Foto aprovada!")
         loadPhotos()
     } catch (e) {
-        toast.error("Erro na ação")
+        toast.error("Erro ao processar ação")
     } finally {
         setProcessingId(null)
     }
   }
 
+  // Renderização Segura (Sem chance de crash)
   if (error) {
     return (
       <div className="p-4 bg-red-50 text-red-700 rounded border border-red-200">
-        <p className="flex items-center gap-2"><AlertTriangle className="h-4 w-4"/> {error}</p>
-        <Button onClick={loadPhotos} variant="outline" size="sm" className="mt-2 bg-white">Tentar Novamente</Button>
+        <p className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4"/> Erro ao carregar galeria:</p>
+        <p className="text-sm mt-1 mb-2">{error}</p>
+        <Button onClick={loadPhotos} variant="outline" size="sm" className="bg-white">Tentar Novamente</Button>
       </div>
     )
   }
@@ -105,14 +133,19 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
       </div>
       
       {loading ? <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto"/></div> : 
-       photos.length === 0 ? <p className="text-center text-gray-500 py-10">Nenhuma foto.</p> : (
+       photos.length === 0 ? <p className="text-center text-gray-500 py-10">Nenhuma foto encontrada.</p> : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {photos.map(p => (
-            <Card key={p._id} className="p-3">
-              <img src={p.imageUrl} className="w-full h-40 object-cover rounded mb-2 bg-gray-100"/>
-              <p className="font-bold text-sm">{p.defectType || 'Sem tipo'}</p>
-              <div className="flex gap-2 mt-2">
-                {isAdmin && !p.approved && <Button size="sm" className="flex-1 bg-green-600" onClick={() => handleAction(p._id, 'approve')} disabled={processingId === p._id}><Check className="h-4 w-4"/></Button>}
+            <Card key={p._id} className="p-3 flex flex-col">
+              <div className="relative h-40 mb-2 bg-gray-100 rounded overflow-hidden">
+                <img src={p.imageUrl} className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'}/>
+                {!p.approved && <span className="absolute top-1 right-1 bg-yellow-400 text-xs font-bold px-2 py-1 rounded">Pendente</span>}
+              </div>
+              <p className="font-bold text-sm mb-1">{p.defectType || 'Sem defeito'}</p>
+              <p className="text-xs text-gray-500 mb-2 line-clamp-2">{p.diagnosis}</p>
+              
+              <div className="mt-auto flex gap-2">
+                {isAdmin && !p.approved && <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleAction(p._id, 'approve')} disabled={processingId === p._id}><Check className="h-4 w-4"/></Button>}
                 {isAdmin && <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleAction(p._id, 'delete')} disabled={processingId === p._id}><Trash2 className="h-4 w-4"/></Button>}
               </div>
             </Card>
@@ -123,8 +156,9 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
   )
 }
 
-// --- RESTO DO CÓDIGO ORIGINAL (MANTIDO) ---
+// --- FIM DA GALERIA INTERNA ---
 
+// Componente auxiliar para item visual (Mantido do original)
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
@@ -271,11 +305,23 @@ export function AdminPanel({ onClose }) {
 
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
+
     const isApiRoute = finalPath.startsWith('/api') || finalPath.startsWith('/auth')
     const isParamsRoute = finalPath.startsWith('/params') || finalPath.startsWith('/resins')
 
     if (!isApiRoute && !isParamsRoute && !finalPath.startsWith('/admin')) {
       finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
+
+    if (
+      !finalPath.startsWith('/api') &&
+      !finalPath.startsWith('/auth') &&
+      !finalPath.startsWith('/params') &&
+      !finalPath.startsWith('/resins')
+    ) {
+        if (!finalPath.startsWith('/admin')) {
+             finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
+        }
+ main
     }
 
     const baseUrl = isApiRoute ? API_BASE_URL : ADMIN_BASE_URL
@@ -621,8 +667,8 @@ export function AdminPanel({ onClose }) {
           
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
-          {/* ✅ USANDO A GALERIA INTERNA BLINDADA */}
-          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} />}
+          {/* ✅ AQUI A MÁGICA: USANDO A GALERIA INTERNA BLINDADA */}
+          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} onPendingCountChange={setGalleryPendingCount} />}
           
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           
