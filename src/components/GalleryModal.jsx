@@ -17,6 +17,8 @@ const normalizeImages = (images) => {
 
 
 
+
+
 const normalizeImages = (images) => {
   if (!Array.isArray(images)) return [];
   return images
@@ -24,6 +26,7 @@ const normalizeImages = (images) => {
     .filter((image) => image && image.url);
 };
  main
+
 
 export function GalleryModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' ou 'upload'
@@ -93,9 +96,14 @@ export function GalleryModal({ isOpen, onClose }) {
         setTotalPages(data.pagination?.pages ?? 1);
         setCurrentPage(data.pagination?.page ?? page);
 
+
+        setTotalPages(data.pagination?.pages ?? 1);
+        setCurrentPage(data.pagination?.page ?? page);
+
         setTotalPages(data.pagination.pages);
         setCurrentPage(data.pagination.page);
  main
+
       }
     } catch (err) {
       console.error('Erro ao carregar galeria:', err);

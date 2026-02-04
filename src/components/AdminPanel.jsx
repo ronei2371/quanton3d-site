@@ -37,6 +37,9 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
       console.log("Galeria: Buscando fotos...")
       // Tenta rota com /api (Padrão novo)
 
+      let response = await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge`, {
+
+
       let response = await fetchVisualKnowledge(`${ADMIN_BASE_URL}/api/visual-knowledge`)
 
       // Se der 404, tenta fallback (caso a rota mude)
@@ -47,6 +50,7 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
 
       let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
  main
+
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
       if (response.status === 404) {
@@ -85,9 +89,12 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
 
 
 
+
+
         await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
 
  main
+
             method,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
