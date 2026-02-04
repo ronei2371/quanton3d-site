@@ -1,127 +1,116 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Camera, Check, Edit3, Image, Loader2, Trash2, X, AlertTriangle } from 'lucide-react'
+import { Camera, RefreshCw, AlertTriangle, Loader2, Trash2, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, adminToken }) {
-  // URL FIXA PARA NÃO DEPENDER DE NINGUÉM
+export function GalleryTab({ isAdmin, isVisible, adminToken }) {
+  // URL FIXA E DIRETA
   const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+  
+  const [photos, setPhotos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const [galleryEntries, setGalleryEntries] = useState([])
-  const [galleryLoading, setGalleryLoading] = useState(false)
-  const [editingGalleryEntry, setEditingGalleryEntry] = useState(null)
-  const [editGalleryData, setEditGalleryData] = useState({})
-  const [savingGalleryEdit, setSavingGalleryEdit] = useState(false)
-  const [errorMsg, setErrorMsg] = useState(null)
-
-  const loadGalleryEntries = useCallback(async () => {
-    setGalleryLoading(true)
-    setErrorMsg(null)
+  // Função de carga ultra-segura
+  const loadPhotos = useCallback(async () => {
+    if (!isVisible) return
+    
+    setLoading(true)
+    setError(null)
+    
     try {
-      // Tenta buscar na rota certa
+      console.log("Tentando buscar fotos em:", `${API_BASE_URL}/api/visual-knowledge`)
+      
       const response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
 
-      // 🛡️ O SEGREDO DA PROTEÇÃO TOTAL:
-      // Lemos como TEXTO primeiro para ver o que veio
-      const textData = await response.text()
+      // Lê como texto primeiro para evitar quebra no JSON
+      const text = await response.text()
+      console.log("Resposta bruta do servidor:", text.substring(0, 100))
 
-      // Se o servidor devolveu HTML de erro (começa com <), a gente para aqui
-      if (textData.trim().startsWith('<')) {
-        console.error("Recebi HTML em vez de JSON:", textData)
-        setErrorMsg("O servidor devolveu um erro de rota (404/500). Verifique o backend.")
-        setGalleryEntries([])
-        return
+      if (!response.ok) {
+        throw new Error(`Erro do servidor: ${response.status} - ${text.substring(0, 50)}`)
       }
 
-      // Se não for HTML, tentamos converter para JSON
-      let data
-      try {
-        data = JSON.parse(textData)
-      } catch (e) {
-        console.error("Erro ao converter JSON:", e)
-        setErrorMsg("Erro ao ler dados do servidor.")
-        setGalleryEntries([])
-        return
-      }
-
-      // Se chegou aqui, temos dados!
-      const entries = Array.isArray(data.documents) ? data.documents : []
-      setGalleryEntries(entries)
+      // Tenta converter
+      const data = JSON.parse(text)
       
-      // Atualiza contador se tiver a função
-      if (typeof onPendingCountChange === 'function') {
-        onPendingCountChange(entries.filter((entry) => !entry.approved).length)
-      }
+      // Garante que seja um array
+      const safeList = Array.isArray(data.documents) ? data.documents : []
+      setPhotos(safeList)
 
-    } catch (error) {
-      console.error('Erro fatal na galeria:', error)
-      setErrorMsg("Erro de conexão com a Galeria.")
-      setGalleryEntries([]) // Garante lista vazia para não dar tela branca
+    } catch (err) {
+      console.error("Erro na galeria:", err)
+      setError(err.message)
+      setPhotos([]) // Zera a lista para não travar
     } finally {
-      setGalleryLoading(false)
+      setLoading(false)
     }
-  }, [adminToken, onPendingCountChange])
+  }, [isVisible, adminToken])
 
+  // Carrega ao abrir a aba
   useEffect(() => {
-    if (isVisible) {
-      loadGalleryEntries()
-    }
-  }, [isVisible, refreshKey, loadGalleryEntries])
+    loadPhotos()
+  }, [loadPhotos])
 
-  // ... (Funções de Aprovar/Deletar simplificadas para não ocupar espaço, mas funcionais) ...
-  // Vou colocar apenas a renderização segura abaixo
+  // Se der erro, mostra aviso (NÃO TELA BRANCA)
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 text-red-700 rounded-lg border border-red-200">
+        <h3 className="font-bold flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" /> Erro ao carregar galeria
+        </h3>
+        <p className="mt-2 text-sm">{error}</p>
+        <Button onClick={loadPhotos} variant="outline" className="mt-4 bg-white">
+          <RefreshCw className="h-4 w-4 mr-2" /> Tentar Novamente
+        </Button>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-4">
-      <Card className="p-6">
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Camera className="h-5 w-5" />
-          Galeria de Fotos (Treinamento Visual)
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Gerencie as fotos enviadas para o banco de conhecimento visual.
-        </p>
-      </Card>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Camera className="h-6 w-6 text-blue-600" />
+          Galeria de Treinamento Visual
+        </h2>
+        <Button onClick={loadPhotos} disabled={loading} size="sm">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? 'Carregando...' : 'Atualizar'}
+        </Button>
+      </div>
 
-      {/* AVISO DE ERRO AMIGÁVEL (Sem Tela Branca!) */}
-      {errorMsg && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" />
-          <span>{errorMsg}</span>
-          <Button size="sm" variant="outline" onClick={loadGalleryEntries} className="ml-auto bg-white">
-            Tentar Novamente
-          </Button>
+      {loading ? (
+        <div className="text-center py-10 text-gray-500">
+          <Loader2 className="h-8 w-8 mx-auto animate-spin mb-2" />
+          <p>Buscando fotos no servidor...</p>
         </div>
-      )}
-
-      {galleryLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        </div>
-      ) : galleryEntries.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Image className="h-16 w-16 mx-auto mb-4 opacity-30" />
-          <p className="text-gray-500">Nenhuma foto encontrada ou erro de carregamento.</p>
+      ) : photos.length === 0 ? (
+        <Card className="p-8 text-center bg-gray-50">
+          <p className="text-gray-500">Nenhuma foto encontrada no sistema.</p>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {galleryEntries.map((entry) => (
-            <Card key={entry._id || Math.random()} className="p-4">
-              <div className="flex gap-4">
-                <img
-                  src={entry.imageUrl}
-                  alt={entry.defectType || 'Imagem'}
-                  className="w-32 h-32 object-cover rounded-lg border flex-shrink-0"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {photos.map((item, index) => (
+            <Card key={item._id || index} className="p-4 overflow-hidden">
+              <div className="aspect-square bg-gray-100 rounded-lg mb-3 relative">
+                <img 
+                  src={item.imageUrl} 
+                  alt={item.defectType || 'Foto'} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {e.target.style.display = 'none'}} 
                 />
-                <div className="flex-1">
-                  <p className="font-bold">{entry.defectType || 'Defeito não classificado'}</p>
-                  <p className="text-sm text-gray-500 mb-2">Diagnóstico: {entry.diagnosis}</p>
-                  <p className="text-sm text-green-600">Solução: {entry.solution}</p>
-                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-bold">
+                  {item.defectType || 'Desconhecido'}
+                </span>
+                <p className="text-sm text-gray-600 line-clamp-2">
+                  {item.diagnosis || 'Sem diagnóstico'}
+                </p>
               </div>
             </Card>
           ))}
