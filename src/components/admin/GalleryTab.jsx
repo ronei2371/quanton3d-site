@@ -4,6 +4,17 @@ import { Button } from '@/components/ui/button.jsx'
 import { Camera, RefreshCw, AlertTriangle, Loader2, Trash2, Check, X, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 
+
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl, adminToken }) {
+
+
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl }) {
+main
+  const API_BASE_URL = useMemo(
+    () => (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, ''),
+    []
+  )
+
 export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange }) {
   // URL FIXA PARA NÃO DEPENDER DE NINGUÉM
   const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
@@ -25,6 +36,7 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
       const response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
+ main
 
       // Lê como texto primeiro (Proteção contra HTML/404)
       const text = await response.text()

@@ -288,6 +288,37 @@ export function AdminPanel({ onClose }) {
 
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
+
+
+    // 🔧 CORREÇÃO DE ROTA:
+    // Se o pedido começar com /params, manda para /api/admin/params
+   // 🔧 CORREÇÃO DE ROTA:
+    // Se o pedido começar com /params, manda para /api/admin/params
+    // 🔧 CORREÇÃO DE ROTA PARA BACKEND ANTIGO:
+    // Garante que todas as rotas comecem com /admin/ (SEM /api/)
+main
+    if (finalPath.startsWith('/params/')) {
+      finalPath = `/admin${finalPath}`  // /params/resins → /admin/params/resins
+    }
+
+    else if (finalPath.startsWith('/api/admin/')) {
+      finalPath = finalPath.replace('/api/admin/', '/admin/')  // Remove o /api/
+    }
+
+main
+    // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
+    else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
+      finalPath = `/api${finalPath}`
+    else if (!finalPath.startsWith('/admin/') && !finalPath.startsWith('/auth/')) {
+      finalPath = `/admin${finalPath}`  // Adiciona /admin/ no início
+main
+    }
+    // Se nao for /admin ou /api ou /auth, assume rota de admin
+    else if (!finalPath.startsWith('/api/') && !finalPath.startsWith('/admin/') && !finalPath.startsWith('/auth/')) {
+      finalPath = `/api/admin${finalPath}`
+    }
+
+
     if (
       !finalPath.startsWith('/api') &&
       !finalPath.startsWith('/auth') &&
@@ -298,6 +329,7 @@ export function AdminPanel({ onClose }) {
              finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
         }
     }
+ main
     const url = new URL(finalPath, `${API_BASE_URL}/`)
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -633,6 +665,172 @@ export function AdminPanel({ onClose }) {
           <Button onClick={() => {setActiveTab('custom'); loadCustomRequests();}} variant={activeTab === 'custom' ? 'default' : 'outline'} className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4"/> Formulações</Button>
         </div>
 
+
+        {/* Content */}
+        {activeTab === 'metrics' && (
+          <MetricsTab apiToken={adminAuthToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+        )}
+
+        {activeTab === 'knowledge' && (
+          <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />
+        )}
+
+        {activeTab === 'custom' && (
+          <div className="space-y-4">
+            {customRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Beaker className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">
+                  Nenhum pedido de formulação customizada ainda
+                </p>
+              </Card>
+            ) : (
+              customRequests.map((request, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                  <div>
+                    <p className="font-semibold">{request.name || request.fullName || request.nome || 'Cliente'}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {request.phone || request.telefone || 'Não informado'}
+                      </span>
+                      <span className="truncate">{request.email || 'Sem e-mail'}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">
+                      {new Date(request.createdAt || request.timestamp).toLocaleString('pt-BR')}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA</p>
+                      <p className="text-sm">{request.caracteristica || request.caracteristicaDesejada || '-'}</p>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
+                      <p className="text-sm">{request.cor || '-'}</p>
+                </div>
+                    {request.complementos && (
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">COMPLEMENTOS</p>
+                        <p className="text-sm whitespace-pre-wrap">{request.complementos}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => window.open(`https://wa.me/55${(request.phone || '').replace(/\D/g, '')}?text=Olá ${request.name || 'cliente'}, sobre sua solicitação de formulação customizada...`, '_blank')}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contatar via WhatsApp
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        <ContactsTab
+          buildAdminUrl={buildAdminUrl}
+          isVisible={activeTab === 'messages'}
+          onCountChange={setContactCount}
+          refreshKey={contactRefreshKey}
+          adminToken={adminAuthToken}
+        />
+
+        <SuggestionsTab
+          buildAdminUrl={buildAdminUrl}
+          isAdmin={isAdmin}
+          isVisible={activeTab === 'suggestions'}
+          onCountChange={setSuggestionsCount}
+          refreshKey={suggestionsRefreshKey}
+          adminToken={adminAuthToken}
+        />
+
+        <OrdersTab
+          buildAdminUrl={buildAdminUrl}
+          isAdmin={isAdmin}
+          isVisible={activeTab === 'orders'}
+          onCountChange={setOrdersPendingCount}
+          refreshKey={ordersRefreshKey}
+          adminToken={adminAuthToken}
+        />
+
+        {activeTab === 'gallery' && (
+          <GalleryTab
+            isAdmin={isAdmin}
+            isVisible={activeTab === 'gallery'}
+            refreshKey={galleryRefreshKey}
+            onPendingCountChange={setGalleryPendingCount}
+            buildUrl={buildAdminUrl}
+            adminToken={adminAuthToken}
+
+main
+
+          />
+        )}
+
+        {/* Visual RAG Tab - Treinamento Visual */}
+        {activeTab === 'visual' && (
+          <div className="space-y-4">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Treinamento Visual - Banco de Conhecimento Visual
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Adicione fotos de problemas com diagnostico e solucao. Quando um cliente enviar uma foto similar, o bot usara sua resposta treinada.
+              </p>
+
+              {/* Secao de fotos pendentes - enviadas automaticamente pelo bot */}
+              {pendingVisualLoading ? (
+                <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <p className="text-sm">Carregando fotos pendentes...</p>
+                </div>
+              ) : (
+                pendingVisualPhotos.length > 0 && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-6">
+                    <h4 className="font-semibold flex items-center gap-2 text-yellow-800 dark:text-yellow-200 mb-3">
+                      <AlertCircle className="h-5 w-5" />
+                      Fotos Pendentes para Treinamento ({pendingVisualPhotos.length})
+                    </h4>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                      Estas fotos foram enviadas por clientes e o bot nao conseguiu identificar o problema. Adicione o conhecimento para treinar o bot.
+                    </p>
+                    <div className="space-y-4">
+                      {pendingVisualPhotos.map((item) => (
+                        <PendingVisualItemForm 
+                          key={item._id} 
+                          item={item} 
+                          onApprove={approvePendingVisual}
+                          onDelete={deletePendingVisual}
+                          canDelete={isAdmin}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+
+              {/* Form para adicionar novo conhecimento visual */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Adicionar Novo Exemplo Visual
+                </h4>
+
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
           {activeTab === 'metrics' && <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />}
           
@@ -653,6 +851,7 @@ export function AdminPanel({ onClose }) {
             <div className="space-y-4">
               <Card className="p-6">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Eye className="h-5 w-5"/> Treinamento Visual</h3>
+ main
                 
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-4 mb-6">
                   <h4 className="font-semibold flex gap-2"><Upload className="h-4 w-4"/> Adicionar Novo</h4>
