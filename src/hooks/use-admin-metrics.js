@@ -27,7 +27,7 @@ main
     setError(null)
 
     try {
-      const metricsUrl = buildAdminUrl ? buildAdminUrl('/api/admin/metrics') : '/api/admin/metrics'
+      const metricsUrl = buildAdminUrl ? buildAdminUrl('/admin/metrics') : '/admin/metrics'
       const response = await fetch(metricsUrl, {
         headers: {
           Authorization: `Bearer ${resolvedToken}`,

@@ -6,7 +6,14 @@ import { X, Upload, Image, Camera, ChevronLeft, ChevronRight, Loader2 } from 'lu
 import { Button } from '@/components/ui/button.jsx';
 import { resinList, printerList } from '@/data/parametersData.js';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api';
+
+const normalizeImages = (images) => {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map((image) => (typeof image === 'string' ? { url: image } : image))
+    .filter((image) => image && image.url);
+};
 
 const normalizeImages = (images) => {
   if (!Array.isArray(images)) return [];
@@ -60,7 +67,7 @@ export function GalleryModal({ isOpen, onClose }) {
   const loadGallery = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      let url = `${API_URL}/api/gallery?page=${page}&limit=12`;
+      let url = `${API_URL}/gallery?page=${page}&limit=12`;
       if (filterResin) url += `&resin=${encodeURIComponent(filterResin)}`;
       if (filterPrinter) url += `&printer=${encodeURIComponent(filterPrinter)}`;
       
@@ -75,8 +82,13 @@ export function GalleryModal({ isOpen, onClose }) {
             }))
           : [];
         setEntries(safeEntries);
+
+        setTotalPages(data.pagination?.pages ?? 1);
+        setCurrentPage(data.pagination?.page ?? page);
+
         setTotalPages(data.pagination.pages);
         setCurrentPage(data.pagination.page);
+ main
       }
     } catch (err) {
       console.error('Erro ao carregar galeria:', err);
@@ -161,7 +173,7 @@ export function GalleryModal({ isOpen, onClose }) {
         formDataToSend.append('images', file);
       });
       
-      const response = await fetch(`${API_URL}/api/gallery`, {
+      const response = await fetch(`${API_URL}/gallery`, {
         method: 'POST',
         body: formDataToSend
       });
