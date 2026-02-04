@@ -4,8 +4,14 @@ import { toast } from 'sonner'
 
 export function useAdminMetrics(adminToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
 
+
 export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
  main
+
+
+export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
+main
+
   const [metrics, setMetrics] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -54,6 +60,9 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buil
 
   }, [adminToken, buildAdminUrl, enabled])
 
+
+
+ main
   }, [apiToken, buildAdminUrl, enabled])
  main
 

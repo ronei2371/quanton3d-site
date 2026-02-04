@@ -48,7 +48,8 @@ export function GalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChang
         }
         throw new Error(`Erro do servidor: ${response.status}`)
       }
-main
+
+ main
 
       // Tenta converter
       let data
@@ -188,6 +189,7 @@ main
         toast.error("Erro de conexão.")
     } finally {
         setProcessingId(null)
+
  main
     }
   }
