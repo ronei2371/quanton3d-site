@@ -33,7 +33,7 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setResinDetailsLoading(true)
     setResinDetails(null)
     try {
-      const response = await fetch(buildAdminUrl('/api/admin/metrics/resin-details', { resin: resinName }), {
+      const response = await fetch(buildAdminUrl('/admin/metrics/resin-details', { resin: resinName }), {
         headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : undefined
       })
       const data = await response.json()
@@ -57,7 +57,7 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setClientHistoryLoading(true)
     setClientHistory(null)
     try {
-      const response = await fetch(buildAdminUrl('/api/admin/metrics/client-history', { clientKey }), {
+      const response = await fetch(buildAdminUrl('/admin/metrics/client-history', { clientKey }), {
         headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : undefined
       })
       const data = await response.json()
@@ -81,7 +81,7 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setTopicLoading(true)
     setTopicConversations([])
     try {
-      const response = await fetch(buildAdminUrl('/api/admin/metrics/topic-details', { topic }), {
+      const response = await fetch(buildAdminUrl('/admin/metrics/topic-details', { topic }), {
         headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : undefined
       })
       const data = await response.json()
