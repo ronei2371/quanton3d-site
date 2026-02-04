@@ -5,8 +5,13 @@ import { Calendar, Eye, Loader2, MessageSquare, Phone, TrendingUp, User, Users, 
 import { toast } from 'sonner'
 import { useAdminMetrics } from '@/hooks/use-admin-metrics.js'
 
+
+export function MetricsTab({ adminToken, buildAdminUrl, refreshKey }) {
+  const { metrics, isLoading: metricsLoading, error: metricsError } = useAdminMetrics(adminToken, {
+
 export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
   const { metrics, isLoading: metricsLoading, error: metricsError } = useAdminMetrics(apiToken, {
+ main
     refreshKey,
     buildAdminUrl
   })
@@ -34,7 +39,11 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setResinDetails(null)
     try {
       const response = await fetch(buildAdminUrl('/api/admin/metrics/resin-details', { resin: resinName }), {
+
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+
         headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : undefined
+ main
       })
       const data = await response.json()
       if (data.success) {
@@ -58,7 +67,11 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setClientHistory(null)
     try {
       const response = await fetch(buildAdminUrl('/api/admin/metrics/client-history', { clientKey }), {
+
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+
         headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : undefined
+ main
       })
       const data = await response.json()
       if (data.success) {
@@ -82,7 +95,11 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setTopicConversations([])
     try {
       const response = await fetch(buildAdminUrl('/api/admin/metrics/topic-details', { topic }), {
+
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+
         headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : undefined
+ main
       })
       const data = await response.json()
       if (data.success) {

@@ -769,7 +769,11 @@ export function AdminPanel({ onClose }) {
 
         {/* Content */}
         {activeTab === 'metrics' && (
+
+          <MetricsTab adminToken={adminAuthToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+
           <MetricsTab apiToken={adminAuthToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+main
         )}
 
         {activeTab === 'knowledge' && (
@@ -874,7 +878,11 @@ export function AdminPanel({ onClose }) {
             isVisible={activeTab === 'gallery'}
             refreshKey={galleryRefreshKey}
             onPendingCountChange={setGalleryPendingCount}
+
+            buildAdminUrl={buildAdminUrl}
+
             buildUrl={buildAdminUrl}
+ main
             adminToken={adminAuthToken}
           />
         )}
