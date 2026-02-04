@@ -30,12 +30,17 @@ export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChang
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()
-      const entries = data.entries || []
+      
+      // PROTEÇÃO CONTRA TELA BRANCA: Garante que entries seja sempre um array
+      const entries = Array.isArray(data.entries) ? data.entries : []
       setGalleryEntries(entries)
+      
       onPendingCountChange?.(entries.filter((entry) => entry.status === 'pending').length)
     } catch (error) {
       console.error('Erro ao carregar galeria:', error)
       toast.error('Erro ao carregar galeria')
+      // Em caso de erro, define como array vazio para não quebrar a tela
+      setGalleryEntries([])
     } finally {
       setGalleryLoading(false)
     }
