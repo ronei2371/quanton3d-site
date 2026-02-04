@@ -6,6 +6,8 @@ import { Camera, Check, Edit3, Image, Loader2, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl, adminToken }) {
+export function GalleryTab({ isAdmin, isVisible, refreshKey, onPendingCountChange, buildUrl }) {
+main
   const API_BASE_URL = useMemo(
     () => (import.meta.env.VITE_API_URL || window.location.origin).replace(/\/$/, ''),
     []

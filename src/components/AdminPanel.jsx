@@ -163,14 +163,25 @@ export function AdminPanel({ onClose }) {
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
+
     // 🔧 CORREÇÃO DE ROTA:
     // Se o pedido começar com /params, manda para /api/admin/params
+    // 🔧 CORREÇÃO DE ROTA PARA BACKEND ANTIGO:
+    // Garante que todas as rotas comecem com /admin/ (SEM /api/)
+main
     if (finalPath.startsWith('/params/')) {
-      finalPath = `/api/admin${finalPath}`
+      finalPath = `/admin${finalPath}`  // /params/resins → /admin/params/resins
     }
+    else if (finalPath.startsWith('/api/admin/')) {
+      finalPath = finalPath.replace('/api/admin/', '/admin/')  // Remove o /api/
+    }
+
     // Se o pedido começar com /admin (e não tiver api), manda para /api/admin
     else if (finalPath.startsWith('/admin/') && !finalPath.startsWith('/api/')) {
       finalPath = `/api${finalPath}`
+    else if (!finalPath.startsWith('/admin/') && !finalPath.startsWith('/auth/')) {
+      finalPath = `/admin${finalPath}`  // Adiciona /admin/ no início
+main
     }
 
     const url = new URL(finalPath, `${API_BASE_URL}/`)
@@ -692,7 +703,7 @@ export function AdminPanel({ onClose }) {
           <Button 
             onClick={() => setActiveTab('suggestions')}
             variant={activeTab === 'suggestions' ? 'default' : 'outline'}
-            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
+            className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to purple-600' : ''}
           >
             <MessageSquare className="h-4 w-4 mr-2" />
             Sugestões ({suggestionsCount})
@@ -872,6 +883,7 @@ export function AdminPanel({ onClose }) {
             onPendingCountChange={setGalleryPendingCount}
             buildUrl={buildAdminUrl}
             adminToken={adminAuthToken}
+main
           />
         )}
 
