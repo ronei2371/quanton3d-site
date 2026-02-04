@@ -21,6 +21,13 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
   const [error, setError] = useState(null)
   const [processingId, setProcessingId] = useState(null)
 
+  const fetchVisualKnowledge = async (url) => {
+    const response = await fetch(url, {
+      headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+    })
+    return response
+  }
+
   const loadPhotos = useCallback(async () => {
     if (!isVisible) return
     setLoading(true)
@@ -29,6 +36,13 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
 
       console.log("Galeria: Buscando fotos...")
       // Tenta rota com /api (Padrão novo)
+
+      let response = await fetchVisualKnowledge(`${ADMIN_BASE_URL}/api/visual-knowledge`)
+
+      // Se der 404, tenta fallback (caso a rota mude)
+      if (response.status === 404) {
+         response = await fetchVisualKnowledge(`${ADMIN_BASE_URL}/visual-knowledge`)
+
       let response = await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge`, {
 
       let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
@@ -39,6 +53,7 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
          response = await fetch(`${ADMIN_BASE_URL}/visual-knowledge`, {
             headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
          })
+ main
       }
       const text = await response.text()
       if (!response.ok) throw new Error(`Erro: ${response.status}`)
@@ -68,7 +83,10 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
         
         await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
 
+
+
         await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
+
  main
             method,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },

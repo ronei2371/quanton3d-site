@@ -15,12 +15,15 @@ const normalizeImages = (images) => {
     .filter((image) => image && image.url);
 };
 
+
+
 const normalizeImages = (images) => {
   if (!Array.isArray(images)) return [];
   return images
     .map((image) => (typeof image === 'string' ? { url: image } : image))
     .filter((image) => image && image.url);
 };
+ main
 
 export function GalleryModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' ou 'upload'
@@ -82,6 +85,10 @@ export function GalleryModal({ isOpen, onClose }) {
             }))
           : [];
         setEntries(safeEntries);
+
+        setTotalPages(data.pagination?.pages ?? 1);
+        setCurrentPage(data.pagination?.page ?? page);
+
 
         setTotalPages(data.pagination?.pages ?? 1);
         setCurrentPage(data.pagination?.page ?? page);
