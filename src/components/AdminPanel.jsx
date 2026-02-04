@@ -14,7 +14,8 @@ import { ContactsTab } from './admin/ContactsTab.jsx'
 
 // --- NOVA GALERIA BLINDADA (Fica aqui dentro para não ter erro de arquivo) ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
-  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api'
+  const ADMIN_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '')
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -28,13 +29,13 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
     try {
       console.log("Galeria: Buscando fotos...")
       // Tenta rota com /api (Padrão novo)
-      let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
+      let response = await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge`, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
 
       // Se der 404, tenta fallback (caso a rota mude)
       if (response.status === 404) {
-         response = await fetch(`${API_BASE_URL}/visual-knowledge`, {
+         response = await fetch(`${ADMIN_BASE_URL}/visual-knowledge`, {
             headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
          })
       }
@@ -73,7 +74,7 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken }) {
         const endpoint = action === 'delete' ? '' : '/approve'
         const method = action === 'delete' ? 'DELETE' : 'PUT'
         
-        await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
+        await fetch(`${ADMIN_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
             method,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Aprovado', diagnosis: 'Ok', solution: 'Ok' }) : undefined
@@ -261,7 +262,8 @@ export function AdminPanel({ onClose }) {
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
   
-  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api'
+  const ADMIN_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '')
   const ADMIN_PASSWORD = 'Rmartins1201'
   const TEAM_SECRET = 'suporte_quanton_2025'
   
@@ -269,12 +271,14 @@ export function AdminPanel({ onClose }) {
 
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
-    if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
-        if (!finalPath.startsWith('/admin')) {
-             finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
-        }
+    const isApiRoute = finalPath.startsWith('/api') || finalPath.startsWith('/auth')
+    const isParamsRoute = finalPath.startsWith('/params') || finalPath.startsWith('/resins')
+
+    if (!isApiRoute && !isParamsRoute && !finalPath.startsWith('/admin')) {
+      finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
     }
-    const url = new URL(finalPath, `${API_BASE_URL}/`)
+
+    const url = new URL(finalPath, `${ADMIN_BASE_URL}/`)
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         url.searchParams.set(key, value)
