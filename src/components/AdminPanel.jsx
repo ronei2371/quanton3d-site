@@ -288,7 +288,12 @@ export function AdminPanel({ onClose }) {
 
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
-    if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
+    if (
+      !finalPath.startsWith('/api') &&
+      !finalPath.startsWith('/auth') &&
+      !finalPath.startsWith('/params') &&
+      !finalPath.startsWith('/resins')
+    ) {
         if (!finalPath.startsWith('/admin')) {
              finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
         }
