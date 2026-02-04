@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {}) {
+export function useAdminMetrics(adminToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
   const [metrics, setMetrics] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -9,7 +9,9 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {
   const fetchMetrics = useCallback(async () => {
     if (!enabled) return
 
-    if (!apiToken) {
+    const resolvedToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
+
+    if (!resolvedToken) {
       const message = 'Token de autenticação do admin não foi informado.'
       setError(new Error(message))
       setMetrics(null)
@@ -21,9 +23,10 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {
     setError(null)
 
     try {
-      const response = await fetch('/api/admin/metrics', {
+      const metricsUrl = buildAdminUrl ? buildAdminUrl('/api/admin/metrics') : '/api/admin/metrics'
+      const response = await fetch(metricsUrl, {
         headers: {
-          Authorization: `Bearer ${apiToken}`,
+          Authorization: `Bearer ${resolvedToken}`,
         },
       })
 
@@ -44,7 +47,7 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {
     } finally {
       setIsLoading(false)
     }
-  }, [apiToken, enabled])
+  }, [adminToken, buildAdminUrl, enabled])
 
   useEffect(() => {
     fetchMetrics()

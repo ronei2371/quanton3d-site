@@ -5,8 +5,11 @@ import { Calendar, Eye, Loader2, MessageSquare, Phone, TrendingUp, User, Users, 
 import { toast } from 'sonner'
 import { useAdminMetrics } from '@/hooks/use-admin-metrics.js'
 
-export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
-  const { metrics, isLoading: metricsLoading, error: metricsError } = useAdminMetrics(apiToken, { refreshKey })
+export function MetricsTab({ adminToken, buildAdminUrl, refreshKey }) {
+  const { metrics, isLoading: metricsLoading, error: metricsError } = useAdminMetrics(adminToken, {
+    refreshKey,
+    buildAdminUrl
+  })
   const [conversationDateFilter, setConversationDateFilter] = useState('all')
   const [showAllClients, setShowAllClients] = useState(false)
   const [clientsDateFilter, setClientsDateFilter] = useState('all')
@@ -30,7 +33,9 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setResinDetailsLoading(true)
     setResinDetails(null)
     try {
-      const response = await fetch(buildAdminUrl('/metrics/resin-details', { resin: resinName }))
+      const response = await fetch(buildAdminUrl('/api/admin/metrics/resin-details', { resin: resinName }), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       if (data.success) {
         setResinDetails(data)
@@ -52,7 +57,9 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setClientHistoryLoading(true)
     setClientHistory(null)
     try {
-      const response = await fetch(buildAdminUrl('/metrics/client-history', { clientKey }))
+      const response = await fetch(buildAdminUrl('/api/admin/metrics/client-history', { clientKey }), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       if (data.success) {
         setClientHistory(data)
@@ -74,7 +81,9 @@ export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
     setTopicLoading(true)
     setTopicConversations([])
     try {
-      const response = await fetch(buildAdminUrl('/metrics/topic-details', { topic }))
+      const response = await fetch(buildAdminUrl('/api/admin/metrics/topic-details', { topic }), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      })
       const data = await response.json()
       if (data.success) {
         setTopicConversations(data.conversations || [])
