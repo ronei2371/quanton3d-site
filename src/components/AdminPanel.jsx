@@ -109,7 +109,7 @@ export function AdminPanel({ onClose }) {
   // Garante que o token exista mesmo que venha do env (fallback)
   const safeAdminToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
 
-  // Função auxiliar para cabeçalhos com token
+  // Função auxiliar para cabeçalhos com token - USADA EM TUDO
   const buildAuthHeaders = useCallback((headers = {}) => {
     if (!safeAdminToken) return headers
     return { ...headers, Authorization: `Bearer ${safeAdminToken}` }
@@ -160,14 +160,16 @@ export function AdminPanel({ onClose }) {
   const buildAdminUrl = useCallback((path, params = {}) => {
     let finalPath = path
 
-    // 🔧 LÓGICA DE ROTAS HÍBRIDA (Compatível com server.js atual)
-    // Se não começar com /api nem /auth, assume que é rota administrativa antiga
+    // 🔧 LÓGICA DE ROTAS SIMPLIFICADA PARA EVITAR DUPLICAÇÃO
+    // Se não começar com /api nem /auth, assume que é rota administrativa
     if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
-        // Se começar com /admin, deixa como está (o server.js trata)
-        // Se NÃO começar com /admin (ex: /params/resins), adiciona /admin
+        // Se começar com /admin, deixa como está. Se não, adiciona /admin na frente.
         if (!finalPath.startsWith('/admin')) {
              finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
         }
+        // IMPORTANTE: Alguns backends esperam /api/admin para tudo. Vamos testar isso.
+        // Se der 404 de novo, descomente a linha abaixo:
+        // finalPath = `/api${finalPath}` 
     }
 
     const url = new URL(finalPath, `${API_BASE_URL}/`)
@@ -197,7 +199,6 @@ export function AdminPanel({ onClose }) {
         toast.success('Login conectado ao servidor!')
         
         // Dispara atualização forçando o uso do token recém-obtido
-        // Isso garante que a primeira carga tenha o token, mesmo antes do state atualizar
         await refreshAllData(data.token) 
         return
       }
@@ -227,7 +228,7 @@ export function AdminPanel({ onClose }) {
     setLoading(true)
     
     // Header helper interno para garantir o uso do token correto NESTA execução
-    const getHeaders = () => tokenToUse ? { Authorization: `Bearer ${tokenToUse}` } : {}
+    const currentHeaders = tokenToUse ? { Authorization: `Bearer ${tokenToUse}` } : {}
 
     try {
       setMetricsRefreshKey((key) => key + 1)
@@ -237,6 +238,7 @@ export function AdminPanel({ onClose }) {
       setContactRefreshKey((key) => key + 1)
       
       // Carrega tudo em paralelo usando o token correto
+      // Passando tokenToUse explicitamente para as funções de carga
       await Promise.all([
         loadCustomRequests(tokenToUse),
         loadVisualKnowledge(tokenToUse),
@@ -261,13 +263,24 @@ export function AdminPanel({ onClose }) {
   const loadCustomRequests = async (tokenToUse) => {
     try {
       const token = tokenToUse || safeAdminToken
-      const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
+      // Tenta rota /api/admin/formulations primeiro (padrão novo)
+      const response = await fetch(`${API_BASE_URL}/api/admin/formulations`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
+      if (!response.ok) throw new Error('Falha na rota /api')
       const data = await response.json()
       setCustomRequests(data.formulations || data.requests || [])
     } catch (error) {
-      console.error('Erro ao carregar pedidos customizados:', error)
+       // Fallback para rota antiga se a nova falhar
+       try {
+         const response = await fetch(buildAdminUrl('/formulations'), {
+            headers: tokenToUse ? { Authorization: `Bearer ${tokenToUse}` } : undefined
+         })
+         const data = await response.json()
+         setCustomRequests(data.formulations || [])
+       } catch (e) {
+         console.error('Erro ao carregar pedidos customizados (fallback):', e)
+       }
     }
   }
 
@@ -275,7 +288,7 @@ export function AdminPanel({ onClose }) {
     setVisualLoading(true)
     try {
       const token = tokenToUse || safeAdminToken
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
       const data = await response.json()
@@ -291,7 +304,7 @@ export function AdminPanel({ onClose }) {
     setPendingVisualLoading(true)
     try {
       const token = tokenToUse || safeAdminToken
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge/pending`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       })
       const data = await response.json()
@@ -309,7 +322,7 @@ export function AdminPanel({ onClose }) {
       return false
     }
     try {
-      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}/approve`, {
         method: 'PUT',
         headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ defectType, diagnosis, solution })
@@ -338,7 +351,7 @@ export function AdminPanel({ onClose }) {
     }
     if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
     try {
-      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}`, {
         method: 'DELETE',
         headers: buildAuthHeaders()
       })
@@ -368,7 +381,7 @@ export function AdminPanel({ onClose }) {
       formData.append('diagnosis', visualDiagnosis)
       formData.append('solution', visualSolution)
 
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
         method: 'POST',
         headers: buildAuthHeaders(),
         body: formData
@@ -402,7 +415,7 @@ export function AdminPanel({ onClose }) {
     if (!confirm('Tem certeza que deseja deletar este conhecimento visual?')) return
 
     try {
-      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+      const response = await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}`, {
         method: 'DELETE',
         headers: buildAuthHeaders()
       })
@@ -422,25 +435,53 @@ export function AdminPanel({ onClose }) {
     setParamsLoading(true)
     const headers = tokenToUse ? { Authorization: `Bearer ${tokenToUse}` } : buildAuthHeaders()
     
+    // TENTATIVA 1: Rotas /api/admin/... (Novo padrão)
     try {
       const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-        fetch(buildAdminUrl('/params/resins'), { headers }),
-        fetch(buildAdminUrl('/params/printers'), { headers }),
-        fetch(buildAdminUrl('/params/profiles'), { headers }),
-        fetch(buildAdminUrl('/params/stats'), { headers })
+        fetch(`${API_BASE_URL}/api/admin/params/resins`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/params/printers`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/params/profiles`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/params/stats`, { headers })
       ])
-      const [resinsData, printersData, profilesData, statsData] = await Promise.all([
-        resinsRes.json(),
-        printersRes.json(),
-        profilesRes.json(),
-        statsRes.json()
-      ])
-      if (resinsData.success) setParamsResins(resinsData.resins || [])
-      if (printersData.success) setParamsPrinters(printersData.printers || [])
-      if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
-      if (statsData.success) setParamsStats(statsData.stats || null)
+      
+      // Se der certo, processa
+      if (resinsRes.ok) {
+          const [resinsData, printersData, profilesData, statsData] = await Promise.all([
+            resinsRes.json(),
+            printersRes.json(),
+            profilesRes.json(),
+            statsRes.json()
+          ])
+          if (resinsData.success) setParamsResins(resinsData.resins || [])
+          if (printersData.success) setParamsPrinters(printersData.printers || [])
+          if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
+          if (statsData.success) setParamsStats(statsData.stats || null)
+          return;
+      }
+    } catch (e) {
+        console.warn("Falha na rota /api/admin, tentando fallback...", e)
+    }
+
+    // TENTATIVA 2 (Fallback): Rotas /admin/... (Padrão antigo)
+    try {
+        const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/admin/params/resins`, { headers }),
+            fetch(`${API_BASE_URL}/admin/params/printers`, { headers }),
+            fetch(`${API_BASE_URL}/admin/params/profiles`, { headers }),
+            fetch(`${API_BASE_URL}/admin/params/stats`, { headers })
+        ])
+        const [resinsData, printersData, profilesData, statsData] = await Promise.all([
+            resinsRes.json(),
+            printersRes.json(),
+            profilesRes.json(),
+            statsRes.json()
+        ])
+        if (resinsData.success) setParamsResins(resinsData.resins || [])
+        if (printersData.success) setParamsPrinters(printersData.printers || [])
+        if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
+        if (statsData.success) setParamsStats(statsData.stats || null)
     } catch (error) {
-      console.error('Erro ao carregar parametros:', error)
+      console.error('Erro fatal ao carregar parametros:', error)
     } finally {
       setParamsLoading(false)
     }
