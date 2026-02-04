@@ -5,10 +5,15 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
 
+const dbModule = await import('./db.js')
+const db = dbModule.default ?? dbModule
+
+
 // --- CORREÇÃO DO CODEX ---
 const dbModule = await import('./db.js')
 const db = dbModule.default ?? dbModule
 // -------------------------
+main
 
 dotenv.config()
 
@@ -26,7 +31,10 @@ const VISUAL_SYSTEM_PROMPT = systemPrompt
 const app = express()
 const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI || ''
+
+
 const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || ''
+ main
 const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || []
 
 app.use(
@@ -48,6 +56,8 @@ app.use(
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
+
+=======
 const requireAdmin = (req, res, next) => {
   if (!ADMIN_API_TOKEN) {
     return next()
@@ -63,6 +73,7 @@ const requireAdmin = (req, res, next) => {
   return next()
 }
 
+ main
 if (MONGODB_URI && typeof db.connectToMongo === 'function') {
   db.connectToMongo(MONGODB_URI)
     .then(() => {

@@ -48,7 +48,10 @@ export default {
   getSuggestionsCollection,
   getMetricasCollection,
   getParametrosCollection,
+
+
   getContactsCollection,
   getCustomRequestsCollection,
+ main
   Conversas,
 }
