@@ -11,6 +11,7 @@ export function MetricsTab({ adminToken, buildAdminUrl, refreshKey }) {
 
 export function MetricsTab({ apiToken, buildAdminUrl, refreshKey }) {
   const { metrics, isLoading: metricsLoading, error: metricsError } = useAdminMetrics(apiToken, {
+
  main
     refreshKey,
     buildAdminUrl

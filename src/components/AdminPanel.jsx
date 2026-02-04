@@ -773,7 +773,8 @@ export function AdminPanel({ onClose }) {
           <MetricsTab adminToken={adminAuthToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
 
           <MetricsTab apiToken={adminAuthToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
-main
+
+ main
         )}
 
         {activeTab === 'knowledge' && (
