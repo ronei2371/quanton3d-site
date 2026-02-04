@@ -6,7 +6,15 @@ import { X, Upload, Image, Camera, ChevronLeft, ChevronRight, Loader2 } from 'lu
 import { Button } from '@/components/ui/button.jsx';
 import { resinList, printerList } from '@/data/parametersData.js';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api';
+const PUBLIC_API_BASE = API_URL.replace(/\/api\/?$/, '');
+
+const normalizeImages = (images) => {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map((image) => (typeof image === 'string' ? { url: image } : image))
+    .filter((image) => image && image.url);
+};
 
 export function GalleryModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' ou 'upload'
@@ -53,7 +61,7 @@ export function GalleryModal({ isOpen, onClose }) {
   const loadGallery = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      let url = `${API_URL}/api/gallery?page=${page}&limit=12`;
+      let url = `${PUBLIC_API_BASE}/gallery?page=${page}&limit=12`;
       if (filterResin) url += `&resin=${encodeURIComponent(filterResin)}`;
       if (filterPrinter) url += `&printer=${encodeURIComponent(filterPrinter)}`;
       
@@ -61,9 +69,15 @@ export function GalleryModal({ isOpen, onClose }) {
       const data = await response.json();
       
       if (data.success) {
-        setEntries(data.entries);
-        setTotalPages(data.pagination.pages);
-        setCurrentPage(data.pagination.page);
+        const safeEntries = Array.isArray(data.entries)
+          ? data.entries.map((entry) => ({
+              ...entry,
+              images: normalizeImages(entry.images),
+            }))
+          : [];
+        setEntries(safeEntries);
+        setTotalPages(data.pagination?.pages ?? 1);
+        setCurrentPage(data.pagination?.page ?? page);
       }
     } catch (err) {
       console.error('Erro ao carregar galeria:', err);
@@ -148,7 +162,7 @@ export function GalleryModal({ isOpen, onClose }) {
         formDataToSend.append('images', file);
       });
       
-      const response = await fetch(`${API_URL}/api/gallery`, {
+      const response = await fetch(`${PUBLIC_API_BASE}/gallery`, {
         method: 'POST',
         body: formDataToSend
       });
@@ -273,30 +287,41 @@ export function GalleryModal({ isOpen, onClose }) {
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {entries.map((entry) => (
-                      <div
-                        key={entry._id}
-                        onClick={() => setSelectedEntry(entry)}
-                        className="group cursor-pointer rounded-xl overflow-hidden border hover:shadow-lg transition-all"
-                      >
-                        <div className="aspect-square relative">
-                          <img
-                            src={entry.images[0]?.url}
-                            alt={`${entry.resin} - ${entry.printer}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                          {entry.images.length > 1 && (
-                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-                              +{entry.images.length - 1}
-                            </div>
-                          )}
+                    {entries.map((entry) => {
+                      const entryImages = entry.images || [];
+                      const primaryImage = entryImages[0]?.url;
+
+                      return (
+                        <div
+                          key={entry._id}
+                          onClick={() => setSelectedEntry(entry)}
+                          className="group cursor-pointer rounded-xl overflow-hidden border hover:shadow-lg transition-all"
+                        >
+                          <div className="aspect-square relative bg-gray-100 dark:bg-gray-800">
+                            {primaryImage ? (
+                              <img
+                                src={primaryImage}
+                                alt={`${entry.resin} - ${entry.printer}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                                Sem imagem
+                              </div>
+                            )}
+                            {entryImages.length > 1 && (
+                              <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                                +{entryImages.length - 1}
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3 bg-white dark:bg-gray-800">
+                            <p className="font-medium text-sm truncate">{entry.resin}</p>
+                            <p className="text-xs text-gray-500 truncate">{entry.printer}</p>
+                          </div>
                         </div>
-                        <div className="p-3 bg-white dark:bg-gray-800">
-                          <p className="font-medium text-sm truncate">{entry.resin}</p>
-                          <p className="text-xs text-gray-500 truncate">{entry.printer}</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Pagination */}
@@ -657,7 +682,11 @@ export function GalleryModal({ isOpen, onClose }) {
               <div className="grid md:grid-cols-2">
                 {/* Images */}
                 <div className="bg-gray-100 dark:bg-gray-800">
-                  {selectedEntry.images.length === 1 ? (
+                  {selectedEntry.images.length === 0 ? (
+                    <div className="flex h-full min-h-[40vh] items-center justify-center text-sm text-gray-400">
+                      Nenhuma imagem disponivel
+                    </div>
+                  ) : selectedEntry.images.length === 1 ? (
                     <img
                       src={selectedEntry.images[0].url}
                       alt="Impressao"
