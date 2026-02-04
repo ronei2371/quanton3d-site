@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {}) {
+export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
   const [metrics, setMetrics] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -21,7 +21,8 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {
     setError(null)
 
     try {
-      const response = await fetch('/api/admin/metrics', {
+      const metricsUrl = buildAdminUrl ? buildAdminUrl('/api/admin/metrics') : '/api/admin/metrics'
+      const response = await fetch(metricsUrl, {
         headers: {
           Authorization: `Bearer ${apiToken}`,
         },
@@ -44,7 +45,7 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true } = {
     } finally {
       setIsLoading(false)
     }
-  }, [apiToken, enabled])
+  }, [apiToken, buildAdminUrl, enabled])
 
   useEffect(() => {
     fetchMetrics()
