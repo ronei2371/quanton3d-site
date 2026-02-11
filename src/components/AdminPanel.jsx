@@ -8,12 +8,11 @@ import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
 import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
 import { OrdersTab } from './admin/OrdersTab.jsx'
-// IMPORTANTE: Removemos a importação externa para evitar erros de versão
+// import { GalleryTab } from './admin/GalleryTab.jsx' // REMOVIDO PARA EVITAR ERRO
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
 
-// --- GALERIA INTERNA BLINDADA (A Correção Definitiva) ---
-// Trazemos o código para dentro para garantir que o Token funcione e erros de HTML não quebrem o site.
+// --- GALERIA INTERNA BLINDADA (A Correção) ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange }) {
   const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
   const [photos, setPhotos] = useState([])
@@ -25,45 +24,26 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     if (!isVisible) return
     setLoading(true)
     setError(null)
-    
     try {
-      // 1. Tenta a rota correta da API
       let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
-
-      // 2. Se der erro 404 (rota não encontrada), tenta o fallback
       if (response.status === 404) {
          response = await fetch(`${API_BASE_URL}/visual-knowledge`, {
             headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
          })
       }
-
-      // 3. Lê como TEXTO primeiro (Proteção contra tela branca se vier HTML de erro)
       const text = await response.text()
-      
-      if (!response.ok) throw new Error(`Erro do servidor (${response.status})`)
-
+      if (!response.ok) throw new Error(`Erro: ${response.status}`)
       let data
-      try {
-        data = JSON.parse(text)
-      } catch (e) {
-        // Se falhar o JSON, é porque veio HTML ou lixo. Tratamos sem quebrar.
-        throw new Error("Dados inválidos recebidos do servidor.")
-      }
-      
-      // 4. Garante que seja uma lista, mesmo que vazia
+      try { data = JSON.parse(text) } catch { throw new Error("Erro JSON") }
       const safeList = Array.isArray(data.documents) ? data.documents : []
       setPhotos(safeList)
-
-      if (onPendingCountChange) {
-        onPendingCountChange(safeList.filter(p => !p.approved).length)
-      }
-
+      if (onPendingCountChange) onPendingCountChange(safeList.filter(p => !p.approved).length)
     } catch (err) {
-      console.error("Erro Galeria:", err)
-      setError(err.message)
-      setPhotos([]) // Zera a lista para não travar o .map
+      console.error(err)
+      setError("Erro ao carregar.")
+      setPhotos([])
     } finally {
       setLoading(false)
     }
@@ -77,50 +57,32 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     try {
         const endpoint = action === 'delete' ? '' : '/approve'
         const method = action === 'delete' ? 'DELETE' : 'PUT'
-        
         await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
             method,
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-            body: action === 'approve' ? JSON.stringify({ defectType: 'Aprovado', diagnosis: 'Ok', solution: 'Ok' }) : undefined
+            body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
         })
         toast.success("Sucesso!")
         loadPhotos()
-    } catch (e) {
-        toast.error("Erro na ação")
-    } finally {
-        setProcessingId(null)
-    }
+    } catch { toast.error("Erro") } finally { setProcessingId(null) }
   }
 
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 text-red-700 rounded border border-red-200">
-        <p className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4"/> Atenção</p>
-        <p className="text-sm my-1">{error}</p>
-        <Button onClick={loadPhotos} variant="outline" size="sm" className="mt-2 bg-white text-red-700 border-red-200">Tentar Novamente</Button>
-      </div>
-    )
-  }
+  if (error) return <div className="p-4 bg-red-50 text-red-700 rounded"><p>{error}</p><Button onClick={loadPhotos} size="sm" variant="outline" className="mt-2 bg-white">Tentar Novamente</Button></div>
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-bold flex gap-2"><Camera className="h-5 w-5"/> Galeria ({photos.length})</h3>
-        <Button onClick={loadPhotos} size="sm" disabled={loading}>{loading ? <Loader2 className="animate-spin h-4 w-4"/> : <RefreshCw className="h-4 w-4"/>}</Button>
+        <h3 className="font-bold flex gap-2"><Camera className="h-5 w-5"/> Galeria</h3>
+        <Button onClick={loadPhotos} size="sm" disabled={loading}><RefreshCw className="h-4 w-4"/></Button>
       </div>
-      
       {loading ? <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto"/></div> : 
-       photos.length === 0 ? <p className="text-center text-gray-500 py-10">Nenhuma foto encontrada.</p> : (
+       photos.length === 0 ? <p className="text-center text-gray-500 py-10">Vazio.</p> : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {photos.map(p => (
             <Card key={p._id} className="p-3">
-              <div className="aspect-square bg-gray-100 rounded mb-2 overflow-hidden relative">
-                 <img src={p.imageUrl} className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'}/>
-                 {!p.approved && <span className="absolute top-1 right-1 bg-yellow-400 text-xs px-2 py-1 rounded font-bold">Pendente</span>}
-              </div>
-              <p className="font-bold text-sm truncate">{p.defectType || 'Sem defeito'}</p>
+              <img src={p.imageUrl} className="w-full h-40 object-cover rounded mb-2 bg-gray-100"/>
               <div className="flex gap-2 mt-2">
-                {isAdmin && !p.approved && <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => handleAction(p._id, 'approve')} disabled={processingId === p._id}><Check className="h-4 w-4"/></Button>}
+                {isAdmin && !p.approved && <Button size="sm" className="flex-1 bg-green-600" onClick={() => handleAction(p._id, 'approve')} disabled={processingId === p._id}><Check className="h-4 w-4"/></Button>}
                 {isAdmin && <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleAction(p._id, 'delete')} disabled={processingId === p._id}><Trash2 className="h-4 w-4"/></Button>}
               </div>
             </Card>
@@ -130,8 +92,6 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     </div>
   )
 }
-
-// --- FIM DA GALERIA INTERNA ---
 
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
@@ -625,7 +585,7 @@ export function AdminPanel({ onClose }) {
           
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
-          {/* ✅ AQUI ESTÁ A GALERIA BLINDADA (INTERNA) */}
+          {/* ✅ GALERIA INTERNA BLINDADA */}
           {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} onPendingCountChange={setGalleryPendingCount} />}
           
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
@@ -634,6 +594,7 @@ export function AdminPanel({ onClose }) {
           
           {activeTab === 'partners' && <PartnersManager isAdmin={isAdmin} />}
 
+          {/* VISUAL (MANTIDO) */}
           {activeTab === 'visual' && (
             <div className="space-y-4">
               <Card className="p-6">
@@ -683,6 +644,7 @@ export function AdminPanel({ onClose }) {
             </div>
           )}
 
+          {/* PARAMS (MANTIDO) */}
           {activeTab === 'params' && (
             <div className="space-y-6">
               {paramsStats && (
