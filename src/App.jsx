@@ -26,6 +26,9 @@ import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera } from 'lucide-reac
 import { motion } from 'framer-motion'
 import './App.css'
 
+const RAW_API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api')
+const PUBLIC_API_BASE = RAW_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '')
+
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -38,6 +41,9 @@ function App() {
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
     const [isContactModalOpen, setIsContactModalOpen] = useState(false)
     const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false)
+    const [galleryImages, setGalleryImages] = useState([])
+    const [galleryLoading, setGalleryLoading] = useState(false)
+    const [galleryError, setGalleryError] = useState(null)
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -56,6 +62,42 @@ function App() {
 
   const handleOpenContact = () => {
     setIsContactModalOpen(true);
+  }
+
+  const fetchGalleryImages = async () => {
+    if (galleryLoading) return
+    setGalleryLoading(true)
+    setGalleryError(null)
+    try {
+      const response = await fetch(`${PUBLIC_API_BASE}/visual-knowledge?limit=50`)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      const data = await response.json()
+      const normalized = Array.isArray(data.items) ? data.items : []
+      const formatted = normalized
+        .map(item => ({
+          url: item.imageUrl || item.image || '',
+          desc: item.title || item.description || ''
+        }))
+        .filter(item => item.url)
+      setGalleryImages(formatted)
+      if (!formatted.length) {
+        setGalleryError('Nenhuma foto enviada ainda. Seja o primeiro a compartilhar!')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar galeria pública:', error)
+      setGalleryError('Não foi possível carregar as fotos agora.')
+    } finally {
+      setGalleryLoading(false)
+    }
+  }
+
+  const handleOpenGallery = () => {
+    if (!galleryImages.length && !galleryLoading) {
+      fetchGalleryImages()
+    }
+    setIsGalleryModalOpen(true)
   }
 
   return (
@@ -197,15 +239,26 @@ function App() {
             Colabore com sua experiência de configurações
           </h3>
           <Button 
-            onClick={() => setIsGalleryModalOpen(true)}
+            onClick={handleOpenGallery}
+            disabled={galleryLoading}
             className="neon-button text-xl font-bold flex items-center gap-3"
           >
             <Camera className="h-7 w-7" />
-            Galeria de Fotos
+            {galleryLoading ? 'Carregando...' : 'Galeria de Fotos'}
           </Button>
           <p className="text-base text-white drop-shadow-md text-center max-w-xl">
             Veja as impressões de outros clientes e compartilhe sua peça com os parâmetros que você utilizou.
           </p>
+          {galleryError && (
+            <p className="text-sm text-red-300 drop-shadow text-center">
+              {galleryError}
+            </p>
+          )}
+          {!galleryError && galleryImages.length > 0 && (
+            <p className="text-sm text-white/80 drop-shadow text-center">
+              {galleryImages.length} registros disponíveis na galeria.
+            </p>
+          )}
         </div>
       </section>
 
@@ -246,6 +299,7 @@ function App() {
             <GalleryModal 
               isOpen={isGalleryModalOpen}
               onClose={() => setIsGalleryModalOpen(false)}
+              images={galleryImages}
             />
 
             {/* Admin Panel Modal */}
