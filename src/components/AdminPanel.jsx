@@ -245,9 +245,10 @@ export function AdminPanel({ onClose }) {
     setIsAuthenticated(Boolean(adminToken || fallbackToken))
   }, [adminToken, fallbackToken])
   
-  const buildAuthHeaders = useCallback((headers = {}) => {
-    if (!safeAdminToken) return headers
-    return { ...headers, Authorization: `Bearer ${safeAdminToken}` }
+  const buildAuthHeaders = useCallback((headers = {}, tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return headers
+    return { ...headers, Authorization: `Bearer ${token}` }
   }, [safeAdminToken])
 
   const handleLogout = useCallback((message) => {
@@ -368,9 +369,9 @@ export function AdminPanel({ onClose }) {
       setContactRefreshKey((key) => key + 1)
       await Promise.all([
         loadCustomRequests(tokenToUse),
-        loadVisualKnowledge(),
-        loadPendingVisualPhotos(),
-        loadParamsData()
+        loadVisualKnowledge(tokenToUse),
+        loadPendingVisualPhotos(tokenToUse),
+        loadParamsData(tokenToUse)
       ])
       setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
@@ -401,12 +402,13 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadVisualKnowledge = async () => {
-    if (!safeAdminToken) return
+  const loadVisualKnowledge = async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
     setVisualLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
-        headers: buildAuthHeaders()
+        headers: buildAuthHeaders({}, token)
       })
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
@@ -418,12 +420,13 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadPendingVisualPhotos = async () => {
-    if (!safeAdminToken) return
+  const loadPendingVisualPhotos = async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
     setPendingVisualLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
-        headers: buildAuthHeaders()
+        headers: buildAuthHeaders({}, token)
       })
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
@@ -530,11 +533,12 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadParamsData = async () => {
-    if (!safeAdminToken) return
+  const loadParamsData = async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
     setParamsLoading(true)
     try {
-      const headers = buildAuthHeaders()
+      const headers = buildAuthHeaders({}, token)
       const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
         fetch(buildAdminUrl('/params/resins'), { headers }),
         fetch(buildAdminUrl('/params/printers'), { headers }),
