@@ -22,6 +22,7 @@ import ContactModal from '@/components/ContactModal.jsx'
 import { AdminPanel } from '@/components/AdminPanel.jsx'
 import { AuthWrapper } from '@/components/AuthWrapper.jsx'
 import { GalleryModal } from '@/components/GalleryModal.jsx'
+import { GallerySubmitModal } from '@/components/GallerySubmitModal.jsx'
 import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './App.css'
@@ -41,9 +42,11 @@ function App() {
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
     const [isContactModalOpen, setIsContactModalOpen] = useState(false)
     const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false)
+    const [isGallerySubmitOpen, setIsGallerySubmitOpen] = useState(false)
     const [galleryImages, setGalleryImages] = useState([])
     const [galleryLoading, setGalleryLoading] = useState(false)
     const [galleryError, setGalleryError] = useState(null)
+    const [gallerySuccessMessage, setGallerySuccessMessage] = useState('')
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -62,6 +65,15 @@ function App() {
 
   const handleOpenContact = () => {
     setIsContactModalOpen(true);
+  }
+
+  const handleOpenGallerySubmit = () => {
+    setGallerySuccessMessage('')
+    setIsGallerySubmitOpen(true)
+  }
+
+  const handleGallerySubmissionSuccess = () => {
+    setGallerySuccessMessage('Recebemos sua peça! Ela entra na fila de revisão do time.')
   }
 
   const fetchGalleryImages = async () => {
@@ -239,16 +251,28 @@ function App() {
             Colabore com sua experiência de configurações
           </h3>
           <Button 
-            onClick={handleOpenGallery}
-            disabled={galleryLoading}
+            onClick={handleOpenGallerySubmit}
             className="neon-button text-xl font-bold flex items-center gap-3"
           >
             <Camera className="h-7 w-7" />
-            {galleryLoading ? 'Carregando...' : 'Galeria de Fotos'}
+            Compartilhar minhas configurações
           </Button>
           <p className="text-base text-white drop-shadow-md text-center max-w-xl">
-            Veja as impressões de outros clientes e compartilhe sua peça com os parâmetros que você utilizou.
+            Envie uma foto da sua peça e os tempos que usou no Chitubox. Após revisão, publicamos na galeria pública para ajudar outros clientes.
           </p>
+          {gallerySuccessMessage && (
+            <p className="text-sm text-emerald-300 drop-shadow text-center">
+              {gallerySuccessMessage}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={handleOpenGallery}
+            className="text-sm text-white/80 underline-offset-4 hover:underline"
+            disabled={galleryLoading}
+          >
+            {galleryLoading ? 'Carregando galeria...' : 'Ver galeria pública (fotos aprovadas)'}
+          </button>
           {galleryError && (
             <p className="text-sm text-red-300 drop-shadow text-center">
               {galleryError}
@@ -300,6 +324,12 @@ function App() {
               isOpen={isGalleryModalOpen}
               onClose={() => setIsGalleryModalOpen(false)}
               images={galleryImages}
+            />
+            <GallerySubmitModal 
+              isOpen={isGallerySubmitOpen}
+              onClose={() => setIsGallerySubmitOpen(false)}
+              apiBaseUrl={PUBLIC_API_BASE}
+              onSuccess={handleGallerySubmissionSuccess}
             />
 
             {/* Admin Panel Modal */}
