@@ -4,6 +4,21 @@ import { Button } from '@/components/ui/button.jsx'
 import { Calendar, Check, Clock, Edit3, Phone, User, X } from 'lucide-react'
 import { toast } from 'sonner'
 
+const normalizeSuggestion = (item) => {
+  const fallbackId = item?.id ?? item?._id ?? item?.odId ?? item?.odIdLegacy ?? null
+  const fallbackTimestamp = item?.timestamp ?? item?.createdAt ?? item?.created_at ?? item?.date ?? new Date().toISOString()
+
+  return {
+    ...item,
+    id: fallbackId,
+    userName: item?.userName ?? item?.name ?? 'Usuário',
+    userPhone: item?.userPhone ?? item?.phone ?? 'N/A',
+    lastUserMessage: item?.lastUserMessage ?? item?.question ?? item?.prompt ?? '',
+    lastBotReply: item?.lastBotReply ?? item?.answer ?? item?.response ?? '',
+    timestamp: fallbackTimestamp,
+  }
+}
+
 export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey, adminToken }) {
   const [suggestions, setSuggestions] = useState([])
   const [editingSuggestion, setEditingSuggestion] = useState(null)
@@ -15,11 +30,12 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
 
   const loadSuggestions = useCallback(async () => {
     try {
-      const response = await fetch(buildAdminUrl('/suggestions'), {
+      const response = await fetch(buildAdminUrl('/api/suggestions'), {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()
-      const textOnlySuggestions = (data.suggestions || []).filter((suggestion) => !suggestion.imageUrl)
+      const mappedSuggestions = (data.suggestions || []).map(normalizeSuggestion)
+      const textOnlySuggestions = mappedSuggestions.filter((suggestion) => !suggestion.imageUrl)
       setSuggestions(textOnlySuggestions)
       updateCount(textOnlySuggestions)
     } catch (error) {
@@ -49,7 +65,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
         requestConfig.body = JSON.stringify({ editedAnswer })
       }
 
-      const response = await fetch(buildAdminUrl(`/approve-suggestion/${suggestionId}`), {
+      const response = await fetch(buildAdminUrl(`/api/approve-suggestion/${suggestionId}`), {
         ...requestConfig,
         headers: {
           ...(requestConfig.headers || {}),
@@ -76,7 +92,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
 
   const rejectSuggestion = useCallback(async (suggestionId) => {
     try {
-      const response = await fetch(buildAdminUrl(`/reject-suggestion/${suggestionId}`), {
+      const response = await fetch(buildAdminUrl(`/api/reject-suggestion/${suggestionId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +126,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
         </Card>
       ) : (
         suggestions.map((suggestion) => (
-          <Card key={suggestion.id} className="p-6">
+          <Card key={suggestion.id || suggestion._id} className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">

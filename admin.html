@@ -146,7 +146,7 @@
       `;
 
       try {
-        const response = await fetch(`${apiBase}/suggestions`, {
+        const response = await fetch(`${apiBase}/api/suggestions`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -163,7 +163,15 @@
         }
 
         const data = await response.json();
-        suggestions = data.suggestions || [];
+        suggestions = (data.suggestions || []).map((item) => ({
+          ...item,
+          id: item.id || item._id || item.odId || item.odIdLegacy || '',
+          userName: item.userName || item.name || 'Usuário',
+          userPhone: item.userPhone || item.phone || 'N/A',
+          status: item.status || 'pending',
+          timestamp: item.timestamp || item.createdAt || item.created_at || item.date || new Date().toISOString(),
+          suggestion: item.suggestion || item.content || ''
+        }));
         renderDashboard(statusMessage);
       } catch (error) {
         console.error('[ADMIN] Erro ao buscar sugestões:', error);
