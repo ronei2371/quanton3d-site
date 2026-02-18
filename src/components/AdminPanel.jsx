@@ -12,9 +12,32 @@ import { OrdersTab } from './admin/OrdersTab.jsx'
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
 
+const STORAGE_KEYS = {
+  token: 'quanton3d_admin_token',
+  apiBase: 'quanton3d_admin_api_base'
+}
+
+const normalizeBaseUrl = (value) => {
+  if (!value) return ''
+  try {
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+    const url = new URL(trimmed, trimmed.startsWith('http') ? undefined : window.location.origin)
+    return url.origin
+  } catch {
+    return ''
+  }
+}
+
+const deriveDefaultApiBase = () => {
+  const envUrl = import.meta.env.VITE_API_URL || ''
+  const cleaned = envUrl.replace(/\/api\/?$/, '')
+  return normalizeBaseUrl(cleaned || window.location.origin)
+}
+
 // --- GALERIA INTERNA BLINDADA (A Correção) ---
-function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange }) {
-  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange, apiBaseUrl, onUnauthorized }) {
+  const baseUrl = apiBaseUrl || deriveDefaultApiBase()
   const [photos, setPhotos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -25,29 +48,37 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     setLoading(true)
     setError(null)
     try {
-      let response = await fetch(`${API_BASE_URL}/api/visual-knowledge`, {
+      let response = await fetch(`${baseUrl}/api/visual-knowledge`, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
+      if (response.status === 401) {
+        onUnauthorized?.()
+        return
+      }
       if (response.status === 404) {
-         response = await fetch(`${API_BASE_URL}/visual-knowledge`, {
-            headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
-         })
+        response = await fetch(`${baseUrl}/visual-knowledge`, {
+          headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+        })
+        if (response.status === 401) {
+          onUnauthorized?.()
+          return
+        }
       }
       const text = await response.text()
       if (!response.ok) throw new Error(`Erro: ${response.status}`)
       let data
-      try { data = JSON.parse(text) } catch { throw new Error("Erro JSON") }
+      try { data = JSON.parse(text) } catch { throw new Error('Erro JSON') }
       const safeList = Array.isArray(data.documents) ? data.documents : []
       setPhotos(safeList)
       if (onPendingCountChange) onPendingCountChange(safeList.filter(p => !p.approved).length)
     } catch (err) {
       console.error(err)
-      setError("Erro ao carregar.")
+      setError('Erro ao carregar.')
       setPhotos([])
     } finally {
       setLoading(false)
     }
-  }, [isVisible, adminToken, onPendingCountChange])
+  }, [isVisible, adminToken, onPendingCountChange, baseUrl])
 
   useEffect(() => { loadPhotos() }, [loadPhotos])
 
@@ -57,11 +88,15 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     try {
         const endpoint = action === 'delete' ? '' : '/approve'
         const method = action === 'delete' ? 'DELETE' : 'PUT'
-        await fetch(`${API_BASE_URL}/api/visual-knowledge/${id}${endpoint}`, {
+        const response = await fetch(`${baseUrl}/api/visual-knowledge/${id}${endpoint}`, {
             method,
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+            headers: { 'Content-Type': 'application/json', ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}) },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
         })
+        if (response.status === 401) {
+          onUnauthorized?.()
+          return
+        }
         toast.success("Sucesso!")
         loadPhotos()
     } catch { toast.error("Erro") } finally { setProcessingId(null) }
@@ -182,17 +217,57 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 }
 
 export function AdminPanel({ onClose }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const fallbackToken = import.meta.env.VITE_ADMIN_API_TOKEN || ''
+  const defaultApiBase = deriveDefaultApiBase()
+
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '')
+  const [apiBaseUrl, setApiBaseUrl] = useState(() => normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBase)) || defaultApiBase)
+  const [customApiBaseInput, setCustomApiBaseInput] = useState(() => apiBaseUrl || defaultApiBase)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(adminToken || fallbackToken))
   const [accessLevel, setAccessLevel] = useState('admin')
   const [password, setPassword] = useState('')
-  const [adminToken, setAdminToken] = useState('') 
-  
-  const safeAdminToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
+
+  const safeAdminToken = adminToken || fallbackToken
+
+  useEffect(() => {
+    if (apiBaseUrl) {
+      localStorage.setItem(STORAGE_KEYS.apiBase, apiBaseUrl)
+      setCustomApiBaseInput(apiBaseUrl)
+    }
+  }, [apiBaseUrl])
+
+  useEffect(() => {
+    if (adminToken) {
+      localStorage.setItem(STORAGE_KEYS.token, adminToken)
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.token)
+    }
+    setIsAuthenticated(Boolean(adminToken || fallbackToken))
+  }, [adminToken, fallbackToken])
   
   const buildAuthHeaders = useCallback((headers = {}) => {
     if (!safeAdminToken) return headers
     return { ...headers, Authorization: `Bearer ${safeAdminToken}` }
   }, [safeAdminToken])
+
+  const handleLogout = useCallback((message) => {
+    setAdminToken('')
+    setPassword('')
+    setIsAuthenticated(false)
+    if (message) {
+      toast.error(message)
+    } else {
+      toast.info('Sessão encerrada.')
+    }
+  }, [])
+
+  const handleUnauthorizedResponse = useCallback((status) => {
+    if (status === 401) {
+      handleLogout('Sessão expirada. Faça login novamente.')
+      return true
+    }
+    return false
+  }, [handleLogout])
   
   const [activeTab, setActiveTab] = useState('metrics')
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
@@ -230,68 +305,60 @@ export function AdminPanel({ onClose }) {
   const [visualSolution, setVisualSolution] = useState('')
   const [addingVisual, setAddingVisual] = useState(false)
   
-  const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
-  const ADMIN_PASSWORD = 'Rmartins1201'
-  const TEAM_SECRET = 'suporte_quanton_2025'
-  
   const isAdmin = accessLevel === 'admin'
 
-  const buildAdminUrl = useCallback((path, params = {}) => {
-    let finalPath = path
+  const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
+    let finalPath = path.startsWith('/') ? path : `/${path}`
     if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
-        if (!finalPath.startsWith('/admin')) {
-             finalPath = `/admin${finalPath.startsWith('/') ? '' : '/'}${finalPath}`
-        }
+      if (!finalPath.startsWith('/admin')) {
+        finalPath = `/admin${finalPath}`
+      }
     }
-    const url = new URL(finalPath, `${API_BASE_URL}/`)
+    const resolvedBase = normalizeBaseUrl(baseOverride) || apiBaseUrl || defaultApiBase
+    const url = new URL(finalPath, `${resolvedBase}/`)
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         url.searchParams.set(key, value)
       }
     })
     return url.toString()
-  }, [])
+  }, [apiBaseUrl, defaultApiBase])
 
   const handleLogin = async () => {
+    const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
+    setApiBaseUrl(targetBase)
     setLoading(true)
     try {
-      const res = await fetch(buildAdminUrl('/auth/login'), {
+      const res = await fetch(`${targetBase}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
       })
       const data = await res.json()
 
-      if (data.success && data.token) {
-        setAccessLevel('admin')
-        setIsAuthenticated(true)
-        setAdminToken(data.token)
-        toast.success('Login conectado ao servidor!')
-        await refreshAllData(data.token)
-        return
+      if (!res.ok || !data?.token) {
+        throw new Error(data?.error || 'Credenciais inválidas')
       }
-    } catch (e) {
-      console.warn('Login backend falhou, tentando fallback local...', e)
+
+      setAccessLevel('admin')
+      setAdminToken(data.token)
+      setIsAuthenticated(true)
+      setPassword('')
+      toast.success('Sessão autenticada com sucesso!')
+      await refreshAllData(data.token)
+    } catch (error) {
+      toast.error(error.message || 'Erro ao autenticar')
     } finally {
       setLoading(false)
-    }
-
-    if (password === ADMIN_PASSWORD) {
-      setAccessLevel('admin')
-      setIsAuthenticated(true)
-      toast.info('Modo Admin Local')
-      refreshAllData()
-    } else if (password === TEAM_SECRET) {
-      setAccessLevel('support')
-      setIsAuthenticated(true)
-      refreshAllData()
-    } else {
-      toast.error('Senha incorreta!')
     }
   }
 
   const refreshAllData = async (tokenOverride) => {
     const tokenToUse = tokenOverride || safeAdminToken
+    if (!tokenToUse) {
+      toast.warning('Faça login para carregar os dados administrativos.')
+      return
+    }
     setLoading(true)
     try {
       setMetricsRefreshKey((key) => key + 1)
@@ -314,17 +381,19 @@ export function AdminPanel({ onClose }) {
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && safeAdminToken) {
       refreshAllData()
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, safeAdminToken])
 
   const loadCustomRequests = async (tokenToUse) => {
     try {
       const token = tokenToUse || safeAdminToken
+      if (!token) return
       const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        headers: { Authorization: `Bearer ${token}` }
       })
+      if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
       setCustomRequests(data.formulations || data.requests || [])
     } catch (error) {
@@ -333,11 +402,13 @@ export function AdminPanel({ onClose }) {
   }
 
   const loadVisualKnowledge = async () => {
+    if (!safeAdminToken) return
     setVisualLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
         headers: buildAuthHeaders()
       })
+      if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
       setVisualKnowledge(data.documents || [])
     } catch (error) {
@@ -348,11 +419,13 @@ export function AdminPanel({ onClose }) {
   }
 
   const loadPendingVisualPhotos = async () => {
+    if (!safeAdminToken) return
     setPendingVisualLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
         headers: buildAuthHeaders()
       })
+      if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
       setPendingVisualPhotos(data.documents || [])
     } catch (error) {
@@ -363,6 +436,10 @@ export function AdminPanel({ onClose }) {
   }
 
   const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+    if (!safeAdminToken) {
+      toast.error('Faça login novamente para aprovar entradas visuais.')
+      return false
+    }
     if (!defectType || !diagnosis || !solution) {
       toast.warning('Preencha todos os campos antes de aprovar')
       return false
@@ -373,6 +450,7 @@ export function AdminPanel({ onClose }) {
         headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ defectType, diagnosis, solution })
       })
+      if (handleUnauthorizedResponse(response.status)) return false
       const data = await response.json()
       if (data.success) {
         toast.success('Conhecimento visual aprovado com sucesso!')
@@ -388,13 +466,14 @@ export function AdminPanel({ onClose }) {
   }
 
   const deletePendingVisual = async (id) => {
-    if (!isAdmin) return
+    if (!isAdmin || !safeAdminToken) return
     if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
     try {
-      await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
         method: 'DELETE',
         headers: buildAuthHeaders()
       })
+      if (handleUnauthorizedResponse(response.status)) return
       loadPendingVisualPhotos()
     } catch (error) {
       console.error(error)
@@ -402,6 +481,10 @@ export function AdminPanel({ onClose }) {
   }
 
   const addVisualKnowledgeEntry = async () => {
+    if (!safeAdminToken) {
+      toast.error('Faça login novamente para adicionar entradas visuais.')
+      return
+    }
     if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
       toast.warning('Preencha tudo')
       return
@@ -414,11 +497,12 @@ export function AdminPanel({ onClose }) {
       formData.append('diagnosis', visualDiagnosis)
       formData.append('solution', visualSolution)
 
-      await fetch(buildAdminUrl('/api/visual-knowledge'), {
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
         method: 'POST',
         headers: buildAuthHeaders(),
         body: formData
       })
+      if (handleUnauthorizedResponse(response.status)) return
       
       toast.success('Adicionado!')
       setVisualImage(null)
@@ -432,13 +516,14 @@ export function AdminPanel({ onClose }) {
   }
 
   const deleteVisualKnowledgeEntry = async (id) => {
-    if (!isAdmin) return
+    if (!isAdmin || !safeAdminToken) return
     if (!confirm('Deletar?')) return
     try {
-      await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), {
         method: 'DELETE',
         headers: buildAuthHeaders()
       })
+      if (handleUnauthorizedResponse(response.status)) return
       loadVisualKnowledge()
     } catch (error) {
       console.error(error)
@@ -446,14 +531,21 @@ export function AdminPanel({ onClose }) {
   }
 
   const loadParamsData = async () => {
+    if (!safeAdminToken) return
     setParamsLoading(true)
     try {
+      const headers = buildAuthHeaders()
       const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-        fetch(buildAdminUrl('/params/resins'), { headers: buildAuthHeaders() }),
-        fetch(buildAdminUrl('/params/printers'), { headers: buildAuthHeaders() }),
-        fetch(buildAdminUrl('/params/profiles'), { headers: buildAuthHeaders() }),
-        fetch(buildAdminUrl('/params/stats'), { headers: buildAuthHeaders() })
+        fetch(buildAdminUrl('/params/resins'), { headers }),
+        fetch(buildAdminUrl('/params/printers'), { headers }),
+        fetch(buildAdminUrl('/params/profiles'), { headers }),
+        fetch(buildAdminUrl('/params/stats'), { headers })
       ])
+
+      if ([resinsRes, printersRes, profilesRes, statsRes].some((res) => handleUnauthorizedResponse(res.status))) {
+        return
+      }
+
       const [resinsData, printersData, profilesData, statsData] = await Promise.all([
         resinsRes.json(),
         printersRes.json(),
@@ -472,39 +564,45 @@ export function AdminPanel({ onClose }) {
   }
 
   const addResin = async () => {
+    if (!safeAdminToken) return
     if (!newResinName.trim()) return
-    await fetch(buildAdminUrl('/params/resins'), {
+    const response = await fetch(buildAdminUrl('/params/resins'), {
       method: 'POST',
       headers: buildAuthHeaders({'Content-Type': 'application/json'}),
       body: JSON.stringify({name: newResinName})
     })
+    if (handleUnauthorizedResponse(response.status)) return
     setNewResinName('')
     loadParamsData()
   }
   
   const deleteResin = async (id) => {
-    if(!isAdmin) return
+    if(!isAdmin || !safeAdminToken) return
     if(!confirm('Deletar?')) return
-    await fetch(buildAdminUrl(`/params/resins/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+    const response = await fetch(buildAdminUrl(`/params/resins/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+    if (handleUnauthorizedResponse(response.status)) return
     loadParamsData()
   }
 
   const addPrinter = async () => {
+    if (!safeAdminToken) return
     if (!newPrinterBrand.trim()) return
-    await fetch(buildAdminUrl('/params/printers'), {
+    const response = await fetch(buildAdminUrl('/params/printers'), {
       method: 'POST',
       headers: buildAuthHeaders({'Content-Type': 'application/json'}),
       body: JSON.stringify({brand: newPrinterBrand, model: newPrinterModel})
     })
+    if (handleUnauthorizedResponse(response.status)) return
     setNewPrinterBrand('')
     setNewPrinterModel('')
     loadParamsData()
   }
 
   const deletePrinter = async (id) => {
-    if(!isAdmin) return
+    if(!isAdmin || !safeAdminToken) return
     if(!confirm('Deletar?')) return
-    await fetch(buildAdminUrl(`/params/printers/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+    const response = await fetch(buildAdminUrl(`/params/printers/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+    if (handleUnauthorizedResponse(response.status)) return
     loadParamsData()
   }
 
@@ -519,7 +617,8 @@ export function AdminPanel({ onClose }) {
   }
 
   const saveProfile = async () => {
-    await fetch(buildAdminUrl('/params/profiles'), {
+    if (!safeAdminToken) return
+    const response = await fetch(buildAdminUrl('/params/profiles'), {
       method: 'POST',
       headers: buildAuthHeaders({'Content-Type': 'application/json'}),
       body: JSON.stringify({
@@ -529,24 +628,42 @@ export function AdminPanel({ onClose }) {
         params: profileFormData
       })
     })
+    if (handleUnauthorizedResponse(response.status)) return
     setEditingProfile(null)
     loadParamsData()
   }
 
   const deleteProfile = async (id) => {
-    if(!isAdmin) return
+    if(!isAdmin || !safeAdminToken) return
     if(!confirm('Deletar?')) return
-    await fetch(buildAdminUrl(`/params/profiles/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+    const response = await fetch(buildAdminUrl(`/params/profiles/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+    if (handleUnauthorizedResponse(response.status)) return
     loadParamsData()
   }
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
-        <Card className="p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
-          <div className="space-y-4">
-            <Input type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
+        <Card className="p-8 max-w-md w-full space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
+            <p className="text-sm text-center text-gray-500">Informe a URL do backend oficial e sua senha de administrador.</p>
+          </div>
+          <div className="space-y-3">
+            <Input
+              type="url"
+              placeholder="URL do backend (ex: https://quanton3d-bot-v2.onrender.com)"
+              value={customApiBaseInput}
+              onChange={(e) => setCustomApiBaseInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+            <Input
+              type="password"
+              placeholder="Senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
             <Button onClick={handleLogin} disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">{loading ? 'Entrando...' : 'Entrar'}</Button>
           </div>
         </Card>
@@ -561,6 +678,7 @@ export function AdminPanel({ onClose }) {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h1>
           <div className="flex gap-3">
             <Button onClick={() => refreshAllData()} disabled={loading}><Loader2 className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar</Button>
+            <Button onClick={() => handleLogout()} variant="outline">Sair</Button>
             <Button onClick={onClose} variant="outline"><X className="h-4 w-4" /></Button>
           </div>
         </div>
@@ -575,7 +693,7 @@ export function AdminPanel({ onClose }) {
           <Button onClick={() => setActiveTab('documents')} variant={activeTab === 'documents' ? 'default' : 'outline'} className={activeTab === 'documents' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><BookOpen className="mr-2 h-4 w-4"/> Documentos</Button>
           <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'outline'} className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Handshake className="mr-2 h-4 w-4"/> Parceiros</Button>
           <Button onClick={() => setActiveTab('contacts')} variant={activeTab === 'contacts' ? 'default' : 'outline'} className={activeTab === 'contacts' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Phone className="mr-2 h-4 w-4"/> Contatos</Button>
-          <Button onClick={() => {setActiveTab('custom'); loadCustomRequests();}} variant={activeTab === 'custom' ? 'default' : 'outline'} className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4"/> Formulações</Button>
+          <Button onClick={() => {setActiveTab('custom'); loadCustomRequests(safeAdminToken);}} variant={activeTab === 'custom' ? 'default' : 'outline'} className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4"/> Formulações</Button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
@@ -586,7 +704,16 @@ export function AdminPanel({ onClose }) {
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
           {/* ✅ GALERIA INTERNA BLINDADA */}
-          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} onPendingCountChange={setGalleryPendingCount} />}
+          {activeTab === 'gallery' && (
+            <InternalGalleryTab
+              isAdmin={isAdmin}
+              isVisible={true}
+              adminToken={safeAdminToken}
+              apiBaseUrl={apiBaseUrl}
+              onPendingCountChange={setGalleryPendingCount}
+              onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
+            />
+          )}
           
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           

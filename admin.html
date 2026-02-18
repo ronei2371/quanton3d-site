@@ -15,27 +15,63 @@
   <div id="app"></div>
 
   <script>
-    const ADMIN_PASSWORD = 'Rmartins1201';
-    const API_URL = 'https://quanton3d-bot-v2.onrender.com';
-    
-    let isAuthenticated = false;
+    const STORAGE_KEYS = {
+      token: 'quanton3d_admin_token',
+      apiBase: 'quanton3d_admin_api_base'
+    };
+    const DEFAULT_API_BASE = 'https://quanton3d-bot-v2.onrender.com';
+
     let suggestions = [];
 
-    function renderLogin() {
+    const getStoredToken = () => localStorage.getItem(STORAGE_KEYS.token) || '';
+    const saveToken = (token) => {
+      if (token) {
+        localStorage.setItem(STORAGE_KEYS.token, token);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.token);
+      }
+    };
+
+    const normalizeBase = (value) => {
+      if (!value) return DEFAULT_API_BASE;
+      const trimmed = value.trim();
+      if (!trimmed) return DEFAULT_API_BASE;
+      return trimmed.replace(/\/+$/, '');
+    };
+
+    const getApiBase = () => normalizeBase(localStorage.getItem(STORAGE_KEYS.apiBase) || DEFAULT_API_BASE);
+    const saveApiBase = (value) => {
+      const normalized = normalizeBase(value);
+      localStorage.setItem(STORAGE_KEYS.apiBase, normalized);
+      return normalized;
+    };
+
+    function renderLogin(message = '') {
+      const apiBase = getApiBase();
       document.getElementById('app').innerHTML = `
         <div class="min-h-screen flex items-center justify-center p-4">
           <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-            <h2 class="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 class="text-2xl font-bold mb-4 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Painel Administrativo
             </h2>
             <p class="text-center text-gray-600 mb-6">
-              Gerenciamento de Sugestões de Conhecimento
+              Faça login usando sua senha administrativa para consultar o bot oficial
             </p>
+            ${message ? `<div class="mb-4 text-sm text-center text-red-500">${message}</div>` : ''}
             <div class="space-y-4">
+              <label class="text-sm font-semibold text-gray-600" for="apiBase">URL do backend</label>
+              <input
+                type="text"
+                id="apiBase"
+                value="${apiBase}"
+                placeholder="https://quanton3d-bot-v2.onrender.com"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <label class="text-sm font-semibold text-gray-600" for="password">Senha/Admin Token</label>
               <input
                 type="password"
                 id="password"
-                placeholder="Senha de administrador"
+                placeholder="Digite sua senha segura"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
@@ -45,6 +81,9 @@
                 Entrar
               </button>
             </div>
+            <p class="text-xs text-gray-400 mt-4 text-center">
+              O painel usa /auth/login e armazena somente um token JWT no seu navegador.
+            </p>
           </div>
         </div>
       `;
@@ -54,121 +93,201 @@
       });
     }
 
-    function handleLogin() {
-      const password = document.getElementById('password').value;
-      if (password === ADMIN_PASSWORD) {
-        isAuthenticated = true;
-        loadSuggestions();
-      } else {
-        alert('Senha incorreta!');
+    async function handleLogin() {
+      const passwordInput = document.getElementById('password');
+      const apiBaseInput = document.getElementById('apiBase');
+      const password = passwordInput.value.trim();
+      const apiBase = saveApiBase(apiBaseInput.value);
+
+      if (!password) {
+        alert('Informe a senha');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${apiBase}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data?.token) {
+          throw new Error(data?.error || 'Falha no login');
+        }
+
+        saveToken(data.token);
+        passwordInput.value = '';
+        loadSuggestions('Login realizado com sucesso.');
+      } catch (error) {
+        console.error('[ADMIN] Falha no login', error);
+        saveToken('');
+        renderLogin(error.message || 'Não foi possível autenticar');
       }
     }
 
-    async function loadSuggestions() {
+    async function loadSuggestions(statusMessage = '') {
+      const token = getStoredToken();
+      if (!token) {
+        renderLogin('Sessão expirada. Faça login novamente.');
+        return;
+      }
+
+      const apiBase = getApiBase();
       document.getElementById('app').innerHTML = `
         <div class="min-h-screen p-4">
           <div class="container mx-auto max-w-6xl py-8">
-            <div class="flex items-center justify-center">
+            <div class="flex flex-col items-center justify-center gap-4">
               <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p class="text-center text-gray-600">Sincronizando com ${apiBase}…</p>
             </div>
-            <p class="text-center mt-4 text-gray-600">Carregando sugestões...</p>
           </div>
         </div>
       `;
 
       try {
-        const response = await fetch(`${API_URL}/suggestions?auth=quanton3d_admin_secret`);
+        const response = await fetch(`${apiBase}/suggestions`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 401) {
+          saveToken('');
+          renderLogin('Sessão expirada. Faça login novamente.');
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar sugestões');
+        }
+
         const data = await response.json();
         suggestions = data.suggestions || [];
-        renderDashboard();
+        renderDashboard(statusMessage);
       } catch (error) {
-        console.error('Erro ao carregar sugestões:', error);
-        document.getElementById('app').innerHTML = `
-          <div class="min-h-screen p-4">
-            <div class="container mx-auto max-w-6xl py-8">
-              <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <p class="text-red-600 font-semibold">Erro ao carregar sugestões</p>
-                <p class="text-red-500 text-sm mt-2">${error.message}</p>
-                <button onclick="loadSuggestions()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Tentar Novamente
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
+        console.error('[ADMIN] Erro ao buscar sugestões:', error);
+        renderError(error.message || 'Falha ao carregar dados', () => loadSuggestions());
       }
     }
 
-    function renderDashboard() {
-      const suggestionsHTML = suggestions.length === 0 ? `
-        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
-          <svg class="h-16 w-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p class="text-gray-600">Nenhuma sugestão pendente no momento</p>
+    function renderError(message, retry) {
+      document.getElementById('app').innerHTML = `
+        <div class="min-h-screen p-4 flex items-center justify-center">
+          <div class="bg-white border border-red-200 rounded-lg shadow p-8 max-w-lg w-full text-center">
+            <p class="text-red-600 font-semibold text-lg">${message}</p>
+            <p class="text-sm text-gray-500 mt-2">Verifique se a URL e a senha estão corretas.</p>
+            <div class="mt-6 flex flex-col gap-3">
+              <button id="retry-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Tentar novamente
+              </button>
+              <button id="back-btn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                Voltar para o login
+              </button>
+            </div>
+          </div>
         </div>
-      ` : suggestions.map((suggestion, index) => `
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                ${suggestion.userName?.charAt(0) || 'U'}
-              </div>
-              <div>
-                <p class="font-semibold">${suggestion.userName || 'Usuário'}</p>
-                <div class="flex items-center gap-4 text-sm text-gray-600">
-                  <span>📱 ${suggestion.userPhone || 'N/A'}</span>
-                  <span>📅 ${new Date(suggestion.timestamp).toLocaleString('pt-BR')}</span>
+      `;
+
+      const retryButton = document.getElementById('retry-btn');
+      const backButton = document.getElementById('back-btn');
+
+      if (retryButton) {
+        retryButton.addEventListener('click', () => {
+          if (typeof retry === 'function') {
+            retry();
+          } else {
+            loadSuggestions();
+          }
+        });
+      }
+
+      if (backButton) {
+        backButton.addEventListener('click', logout);
+      }
+    }
+
+    function logout() {
+      saveToken('');
+      renderLogin('Sessão finalizada.');
+    }
+
+    function renderDashboard(statusMessage = '') {
+      const apiBase = getApiBase();
+      const headerMessage = statusMessage
+        ? `<div class="text-sm text-green-600 mb-4">${statusMessage}</div>`
+        : '';
+
+      const suggestionsHTML = suggestions.length === 0
+        ? `
+          <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <svg class="h-16 w-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-gray-600">Nenhuma sugestão pendente no momento</p>
+          </div>
+        `
+        : suggestions.map((suggestion) => `
+          <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                  ${suggestion.userName?.charAt(0) || 'U'}
+                </div>
+                <div>
+                  <p class="font-semibold">${suggestion.userName || 'Usuário'}</p>
+                  <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <span>📱 ${suggestion.userPhone || 'N/A'}</span>
+                    <span>📅 ${new Date(suggestion.timestamp).toLocaleString('pt-BR')}</span>
+                  </div>
                 </div>
               </div>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold ${
+                suggestion.status === 'pending'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : suggestion.status === 'approved'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }">
+                ${suggestion.status === 'pending' ? 'Pendente' : suggestion.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+              </span>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${
-              suggestion.status === 'pending' 
-                ? 'bg-yellow-100 text-yellow-800'
-                : suggestion.status === 'approved'
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-            }">
-              ${suggestion.status === 'pending' ? 'Pendente' : suggestion.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
-            </span>
-          </div>
 
-          <div class="bg-gray-50 rounded-lg p-4 mb-4">
-            <p class="text-sm whitespace-pre-wrap">${suggestion.suggestion}</p>
-          </div>
-
-          ${suggestion.status === 'pending' ? `
-            <div class="flex gap-2">
-              <button 
-                onclick="alert('Sugestão aprovada! Para adicionar ao conhecimento, edite o arquivo knowledge-base.js no backend.')"
-                class="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
-              >
-                ✓ Aprovar e Adicionar ao Conhecimento
-              </button>
-              <button 
-                onclick="alert('Sugestão rejeitada!')"
-                class="flex-1 border border-gray-300 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
-              >
-                ✗ Rejeitar
-              </button>
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+              <p class="text-sm whitespace-pre-wrap">${suggestion.suggestion}</p>
             </div>
-          ` : ''}
-        </div>
-      `).join('');
+
+            ${suggestion.status === 'pending'
+              ? `
+                <div class="flex gap-2 text-sm text-gray-500">
+                  <p>Use o painel principal para aprovar/rejeitar oficialmente.</p>
+                </div>
+              `
+              : ''}
+          </div>
+        `).join('');
 
       document.getElementById('app').innerHTML = `
         <div class="min-h-screen p-4">
           <div class="container mx-auto max-w-6xl py-8">
-            <div class="flex items-center justify-between mb-8">
-              <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Sugestões de Conhecimento
-              </h1>
-              <button 
-                onclick="loadSuggestions()"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-              >
-                🔄 Atualizar
-              </button>
+            <div class="flex flex-col gap-2 mb-6">
+              <div class="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Sugestões de Conhecimento
+                  </h1>
+                  <p class="text-sm text-gray-500">Backend ativo: ${apiBase}</p>
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="loadSuggestions()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                    🔄 Atualizar
+                  </button>
+                  <button onclick="logout()" class="px-4 py-2 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition">
+                    Sair
+                  </button>
+                </div>
+              </div>
+              ${headerMessage}
             </div>
 
             ${suggestionsHTML}
@@ -176,10 +295,10 @@
             <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
               <h3 class="font-bold mb-2">📝 Como usar este painel:</h3>
               <ul class="text-sm space-y-1 text-gray-700">
-                <li>• Revise cada sugestão enviada pelos usuários</li>
-                <li>• Aprove sugestões úteis para adicionar à base de conhecimento do bot</li>
-                <li>• Rejeite sugestões irrelevantes ou duplicadas</li>
-                <li>• As sugestões aprovadas devem ser manualmente adicionadas ao arquivo knowledge-base.js do backend</li>
+                <li>• Use o backend oficial com autenticação via /auth/login.</li>
+                <li>• Nenhuma senha fica hardcoded – digite manualmente quando necessário.</li>
+                <li>• Para aprovar/rejeitar oficialmente, utilize o painel React principal.</li>
+                <li>• Se trocar o domínio do bot, atualize o campo “URL do backend”.</li>
               </ul>
             </div>
           </div>
@@ -187,8 +306,12 @@
       `;
     }
 
-    // Inicializar
-    renderLogin();
+    // Inicializa mostrando login ou dashboard se já houver token
+    if (getStoredToken()) {
+      loadSuggestions();
+    } else {
+      renderLogin();
+    }
   </script>
 </body>
 </html>
