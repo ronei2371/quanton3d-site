@@ -23,7 +23,7 @@ import { AdminPanel } from '@/components/AdminPanel.jsx'
 import { AuthWrapper } from '@/components/AuthWrapper.jsx'
 import { GalleryModal } from '@/components/GalleryModal.jsx'
 import { GallerySubmitModal } from '@/components/GallerySubmitModal.jsx'
-import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera } from 'lucide-react'
+import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera, Brain, Layers, RadioTower } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './App.css'
 
@@ -151,18 +151,16 @@ function App() {
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-12">
-        <div className="flex items-start gap-8">
-          {/* Novo Robô - POSICIONADO À ESQUERDA */}
+        <div className="hero-grid">
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
+            initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
-            className="relative flex-shrink-0 ml-8"
+            className="hero-visual"
             onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }}
-            style={{ cursor: 'pointer' }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl opacity-30"></div>
-            <div className="relative w-64 rounded-3xl shadow-2xl border-4 border-blue-400/50 overflow-hidden hover:scale-105 transition-transform duration-300">
+            <div className="hero-visual__glow" />
+            <div className="hero-visual__frame">
               <video
                 src="/images/ai-robot-animated.mp4"
                 autoPlay
@@ -173,15 +171,74 @@ function App() {
                 className="w-full h-auto block"
               />
             </div>
-            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-2xl shadow-xl border-2 border-blue-300/50 animate-pulse whitespace-nowrap text-sm">
-              <p className="text-center font-bold">
-                Clique para falar comigo! 🤖
-              </p>
+            <div className="hero-visual__tag">
+              <span>Fale com o QuantonBot</span>
             </div>
           </motion.div>
 
-          {/* Área de conteúdo à direita */}
-          <div className="flex-1"></div>
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="hero-content glass-panel"
+          >
+            <p className="hero-pill">IA oficial Quanton3D • suporte em tempo real</p>
+            <h2 className="hero-title">
+              Inteligência aplicada a <span>resinas industriais</span> e produção 24/7.
+            </h2>
+            <p className="hero-description">
+              Combine diagnósticos guiados, parâmetros oficiais e galerias colaborativas em uma plataforma única. O QuantonBot aprende com cada cliente para sugerir ajustes, prever falhas e acelerar a validação de presets.
+            </p>
+
+            <div className="hero-actions">
+              <Button onClick={() => { setChatMode('suporte'); setIsChatOpen(true); }} className="hero-cta">
+                Abrir QuantonBot
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <button className="hero-secondary" onClick={handleOpenGallerySubmit}>
+                Compartilhar parâmetros
+              </button>
+            </div>
+
+            <div className="stats-grid">
+              <div className="stat-card">
+                <span className="stat-label">Perfis ativos</span>
+                <strong className="stat-value">459+</strong>
+                <p className="stat-hint">Banco oficial de parâmetros homologados</p>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Diagnósticos/h</span>
+                <strong className="stat-value">320</strong>
+                <p className="stat-hint">Detecção automática de delaminação, adesão e suportes</p>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Galeria colaborativa</span>
+                <strong className="stat-value">1.200+</strong>
+                <p className="stat-hint">Fotos, presets e notas de clientes Quanton</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Destaques rápidos */}
+      <section className="container mx-auto px-4 py-8">
+        <div className="feature-grid">
+          <div className="feature-card glass-panel">
+            <Brain className="h-8 w-8 text-cyan-300" />
+            <h3>Diagnósticos guiados</h3>
+            <p>Motor de IA treinado com casos reais de impressão e biblioteca de defeitos específicos de resina.</p>
+          </div>
+          <div className="feature-card glass-panel">
+            <Layers className="h-8 w-8 text-emerald-300" />
+            <h3>Parametrização oficial</h3>
+            <p>459 perfis homologados, compatíveis com as principais linhas Quanton e impressoras industriais.</p>
+          </div>
+          <div className="feature-card glass-panel">
+            <RadioTower className="h-8 w-8 text-purple-300" />
+            <h3>Monitoramento ativo</h3>
+            <p>Alertas do QuantonBot, métricas em tempo real e painel admin com aprovação de conhecimento.</p>
+          </div>
         </div>
       </section>
 
