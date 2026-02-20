@@ -217,17 +217,18 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 }
 
 export function AdminPanel({ onClose }) {
-  const fallbackToken = import.meta.env.VITE_ADMIN_API_TOKEN || ''
+  const autoAdminPassword = import.meta.env.VITE_ADMIN_AUTO_PASSWORD || 'quanton2026'
   const defaultApiBase = deriveDefaultApiBase()
 
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '')
   const [apiBaseUrl, setApiBaseUrl] = useState(() => normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBase)) || defaultApiBase)
   const [customApiBaseInput, setCustomApiBaseInput] = useState(() => apiBaseUrl || defaultApiBase)
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(adminToken || fallbackToken))
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(adminToken))
   const [accessLevel, setAccessLevel] = useState('admin')
   const [password, setPassword] = useState('')
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
 
-  const safeAdminToken = adminToken || fallbackToken
+  const safeAdminToken = adminToken
 
   useEffect(() => {
     if (apiBaseUrl) {
@@ -242,8 +243,8 @@ export function AdminPanel({ onClose }) {
     } else {
       localStorage.removeItem(STORAGE_KEYS.token)
     }
-    setIsAuthenticated(Boolean(adminToken || fallbackToken))
-  }, [adminToken, fallbackToken])
+    setIsAuthenticated(Boolean(adminToken))
+  }, [adminToken])
   
   const buildAuthHeaders = useCallback((headers = {}, tokenOverride) => {
     const token = tokenOverride || safeAdminToken
@@ -357,7 +358,6 @@ export function AdminPanel({ onClose }) {
   const refreshAllData = async (tokenOverride) => {
     const tokenToUse = tokenOverride || safeAdminToken
     if (!tokenToUse) {
-      toast.warning('Faça login para carregar os dados administrativos.')
       return
     }
     setLoading(true)
@@ -380,6 +380,31 @@ export function AdminPanel({ onClose }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!adminToken && !autoLoginAttempted && autoAdminPassword) {
+      const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
+      setAutoLoginAttempted(true)
+      fetch(`${targetBase}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: autoAdminPassword })
+      })
+        .then(async (res) => {
+          if (!res.ok) return null
+          const data = await res.json()
+          if (data?.token) {
+            setAccessLevel('admin')
+            setAdminToken(data.token)
+            setIsAuthenticated(true)
+            setPassword('')
+            await refreshAllData(data.token)
+          }
+          return null
+        })
+        .catch((err) => console.error('Auto login falhou:', err))
+    }
+  }, [adminToken, autoLoginAttempted, autoAdminPassword, customApiBaseInput, apiBaseUrl, defaultApiBase])
 
   useEffect(() => {
     if (isAuthenticated && safeAdminToken) {
