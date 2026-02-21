@@ -51,7 +51,7 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
   const loadOrders = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/orders'), {
+      const response = await fetch(buildAdminUrl('/api/orders'), {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()
@@ -98,7 +98,7 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
 
     setUpdatingOrderId(orderId)
     try {
-      const response = await fetch(buildAdminUrl(`/orders/${orderId}`), {
+      const response = await fetch(buildAdminUrl(`/api/orders/${orderId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -8,7 +8,7 @@ import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
 import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
 import { OrdersTab } from './admin/OrdersTab.jsx'
-// import { GalleryTab } from './admin/GalleryTab.jsx' // REMOVIDO PARA EVITAR ERRO
+import { GalleryTab } from './admin/GalleryTab.jsx'
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
 
@@ -311,10 +311,9 @@ export function AdminPanel({ onClose }) {
 
   const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
     let finalPath = path.startsWith('/') ? path : `/${path}`
-    if (!finalPath.startsWith('/api') && !finalPath.startsWith('/auth')) {
-      if (!finalPath.startsWith('/admin')) {
-        finalPath = `/admin${finalPath}`
-      }
+    const shouldSkipPrefix = finalPath.startsWith('/api') || finalPath.startsWith('/auth') || finalPath.startsWith('/admin')
+    if (!shouldSkipPrefix) {
+      finalPath = `/api${finalPath}`
     }
     const resolvedBase = normalizeBaseUrl(baseOverride) || apiBaseUrl || defaultApiBase
     const url = new URL(finalPath, `${resolvedBase}/`)
@@ -455,7 +454,8 @@ export function AdminPanel({ onClose }) {
       })
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
-      setPendingVisualPhotos(data.documents || [])
+      const pendingList = data.pending || data.documents || []
+      setPendingVisualPhotos(pendingList)
     } catch (error) {
       console.error('Erro ao carregar fotos pendentes:', error)
     } finally {

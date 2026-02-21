@@ -4,20 +4,31 @@ import { Button } from '@/components/ui/button.jsx'
 import { Calendar, Check, Clock, Edit3, Phone, User, X } from 'lucide-react'
 import { toast } from 'sonner'
 
-const normalizeSuggestion = (item) => {
-  const fallbackId = item?.id ?? item?._id ?? item?.odId ?? item?.odIdLegacy ?? null
+const normalizeSuggestion = (item = {}) => {
+  const fallbackId = item?._id ?? item?.id ?? item?.odId ?? item?.odIdLegacy ?? null
   const fallbackTimestamp = item?.timestamp ?? item?.createdAt ?? item?.created_at ?? item?.date ?? new Date().toISOString()
+
+  const attachments = []
+  if (Array.isArray(item.attachments)) {
+    attachments.push(...item.attachments.filter(Boolean))
+  }
+  if (item.imageUrl) attachments.push(item.imageUrl)
+  if (item.fileUrl) attachments.push(item.fileUrl)
 
   return {
     ...item,
     id: fallbackId,
+    _id: fallbackId,
     userName: item?.userName ?? item?.name ?? 'Usuário',
     userPhone: item?.userPhone ?? item?.phone ?? 'N/A',
     lastUserMessage: item?.lastUserMessage ?? item?.question ?? item?.prompt ?? '',
     lastBotReply: item?.lastBotReply ?? item?.answer ?? item?.response ?? '',
     timestamp: fallbackTimestamp,
+    attachments
   }
 }
+
+const isImage = (url = '') => /(png|jpg|jpeg|gif|webp)$/i.test(url.split('?')[0])
 
 export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey, adminToken }) {
   const [suggestions, setSuggestions] = useState([])
@@ -25,7 +36,8 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
   const [editedText, setEditedText] = useState('')
 
   const updateCount = useCallback((items) => {
-    onCountChange?.(items.length)
+    const pending = items.filter((entry) => (entry.status || 'pending') === 'pending').length
+    onCountChange?.(pending)
   }, [onCountChange])
 
   const loadSuggestions = useCallback(async () => {
@@ -35,9 +47,8 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
       })
       const data = await response.json()
       const mappedSuggestions = (data.suggestions || []).map(normalizeSuggestion)
-      const textOnlySuggestions = mappedSuggestions.filter((suggestion) => !suggestion.imageUrl)
-      setSuggestions(textOnlySuggestions)
-      updateCount(textOnlySuggestions)
+      setSuggestions(mappedSuggestions)
+      updateCount(mappedSuggestions)
     } catch (error) {
       console.error('Erro ao carregar sugestões:', error)
       toast.error('Erro ao carregar sugestões')
@@ -50,13 +61,19 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
 
   const removeSuggestion = useCallback((suggestionId) => {
     setSuggestions((prev) => {
-      const updated = prev.filter((suggestion) => suggestion.id !== suggestionId)
+      const updated = prev.filter((suggestion) => (suggestion._id || suggestion.id) !== suggestionId)
       updateCount(updated)
       return updated
     })
   }, [updateCount])
 
-  const approveSuggestion = useCallback(async (suggestionId, editedAnswer) => {
+  const approveSuggestion = useCallback(async (suggestionIdentifier, editedAnswer) => {
+    const suggestionId = suggestionIdentifier?._id || suggestionIdentifier?.id || suggestionIdentifier
+    if (!suggestionId) {
+      toast.error('Sugestão inválida')
+      return false
+    }
+
     try {
       const requestConfig = { method: 'PUT' }
 
