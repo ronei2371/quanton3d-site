@@ -61,14 +61,14 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
 
   const removeSuggestion = useCallback((suggestionId) => {
     setSuggestions((prev) => {
-      const updated = prev.filter((suggestion) => (suggestion._id || suggestion.id) !== suggestionId)
+      const updated = prev.filter((suggestion) => suggestion._id !== suggestionId)
       updateCount(updated)
       return updated
     })
   }, [updateCount])
 
   const approveSuggestion = useCallback(async (suggestionIdentifier, editedAnswer) => {
-    const suggestionId = suggestionIdentifier?._id || suggestionIdentifier?.id || suggestionIdentifier
+    const suggestionId = suggestionIdentifier?._id || suggestionIdentifier
     if (!suggestionId) {
       toast.error('Sugestão inválida')
       return false
@@ -143,7 +143,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
         </Card>
       ) : (
         suggestions.map((suggestion) => (
-          <Card key={suggestion.id || suggestion._id} className="p-6">
+          <Card key={suggestion._id} className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
@@ -191,7 +191,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
 
             {suggestion.status === 'pending' && (
               <>
-                {editingSuggestion === suggestion.id ? (
+                {editingSuggestion === suggestion._id ? (
                   <div className="space-y-3">
                     <div>
                       <label className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1 block">RESPOSTA CORRIGIDA (será salva no RAG)</label>
@@ -206,7 +206,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
                       <Button 
                         size="sm" 
                         className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => approveSuggestion(suggestion.id, editedText)}
+                        onClick={() => approveSuggestion(suggestion._id, editedText)}
                       >
                         <Check className="h-4 w-4 mr-2" />
                         Aprovar com Correção
@@ -230,7 +230,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
                       <Button
                         size="sm"
                         className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => approveSuggestion(suggestion.id)}
+                        onClick={() => approveSuggestion(suggestion._id)}
                       >
                         <Check className="h-4 w-4 mr-2" />
                         Aprovar
@@ -239,7 +239,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
                         size="sm" 
                         className="flex-1 bg-blue-600 hover:bg-blue-700"
                         onClick={() => {
-                          setEditingSuggestion(suggestion.id)
+                          setEditingSuggestion(suggestion._id)
                           setEditedText(suggestion.lastBotReply || '')
                         }}
                       >
@@ -251,7 +251,7 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => rejectSuggestion(suggestion.id)}
+                          onClick={() => rejectSuggestion(suggestion._id)}
                         >
                           <X className="h-4 w-4 mr-2" />
                           Rejeitar
