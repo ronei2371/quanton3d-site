@@ -311,7 +311,7 @@ export function AdminPanel({ onClose }) {
 
   const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
     let finalPath = path.startsWith('/') ? path : `/${path}`
-    const shouldSkipPrefix = finalPath.startsWith('/api') || finalPath.startsWith('/auth') || finalPath.startsWith('/admin')
+    const shouldSkipPrefix = finalPath.startsWith('/api') || finalPath.startsWith('/auth') || finalPath.startsWith('/admin') || finalPath.startsWith('/health')
     if (!shouldSkipPrefix) {
       finalPath = `/api${finalPath}`
     }
