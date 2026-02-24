@@ -15,12 +15,43 @@ const initialForm = {
 }
 
 const MAX_FILE_SIZE_MB = 8
+const MAX_ERROR_PREVIEW = 180
+
+const sanitizeNumber = (value) => {
+  const trimmed = value?.toString().trim()
+  if (!trimmed) return null
+  return trimmed.replace(',', '.')
+}
+
+const buildSettingsPayload = (form) => {
+  const payload = {}
+  const layerHeight = sanitizeNumber(form.layerHeight)
+  const normalExposure = sanitizeNumber(form.normalExposure)
+  const baseExposure = sanitizeNumber(form.baseExposure)
+  if (layerHeight) payload.layerHeightMm = layerHeight
+  if (normalExposure) payload.exposureTimeS = normalExposure
+  if (baseExposure) payload.baseExposureTimeS = baseExposure
+  if (Object.keys(payload).length === 0) return null
+  return payload
+}
+
+const extractReadableError = (rawText) => {
+  if (!rawText) return 'O servidor não respondeu como esperado. Tente novamente.'
+  const cleaned = rawText
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned) return 'O servidor não respondeu como esperado. Tente novamente.'
+  return cleaned.slice(0, MAX_ERROR_PREVIEW)
+}
 
 export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
   const [form, setForm] = useState(initialForm)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
@@ -54,15 +85,8 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
     setFile(null)
     setPreview(null)
     setError(null)
+    setSuccessMessage('')
     setIsSubmitting(false)
-  }
-
-  const buildSettingsSummary = () => {
-    const parts = []
-    if (form.layerHeight) parts.push(`Altura de camada: ${form.layerHeight} mm`)
-    if (form.normalExposure) parts.push(`Exposição normal: ${form.normalExposure} s`)
-    if (form.baseExposure) parts.push(`Exposição base: ${form.baseExposure} s`)
-    return parts.join(' | ')
   }
 
   const handleSubmit = async (event) => {
@@ -81,21 +105,24 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
     try {
       setIsSubmitting(true)
       setError(null)
+      setSuccessMessage('')
 
       const formData = new FormData()
       formData.append('resin', form.resin.trim())
       formData.append('printer', form.printer.trim())
       if (form.name) formData.append('name', form.name.trim())
       if (form.contact) {
-        const currentNote = form.note ? `${form.note} | Contato: ${form.contact}` : `Contato: ${form.contact}`
-        formData.append('note', currentNote)
-      } else if (form.note) {
-        formData.append('note', form.note)
+        formData.append('contact', form.contact.trim())
       }
-      const summary = buildSettingsSummary()
-      if (summary) {
-        formData.append('settings', summary)
+      if (form.note) {
+        formData.append('note', form.note.trim())
       }
+
+      const settingsPayload = buildSettingsPayload(form)
+      if (settingsPayload) {
+        formData.append('settings', JSON.stringify(settingsPayload))
+      }
+
       formData.append('image', file)
 
       const response = await fetch(`${apiBaseUrl}/gallery`, {
@@ -104,20 +131,28 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
       })
 
       const text = await response.text()
+      const contentType = response.headers.get('content-type') || ''
       let data
-      try {
-        data = JSON.parse(text)
-      } catch {
-        throw new Error('Resposta inesperada do servidor. Tente novamente em instantes.')
+      if (contentType.includes('application/json')) {
+        try {
+          data = JSON.parse(text)
+        } catch (parseError) {
+          console.warn('Falha ao interpretar JSON da galeria:', parseError)
+        }
       }
 
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error || 'Não foi possível enviar agora. Tente novamente mais tarde.')
+        const readable = data?.error || extractReadableError(text)
+        throw new Error(readable || 'Não foi possível enviar agora. Tente novamente mais tarde.')
       }
 
+      const message = data?.message || 'Recebemos sua peça! Ela entra na fila de revisão do time.'
+      setSuccessMessage(message)
       onSuccess?.(data)
-      resetState()
-      onClose?.()
+      setTimeout(() => {
+        resetState()
+        onClose?.()
+      }, 1500)
     } catch (err) {
       console.error('Erro ao enviar galeria:', err)
       setError(err.message)
@@ -197,6 +232,7 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
             </div>
 
             {error && <p className="text-sm text-red-600">{error}</p>}
+            {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
               <p className="text-xs text-gray-500">Ao enviar você concorda em compartilhar a imagem e parâmetros no site Quanton3D após revisão.</p>

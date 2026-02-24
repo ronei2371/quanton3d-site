@@ -28,8 +28,16 @@ import { motion } from 'framer-motion'
 import './App.css'
 
 const RAW_API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api')
-const API_BASE_URL = RAW_API_URL.replace(/\/$/, '')
-const PUBLIC_API_BASE = RAW_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '')
+const normalizeApiBaseUrl = (rawUrl) => {
+  if (!rawUrl) return 'https://quanton3d-bot-v2.onrender.com/api'
+  const trimmed = rawUrl.trim().replace(/\/$/, '')
+  if (/\/api$/i.test(trimmed)) {
+    return trimmed
+  }
+  return `${trimmed}/api`
+}
+const API_BASE_URL = normalizeApiBaseUrl(RAW_API_URL)
+const PUBLIC_API_BASE = API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '')
 
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
