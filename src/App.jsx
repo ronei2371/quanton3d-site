@@ -28,6 +28,7 @@ import { motion } from 'framer-motion'
 import './App.css'
 
 const RAW_API_URL = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api')
+const API_BASE_URL = RAW_API_URL.replace(/\/$/, '')
 const PUBLIC_API_BASE = RAW_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '')
 
 function App() {
@@ -81,11 +82,17 @@ function App() {
     setGalleryLoading(true)
     setGalleryError(null)
     try {
-      const response = await fetch(`${PUBLIC_API_BASE}/visual-knowledge?limit=50`)
+      const response = await fetch(`${API_BASE_URL}/visual-knowledge?limit=50`)
+      const text = await response.text()
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
-      const data = await response.json()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        throw new Error('Resposta inesperada do servidor ao carregar a galeria.')
+      }
       const normalized = Array.isArray(data.items) ? data.items : []
       const formatted = normalized
         .map(item => ({
@@ -328,7 +335,7 @@ function App() {
             <GallerySubmitModal 
               isOpen={isGallerySubmitOpen}
               onClose={() => setIsGallerySubmitOpen(false)}
-              apiBaseUrl={PUBLIC_API_BASE}
+              apiBaseUrl={API_BASE_URL}
               onSuccess={handleGallerySubmissionSuccess}
             />
 
