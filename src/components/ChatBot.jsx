@@ -23,6 +23,14 @@ const CHAT_MODEL = (import.meta.env.VITE_CHAT_MODEL || '').trim() || null;
 const STORAGE_KEY = 'quanton3d-chat-state';
 const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
 
+const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+  if (!file) return resolve(null);
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
 const getInitialMessageText = (mode) => {
   if (mode === 'suporte') {
     return 'Olá! Sou o QuantonBot3D IA. Como posso ajudar com seu problema técnico ou dúvida sobre resinas?';
@@ -40,8 +48,10 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const [error, setError] = useState(null);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [suggestionText, setSuggestionText] = useState('');
+  const [suggestionImage, setSuggestionImage] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const fileInputRef = useRef(null);
+  const suggestionFileInputRef = useRef(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
   const [userData, setUserData] = useState(initialUserData);
@@ -307,6 +317,13 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     }
   };
 
+  const handleSuggestionImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSuggestionImage(file);
+    }
+  };
+
   const resetConversation = () => {
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     setSessionId(newSessionId);
@@ -316,6 +333,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     setShowUserForm(true);
     setShowWelcomeScreen(false);
     setSelectedImage(null);
+    setSuggestionImage(null);
     setShowSuggestion(false);
     setSuggestionText('');
     setError(null);
@@ -365,6 +383,11 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const handleSuggestionSubmit = async () => {
     if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
     
+    if (!suggestionImage) {
+      alert('Envie uma foto do problema para que o time técnico possa analisar.');
+      return;
+    }
+
     // Verificar se ha contexto de conversa
     if (!lastUserMessage && !lastBotReply) {
       alert('Por favor, faca uma pergunta primeiro antes de enviar uma sugestao de correcao.');
@@ -373,6 +396,11 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
     
     setIsLoading(true);
     try {
+      const attachment = await fileToDataUrl(suggestionImage);
+      if (!attachment) {
+        throw new Error('Não foi possível anexar a foto. Tente novamente.');
+      }
+
       // Enviar sugestao com contexto completo (pergunta + resposta + dados do usuario)
       const payload = {
         suggestion: suggestionText,
@@ -380,7 +408,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         userPhone: userData?.phone || null,
         sessionId,
         lastUserMessage,
-        lastBotReply
+        lastBotReply,
+        attachment
       };
       
       const response = await fetch(SUGGESTION_ENDPOINT, {
@@ -392,6 +421,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
       const data = await response.json();
       alert(data.message || 'Obrigado! Sua sugestão foi enviada.');
       setSuggestionText('');
+      setSuggestionImage(null);
       setShowSuggestion(false);
     } catch (error) {
       console.error('Erro ao enviar sugestão:', error);
@@ -694,9 +724,49 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
                   placeholder="Ex: A resina X funciona bem com..."
                   disabled={isLoading}
                 />
-                <div className="flex justify-end gap-2 mt-2">
+
+                <div className="mt-3">
+                  <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1">Anexe uma foto do problema *</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={suggestionFileInputRef}
+                    onChange={handleSuggestionImageSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => suggestionFileInputRef.current?.click()}
+                    className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md"
+                    disabled={isLoading}
+                  >
+                    {suggestionImage ? 'Trocar foto' : 'Selecionar foto'}
+                  </button>
+
+                  {suggestionImage && (
+                    <div className="mt-2 relative inline-block">
+                      <img
+                        src={URL.createObjectURL(suggestionImage)}
+                        alt="Sugestão"
+                        className="w-24 h-24 object-cover rounded-lg border-2 border-yellow-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSuggestionImage(null)}
+                        className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 mt-3">
                   <button 
-                    onClick={() => setShowSuggestion(false)}
+                    onClick={() => {
+                      setShowSuggestion(false)
+                      setSuggestionImage(null)
+                    }}
                     className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-gray-400 to-gray-500 text-white hover:from-gray-500 hover:to-gray-600 font-semibold shadow-md transition-all"
                     disabled={isLoading}
                   >
@@ -716,7 +786,12 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
         </AnimatePresence>
 
         <button 
-          onClick={() => setShowSuggestion(!showSuggestion)}
+          onClick={() => {
+            if (showSuggestion) {
+              setSuggestionImage(null)
+            }
+            setShowSuggestion(!showSuggestion)
+          }}
           className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg transition-all ${showSuggestion ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
         >
           <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />

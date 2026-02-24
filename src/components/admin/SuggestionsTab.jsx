@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Calendar, Check, Clock, Edit3, Phone, User, X } from 'lucide-react'
+import { Calendar, Check, Clock, Edit3, Phone, User, X, Image as ImageIcon, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
 
 const normalizeSuggestion = (item = {}) => {
@@ -28,7 +28,11 @@ const normalizeSuggestion = (item = {}) => {
   }
 }
 
-const isImage = (url = '') => /(png|jpg|jpeg|gif|webp)$/i.test(url.split('?')[0])
+const isImage = (url = '') => {
+  if (!url) return false
+  if (url.startsWith('data:image')) return true
+  return /(png|jpg|jpeg|gif|webp)$/i.test(url.split('?')[0])
+}
 
 export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey, adminToken }) {
   const [suggestions, setSuggestions] = useState([])
@@ -184,10 +188,47 @@ export function SuggestionsTab({ buildAdminUrl, isAdmin, isVisible, onCountChang
               <p className="text-sm whitespace-pre-wrap">{suggestion.lastBotReply || 'Resposta não disponível'}</p>
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-3">
               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">SUGESTÃO DO CLIENTE</p>
               <p className="text-sm whitespace-pre-wrap">{suggestion.suggestion}</p>
             </div>
+
+            {suggestion.attachments?.length > 0 && (
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-dashed border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
+                  <Paperclip className="h-3 w-3" /> ANEXOS
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {suggestion.attachments.map((attachment, index) => (
+                    isImage(attachment) ? (
+                      <a
+                        key={index}
+                        href={attachment}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={attachment}
+                          alt={`Anexo ${index + 1}`}
+                          className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700 hover:opacity-90 transition"
+                        />
+                      </a>
+                    ) : (
+                      <a
+                        key={index}
+                        href={attachment}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 underline"
+                      >
+                        <ImageIcon className="h-4 w-4" /> Abrir anexo {index + 1}
+                      </a>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
 
             {suggestion.status === 'pending' && (
               <>
