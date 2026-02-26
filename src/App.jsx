@@ -24,6 +24,7 @@ import { AdminPanel } from '@/components/AdminPanel.jsx'
 import { AuthWrapper } from '@/components/AuthWrapper.jsx'
 import { GalleryModal } from '@/components/GalleryModal.jsx'
 import { GallerySubmitModal } from '@/components/GallerySubmitModal.jsx'
+import { ImproveKnowledgeModal } from '@/components/ImproveKnowledgeModal.jsx'
 import { Beaker, Cpu, Sparkles, ChevronRight, Shield, Camera } from 'lucide-react'
 import { motion } from 'framer-motion'
 import './App.css'
@@ -59,6 +60,8 @@ function App() {
     const [gallerySuccessMessage, setGallerySuccessMessage] = useState('')
     const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false)
     const [userProfile, setUserProfile] = useState(null)
+    const [isImproveModalOpen, setIsImproveModalOpen] = useState(false)
+    const [lastBotContext, setLastBotContext] = useState({ user: '', bot: '' })
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -162,6 +165,12 @@ function App() {
       <UserRegistrationModal 
         isPrivacyAccepted={isPrivacyAccepted}
         onComplete={(profile) => setUserProfile(profile)}
+      />
+      <ImproveKnowledgeModal 
+        isOpen={isImproveModalOpen}
+        onClose={() => setIsImproveModalOpen(false)}
+        lastUserMessage={lastBotContext.user}
+        lastBotReply={lastBotContext.bot}
       />
       <WelcomeModal />
       <QualityModal isOpen={isQualityModalOpen} onClose={() => setIsQualityModalOpen(false)} />
@@ -357,6 +366,8 @@ function App() {
         setIsOpen={setIsChatOpen} 
         mode={chatMode}
         userProfile={userProfile}
+        onImproveKnowledge={() => setIsImproveModalOpen(true)}
+        onConversationSnapshot={(snapshot) => setLastBotContext(snapshot)}
       />
       <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
       <ServiceModal 
