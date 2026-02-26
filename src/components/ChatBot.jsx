@@ -388,6 +388,19 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     }
   };
 
+  const copyLastMessages = () => {
+    if (!lastUserMessage && !lastBotReply) {
+      alert('Ainda não existe conversa para copiar. Faça uma pergunta primeiro.');
+      return;
+    }
+    const textToCopy = [`Pergunta do cliente: ${lastUserMessage || '(vazia)'}`, `Resposta do bot: ${lastBotReply || '(vazia)'}`].join('\n\n');
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setError(null);
+    }).catch(() => {
+      alert('Não consegui copiar automaticamente. Pode selecionar o texto manualmente.');
+    });
+  };
+
   const handleSuggestionSubmit = async () => {
     if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
     
