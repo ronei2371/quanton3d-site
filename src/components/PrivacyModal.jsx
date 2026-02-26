@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { Shield, FileText, CheckCircle2 } from 'lucide-react'
 
-export function PrivacyModal() {
+export function PrivacyModal({ onAccepted }) {
   const [isOpen, setIsOpen] = useState(false)
   const [hasAccepted, setHasAccepted] = useState(false)
 
@@ -15,14 +15,17 @@ export function PrivacyModal() {
       setIsOpen(true)
     } else {
       setHasAccepted(true)
+      setIsOpen(false)
+      onAccepted?.()
     }
-  }, [])
+  }, [onAccepted])
 
   const handleAccept = () => {
     localStorage.setItem('quanton3d_privacy_accepted', 'true')
     localStorage.setItem('quanton3d_privacy_date', new Date().toISOString())
     setHasAccepted(true)
     setIsOpen(false)
+    onAccepted?.()
   }
 
   const handleDecline = () => {

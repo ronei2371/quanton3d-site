@@ -2,7 +2,7 @@
 // (Código FINAL que conserta o cabeçalho, robô, lógica e a leitura de dados)
 // REDESIGN COMPLETO - Build: 2025-12-15 00:48 UTC
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
 import { ChatBot } from '@/components/ChatBot.jsx'
@@ -11,6 +11,7 @@ import TechnicalTabs from '@/components/TechnicalTabs.jsx'
 import { DocumentsSection } from '@/components/DocumentsSection.jsx'
 import { ServiceModal } from '@/components/ServiceModal.jsx'
 import { PrivacyModal } from '@/components/PrivacyModal.jsx'
+import { UserRegistrationModal } from '@/components/UserRegistrationModal.jsx'
 import { WelcomeModal } from '@/components/WelcomeModal.jsx'
 import { QualityModal } from '@/components/QualityModal.jsx'
 import { TechnicalSupportModal } from '@/components/TechnicalSupportModal.jsx'
@@ -56,6 +57,33 @@ function App() {
     const [galleryLoading, setGalleryLoading] = useState(false)
     const [galleryError, setGalleryError] = useState(null)
     const [gallerySuccessMessage, setGallerySuccessMessage] = useState('')
+    const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false)
+    const [userProfile, setUserProfile] = useState(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const accepted = localStorage.getItem('quanton3d_privacy_accepted') === 'true'
+    setIsPrivacyAccepted(accepted)
+    const storedProfile = localStorage.getItem('quanton3d_user_profile')
+    if (storedProfile) {
+      try {
+        setUserProfile(JSON.parse(storedProfile))
+      } catch (err) {
+        console.warn('Não foi possível ler o cadastro salvo:', err)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handler = (event) => {
+      if (event?.detail) {
+        setUserProfile(event.detail)
+      }
+    }
+    window.addEventListener('quanton3d:user-registered', handler)
+    return () => window.removeEventListener('quanton3d:user-registered', handler)
+  }, [])
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -130,7 +158,11 @@ function App() {
   return (
     <div className="min-h-screen" style={{ backgroundImage: 'url(/images/hero-background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       
-      <PrivacyModal />
+      <PrivacyModal onAccepted={() => setIsPrivacyAccepted(true)} />
+      <UserRegistrationModal 
+        isPrivacyAccepted={isPrivacyAccepted}
+        onComplete={(profile) => setUserProfile(profile)}
+      />
       <WelcomeModal />
       <QualityModal isOpen={isQualityModalOpen} onClose={() => setIsQualityModalOpen(false)} />
       <TechnicalSupportModal isOpen={isTechSupportModalOpen} onClose={() => setIsTechSupportModalOpen(false)} />
@@ -320,7 +352,12 @@ function App() {
       </footer>
 
       {/* ChatBot, Menu Selector, Service Modal, Privacy Modal */}
-      <ChatBot isOpen={isChatOpen} setIsOpen={setIsChatOpen} mode={chatMode} />
+      <ChatBot 
+        isOpen={isChatOpen} 
+        setIsOpen={setIsChatOpen} 
+        mode={chatMode}
+        userProfile={userProfile}
+      />
       <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
       <ServiceModal 
         isOpen={modalService !== null} 
