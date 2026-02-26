@@ -2,7 +2,7 @@
 // (Código com correção de caminho do robot-icon.png)
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus, RefreshCcw } from 'lucide-react';
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus, RefreshCcw, MessageSquarePlus, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
