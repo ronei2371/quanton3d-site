@@ -41,7 +41,7 @@ const getInitialMessageText = (mode) => {
   return 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
 };
 
-export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = null }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +58,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
   const [userRegistered, setUserRegistered] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [sessionId, setSessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+  const hasExternalProfile = Boolean(userProfile && (userProfile.email || userProfile.phone));
   // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [lastBotReply, setLastBotReply] = useState('');
@@ -102,13 +103,20 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte' }) {
 
     if (!restored) {
       setMessages([{ id: 1, sender: 'bot', text: getInitialMessageText(mode) }]);
-      // Mostrar formulário de cadastro imediatamente ao abrir o chat
-      if (!userRegistered) {
+      if (!userRegistered && !hasExternalProfile) {
         registrationTimeoutRef.current = setTimeout(() => setShowUserForm(true), 500);
       }
     }
     initializedRef.current = true;
-  }, [mode, userRegistered, setSessionId]);
+  }, [mode, userRegistered, hasExternalProfile, setSessionId]);
+
+  useEffect(() => {
+    if (hasExternalProfile) {
+      setUserData((prev) => ({ ...prev, ...userProfile }));
+      setUserRegistered(true);
+      setShowUserForm(false);
+    }
+  }, [hasExternalProfile, userProfile]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !initializedRef.current) return;
