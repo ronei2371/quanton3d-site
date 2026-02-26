@@ -41,7 +41,7 @@ const getInitialMessageText = (mode) => {
   return 'Olá! Sou o QuantonBot3D. Como posso ajudar?';
 };
 
-export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = null, onImproveKnowledge = () => {}, onConversationSnapshot = () => {} }) {
+export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = null, showInternalActions = false, onImproveKnowledge = () => {}, onConversationSnapshot = () => {} }) {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -862,22 +862,24 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
           )}
         </AnimatePresence>
 
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <button
-            type="button"
-            onClick={onImproveKnowledge}
-            className="px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center gap-2 shadow hover:scale-105"
-          >
-            <MessageSquarePlus size={14} /> Complementar conhecimento
-          </button>
-          <button
-            type="button"
-            onClick={copyLastMessages}
-            className="px-3 py-1.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center gap-2"
-          >
-            <Copy size={12} /> Copiar conversa atual
-          </button>
-        </div>
+        {showInternalActions && (
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <button
+              type="button"
+              onClick={onImproveKnowledge}
+              className="px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center gap-2 shadow hover:scale-105"
+            >
+              <MessageSquarePlus size={14} /> Complementar conhecimento
+            </button>
+            <button
+              type="button"
+              onClick={copyLastMessages}
+              className="px-3 py-1.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center gap-2"
+            >
+              <Copy size={12} /> Copiar conversa atual
+            </button>
+          </div>
+        )}
         
         {/* Input de Chat */}
         <form onSubmit={handleSubmit} className="flex gap-2">

@@ -97,9 +97,19 @@ export function ImproveKnowledgeModal({ isOpen, onClose, lastUserMessage = '', l
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      if (!response.ok) throw new Error('Falha ao enviar. Tente novamente em instantes.')
-      const data = await response.json()
-      setSuccessMessage(data.message || 'Enviado! Já vai para revisão do Ronei.')
+      const raw = await response.text()
+      let data = null
+      if (raw) {
+        try {
+          data = JSON.parse(raw)
+        } catch (parseError) {
+          console.warn('Resposta sem JSON em /suggest-knowledge:', raw)
+        }
+      }
+      if (!response.ok) {
+        throw new Error(data?.error || raw || 'Falha ao enviar. Tente novamente em instantes.')
+      }
+      setSuccessMessage(data?.message || 'Enviado! Já vai para revisão do Ronei.')
       setFormData(initialForm)
       localStorage.removeItem(STORAGE_KEY)
     } catch (err) {

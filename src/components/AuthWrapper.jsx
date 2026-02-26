@@ -76,6 +76,11 @@ export function AuthWrapper({ children }) {
       if (data.success && data.token) {
         // Armazenar token
         localStorage.setItem('quanton3d_jwt_token', data.token)
+        try {
+          window.dispatchEvent(new Event('quanton3d:admin-login'))
+        } catch (eventError) {
+          console.warn('Não foi possível notificar login admin:', eventError)
+        }
         setIsAuthenticated(true)
         setPassword('')
       } else {
@@ -91,6 +96,11 @@ export function AuthWrapper({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('quanton3d_jwt_token')
+    try {
+      window.dispatchEvent(new Event('quanton3d:admin-logout'))
+    } catch (eventError) {
+      console.warn('Não foi possível notificar logout admin:', eventError)
+    }
     setIsAuthenticated(false)
     setPassword('')
     setError('')

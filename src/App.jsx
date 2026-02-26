@@ -62,6 +62,7 @@ function App() {
     const [userProfile, setUserProfile] = useState(null)
     const [isImproveModalOpen, setIsImproveModalOpen] = useState(false)
     const [lastBotContext, setLastBotContext] = useState({ user: '', bot: '' })
+    const [isAdminSession, setIsAdminSession] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -75,6 +76,7 @@ function App() {
         console.warn('Não foi possível ler o cadastro salvo:', err)
       }
     }
+    setIsAdminSession(Boolean(localStorage.getItem('quanton3d_jwt_token')))
   }, [])
 
   useEffect(() => {
@@ -85,8 +87,22 @@ function App() {
       }
     }
     window.addEventListener('quanton3d:user-registered', handler)
-    return () => window.removeEventListener('quanton3d:user-registered', handler)
+    const handleAdminLogin = () => setIsAdminSession(true)
+    const handleAdminLogout = () => setIsAdminSession(false)
+    window.addEventListener('quanton3d:admin-login', handleAdminLogin)
+    window.addEventListener('quanton3d:admin-logout', handleAdminLogout)
+    return () => {
+      window.removeEventListener('quanton3d:user-registered', handler)
+      window.removeEventListener('quanton3d:admin-login', handleAdminLogin)
+      window.removeEventListener('quanton3d:admin-logout', handleAdminLogout)
+    }
   }, [])
+
+  useEffect(() => {
+    if (!isAdminSession) {
+      setIsImproveModalOpen(false)
+    }
+  }, [isAdminSession])
 
   const handleMenuSelect = (option) => {
     setIsModalOpen(false); 
@@ -167,7 +183,7 @@ function App() {
         onComplete={(profile) => setUserProfile(profile)}
       />
       <ImproveKnowledgeModal 
-        isOpen={isImproveModalOpen}
+        isOpen={isAdminSession && isImproveModalOpen}
         onClose={() => setIsImproveModalOpen(false)}
         lastUserMessage={lastBotContext.user}
         lastBotReply={lastBotContext.bot}
@@ -366,7 +382,8 @@ function App() {
         setIsOpen={setIsChatOpen} 
         mode={chatMode}
         userProfile={userProfile}
-        onImproveKnowledge={() => setIsImproveModalOpen(true)}
+        showInternalActions={isAdminSession}
+        onImproveKnowledge={isAdminSession ? () => setIsImproveModalOpen(true) : undefined}
         onConversationSnapshot={(snapshot) => setLastBotContext(snapshot)}
       />
       <MenuSelector onSelect={handleMenuSelect} isChatOpen={isChatOpen} isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} />
