@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input.jsx'
 import { Lock, Loader2 } from 'lucide-react'
 
 const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+const DEFAULT_ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME || ''
+const DEFAULT_ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET_OVERRIDE || import.meta.env.VITE_ADMIN_SECRET || ''
 
 /**
  * AuthWrapper - Componente de autenticação JWT
@@ -14,7 +16,9 @@ const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 export function AuthWrapper({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [username, setUsername] = useState(DEFAULT_ADMIN_USERNAME)
   const [password, setPassword] = useState('')
+  const [adminSecret, setAdminSecret] = useState(DEFAULT_ADMIN_SECRET)
   const [error, setError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
 
@@ -60,15 +64,32 @@ export function AuthWrapper({ children }) {
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
+    const trimmedSecret = adminSecret.trim()
+    const trimmedUsername = username.trim()
+    if (!trimmedSecret && !trimmedUsername) {
+      setError('Informe o usuário administrativo ou um secret válido')
+      return
+    }
+    if (!password) {
+      setError('Informe a senha administrativa')
+      return
+    }
     setIsLoggingIn(true)
 
     try {
+      const payload = trimmedSecret
+        ? { password }
+        : { username: trimmedUsername, password }
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (trimmedSecret) {
+        headers['x-admin-secret'] = trimmedSecret
+      }
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ password })
+        headers,
+        body: JSON.stringify(payload)
       })
 
       const data = await response.json()
@@ -136,7 +157,17 @@ export function AuthWrapper({ children }) {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
+            <div className="space-y-3">
+              <Input
+                type="text"
+                placeholder="Usuário administrativo"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full"
+                disabled={isLoggingIn}
+                autoComplete="username"
+                autoFocus
+              />
               <Input
                 type="password"
                 placeholder="Senha do painel"
@@ -144,7 +175,16 @@ export function AuthWrapper({ children }) {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full"
                 disabled={isLoggingIn}
-                autoFocus
+                autoComplete="current-password"
+              />
+              <Input
+                type="text"
+                placeholder="Secret (opcional)"
+                value={adminSecret}
+                onChange={(e) => setAdminSecret(e.target.value)}
+                className="w-full"
+                disabled={isLoggingIn}
+                autoComplete="off"
               />
             </div>
 
@@ -157,7 +197,7 @@ export function AuthWrapper({ children }) {
             <Button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isLoggingIn || !password}
+              disabled={isLoggingIn || !password || (!adminSecret.trim() && !username.trim())}
             >
               {isLoggingIn ? (
                 <>

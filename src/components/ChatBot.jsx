@@ -2,7 +2,7 @@
 // (Código com correção de caminho do robot-icon.png)
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus, RefreshCcw, MessageSquarePlus, Copy } from 'lucide-react';
+import { Bot, Send, X, Mic, Lightbulb, ChevronsUpDown, User, BrainCircuit, ImagePlus, RefreshCcw, MessageSquarePlus, Copy, ThumbsUp, ThumbsDown, PlusCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // import robotIcon from '../assets/robot-icon.png'; // <-- LINHA DELETADA (A QUE CAUSAVA O ERRO)
 
@@ -62,6 +62,10 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
   // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [lastBotReply, setLastBotReply] = useState('');
+  const [feedbackPrompt, setFeedbackPrompt] = useState(null);
+  const [feedbackHistory, setFeedbackHistory] = useState({});
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [suggestionMode, setSuggestionMode] = useState('improve');
   
   const endOfMessagesRef = useRef(null);
   const inputRef = useRef(null);
@@ -163,6 +167,12 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     suggestionText,
     error
   ]);
+
+  useEffect(() => {
+    if (!feedbackMessage) return;
+    const timer = setTimeout(() => setFeedbackMessage(''), 4000);
+    return () => clearTimeout(timer);
+  }, [feedbackMessage]);
 
   useEffect(() => () => {
     if (registrationTimeoutRef.current) {
@@ -293,6 +303,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
       const botText = data.reply || data.response || 'Não consegui processar sua resposta.';
       const botMessage = { id: Date.now() + 1, sender: 'bot', text: botText };
       setMessages((prev) => [...prev, botMessage]);
+      setFeedbackPrompt({ messageId: botMessage.id });
+      setFeedbackMessage('');
       
       setLastUserMessage(userMessage.text);
       setLastBotReply(botText);
@@ -311,6 +323,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
         isError: true
       };
       setMessages((prev) => [...prev, errorMessage]);
+      setFeedbackPrompt(null);
       
       // Limpar erro após 5 segundos
       setTimeout(() => setError(null), 5000);
@@ -347,6 +360,10 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     setError(null);
     setLastUserMessage('');
     setLastBotReply('');
+    setFeedbackPrompt(null);
+    setFeedbackHistory({});
+    setFeedbackMessage('');
+    setSuggestionMode('improve');
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem(STORAGE_KEY);
@@ -404,7 +421,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
   const handleSuggestionSubmit = async () => {
     if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
     
-    if (!suggestionImage) {
+    const requiresImage = suggestionMode !== 'complement';
+    if (requiresImage && !suggestionImage) {
       alert('Envie uma foto do problema para que o time técnico possa analisar.');
       return;
     }
@@ -418,7 +436,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     setIsLoading(true);
     try {
       const attachment = await fileToDataUrl(suggestionImage);
-      if (!attachment) {
+      if (requiresImage && !attachment) {
         throw new Error('Não foi possível anexar a foto. Tente novamente.');
       }
 
@@ -430,7 +448,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
         sessionId,
         lastUserMessage,
         lastBotReply,
-        attachment
+        attachment,
+        mode: suggestionMode
       };
       
       const response = await fetch(SUGGESTION_ENDPOINT, {
@@ -444,12 +463,39 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
       setSuggestionText('');
       setSuggestionImage(null);
       setShowSuggestion(false);
+      setSuggestionMode('improve');
     } catch (error) {
       console.error('Erro ao enviar sugestão:', error);
       alert(error.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFeedbackAction = (action) => {
+    if (!feedbackPrompt?.messageId) return;
+    setFeedbackHistory((prev) => ({ ...prev, [feedbackPrompt.messageId]: action }));
+
+    if (action === 'approve') {
+      setFeedbackMessage('✅ Obrigado! Vamos considerar esta conversa resolvida.');
+    } else if (action === 'reject') {
+      setFeedbackMessage('⚠️ Vamos melhorar essa resposta. Conte o que faltou.');
+      setSuggestionMode('improve');
+      setShowSuggestion(true);
+      setSuggestionText('');
+      setSuggestionImage(null);
+    } else if (action === 'complement') {
+      setFeedbackMessage('➕ Adicione mais detalhes para continuarmos te ajudando.');
+      setSuggestionMode('complement');
+      setShowSuggestion(true);
+      setSuggestionText('');
+      setSuggestionImage(null);
+      if (showInternalActions && typeof onImproveKnowledge === 'function') {
+        onImproveKnowledge();
+      }
+    }
+
+    setFeedbackPrompt(null);
   };
 
 
@@ -734,8 +780,18 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
               className="overflow-hidden"
             >
               <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-200">
+                    {suggestionMode === 'complement' ? 'Complementar atendimento' : 'Sugerir novo conhecimento'}
+                  </span>
+                  {suggestionMode === 'complement' && (
+                    <span className="text-[10px] text-yellow-600 dark:text-yellow-300">Compartilhe mais detalhes para continuarmos</span>
+                  )}
+                </div>
                 <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
-                  Descreva a informação que você gostaria que fosse adicionada.
+                  {suggestionMode === 'complement'
+                    ? 'Conte o que ainda ficou faltando na resposta para que possamos complementar.'
+                    : 'Descreva a informação que você gostaria que fosse adicionada.'}
                 </p>
                 <textarea
                   value={suggestionText}
@@ -747,7 +803,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                 />
 
                 <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1">Anexe uma foto do problema *</p>
+                  <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                    {suggestionMode === 'complement' ? 'Envie uma imagem (opcional)' : 'Anexe uma foto do problema *'}
+                  </p>
                   <input
                     type="file"
                     accept="image/*"
@@ -787,6 +845,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                     onClick={() => {
                       setShowSuggestion(false)
                       setSuggestionImage(null)
+                      setSuggestionMode('improve')
                     }}
                     className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-gray-400 to-gray-500 text-white hover:from-gray-500 hover:to-gray-600 font-semibold shadow-md transition-all"
                     disabled={isLoading}
@@ -808,15 +867,55 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
 
         <button 
           onClick={() => {
-            if (showSuggestion) {
-              setSuggestionImage(null)
+            if (showSuggestion && suggestionMode === 'improve') {
+              setShowSuggestion(false);
+              setSuggestionImage(null);
+              return;
             }
-            setShowSuggestion(!showSuggestion)
+            setSuggestionMode('improve');
+            setShowSuggestion(true);
           }}
-          className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg transition-all ${showSuggestion ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+          className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg transition-all ${showSuggestion && suggestionMode === 'improve' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
         >
           <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
+
+        {feedbackPrompt && !feedbackHistory[feedbackPrompt.messageId] && (
+          <div className="mb-3 p-3 rounded-lg bg-blue-50 dark:bg-gray-700/40 border border-blue-200 dark:border-gray-600">
+            <p className="text-xs font-semibold text-blue-700 dark:text-blue-200">
+              Essa resposta ajudou?
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => handleFeedbackAction('approve')}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-emerald-500 text-white hover:bg-emerald-600 shadow"
+              >
+                <ThumbsUp size={14} /> Aprovar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFeedbackAction('reject')}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-red-500 text-white hover:bg-red-600 shadow"
+              >
+                <ThumbsDown size={14} /> Rejeitar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFeedbackAction('complement')}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-purple-500 text-white hover:bg-purple-600 shadow"
+              >
+                <PlusCircle size={14} /> Complementar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {feedbackMessage && (
+          <div className="mb-2 p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-[11px] text-blue-800 dark:text-blue-100 border border-blue-200 dark:border-blue-800">
+            {feedbackMessage}
+          </div>
+        )}
         
         {/* Preview da imagem selecionada */}
         {selectedImage && (

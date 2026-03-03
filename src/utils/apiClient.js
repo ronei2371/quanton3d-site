@@ -73,12 +73,16 @@ export async function sendMessageWithImage({ image, message, model, sessionId })
   }
 }
 
-export async function adminLogin(password) {
+export async function adminLogin({ username, password, secret } = {}) {
   try {
+    const payload = { password };
+    if (username) payload.username = username;
+    const headers = { "Content-Type": "application/json" };
+    if (secret) headers['x-admin-secret'] = secret;
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      headers,
+      body: JSON.stringify(payload),
     });
     const data = await response.json();
     if (data.token) tokenManager.setToken(data.token);

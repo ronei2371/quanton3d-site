@@ -218,6 +218,10 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 
 export function AdminPanel({ onClose }) {
   const autoAdminPassword = import.meta.env.VITE_ADMIN_AUTO_PASSWORD || 'quanton2026'
+  const autoAdminUsername = import.meta.env.VITE_ADMIN_AUTO_USERNAME || import.meta.env.VITE_ADMIN_USERNAME || ''
+  const autoAdminSecret = import.meta.env.VITE_ADMIN_AUTO_SECRET || import.meta.env.VITE_ADMIN_SECRET_OVERRIDE || import.meta.env.VITE_ADMIN_SECRET || ''
+  const defaultAdminUsername = import.meta.env.VITE_ADMIN_USERNAME || ''
+  const defaultAdminSecret = import.meta.env.VITE_ADMIN_SECRET_OVERRIDE || import.meta.env.VITE_ADMIN_SECRET || ''
   const defaultApiBase = deriveDefaultApiBase()
 
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '')
@@ -225,7 +229,9 @@ export function AdminPanel({ onClose }) {
   const [customApiBaseInput, setCustomApiBaseInput] = useState(() => apiBaseUrl || defaultApiBase)
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(adminToken))
   const [accessLevel, setAccessLevel] = useState('admin')
+  const [username, setUsername] = useState(defaultAdminUsername)
   const [password, setPassword] = useState('')
+  const [adminSecret, setAdminSecret] = useState(defaultAdminSecret)
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
 
   const safeAdminToken = adminToken
@@ -326,14 +332,32 @@ export function AdminPanel({ onClose }) {
   }, [apiBaseUrl, defaultApiBase])
 
   const handleLogin = async () => {
+    const trimmedSecret = adminSecret.trim()
+    const trimmedUsername = username.trim()
+
+    if (!trimmedSecret && !trimmedUsername) {
+      toast.error('Informe o usuário administrativo ou um secret válido.')
+      return
+    }
+    if (!password) {
+      toast.error('Informe a senha administrativa.')
+      return
+    }
     const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
     setApiBaseUrl(targetBase)
     setLoading(true)
     try {
+      const payload = trimmedSecret
+        ? { password }
+        : { username: trimmedUsername, password }
+      const headers = { 'Content-Type': 'application/json' }
+      if (trimmedSecret) {
+        headers['x-admin-secret'] = trimmedSecret
+      }
       const res = await fetch(`${targetBase}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        headers,
+        body: JSON.stringify(payload)
       })
       const data = await res.json()
 
@@ -381,13 +405,15 @@ export function AdminPanel({ onClose }) {
   }
 
   useEffect(() => {
-    if (!adminToken && !autoLoginAttempted && autoAdminPassword) {
+    if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
       const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
       setAutoLoginAttempted(true)
       fetch(`${targetBase}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: autoAdminPassword })
+        headers: autoAdminSecret
+          ? { 'Content-Type': 'application/json', 'x-admin-secret': autoAdminSecret }
+          : { 'Content-Type': 'application/json' },
+        body: JSON.stringify(autoAdminSecret ? { password: autoAdminPassword } : { username: autoAdminUsername, password: autoAdminPassword })
       })
         .then(async (res) => {
           if (!res.ok) return null
@@ -397,13 +423,16 @@ export function AdminPanel({ onClose }) {
             setAdminToken(data.token)
             setIsAuthenticated(true)
             setPassword('')
+            setUsername(autoAdminUsername)
             await refreshAllData(data.token)
           }
           return null
         })
         .catch((err) => console.error('Auto login falhou:', err))
+    } else if (!autoLoginAttempted) {
+      setAutoLoginAttempted(true)
     }
-  }, [adminToken, autoLoginAttempted, autoAdminPassword, customApiBaseInput, apiBaseUrl, defaultApiBase])
+  }, [adminToken, autoLoginAttempted, autoAdminPassword, autoAdminUsername, autoAdminSecret, customApiBaseInput, apiBaseUrl, defaultApiBase])
 
   useEffect(() => {
     if (isAuthenticated && safeAdminToken) {
@@ -687,13 +716,30 @@ export function AdminPanel({ onClose }) {
               onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
             />
             <Input
+              type="text"
+              placeholder="Usuário"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              autoComplete="username"
+            />
+            <Input
               type="password"
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              autoComplete="current-password"
             />
-            <Button onClick={handleLogin} disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">{loading ? 'Entrando...' : 'Entrar'}</Button>
+            <Input
+              type="text"
+              placeholder="Secret (opcional)"
+              value={adminSecret}
+              onChange={(e) => setAdminSecret(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              autoComplete="off"
+            />
+            <Button onClick={handleLogin} disabled={loading || (!adminSecret.trim() && !username.trim()) || !password} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">{loading ? 'Entrando...' : 'Entrar'}</Button>
           </div>
         </Card>
       </div>
