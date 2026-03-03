@@ -11,7 +11,7 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
   const loadContactMessages = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/admin/messages'), {
+      const response = await fetch(buildAdminUrl('/api/messages'), {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json()

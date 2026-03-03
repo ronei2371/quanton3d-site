@@ -444,7 +444,7 @@ export function AdminPanel({ onClose }) {
     try {
       const token = tokenToUse || safeAdminToken
       if (!token) return
-      const response = await fetch(buildAdminUrl('/api/admin/formulations'), {
+      const response = await fetch(buildAdminUrl('/api/formulations'), {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (handleUnauthorizedResponse(response.status)) return
