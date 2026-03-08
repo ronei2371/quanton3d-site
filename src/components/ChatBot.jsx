@@ -419,28 +419,20 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
   };
 
   const handleSuggestionSubmit = async () => {
-    if (!suggestionText.trim() || isLoading) { alert('Por favor, descreva sua sugestão.'); return; }
-    
-    const requiresImage = suggestionMode !== 'complement';
-    if (requiresImage && !suggestionImage) {
-      alert('Envie uma foto do problema para que o time técnico possa analisar.');
+    if (!suggestionText.trim() || isLoading) {
+      alert('Por favor, descreva sua sugestão.');
       return;
     }
 
-    // Verificar se ha contexto de conversa
     if (!lastUserMessage && !lastBotReply) {
-      alert('Por favor, faca uma pergunta primeiro antes de enviar uma sugestao de correcao.');
+      alert('Por favor, faça uma pergunta primeiro antes de enviar uma sugestão de correção.');
       return;
     }
     
     setIsLoading(true);
     try {
-      const attachment = await fileToDataUrl(suggestionImage);
-      if (requiresImage && !attachment) {
-        throw new Error('Não foi possível anexar a foto. Tente novamente.');
-      }
+      const attachment = suggestionImage ? await fileToDataUrl(suggestionImage) : null;
 
-      // Enviar sugestao com contexto completo (pergunta + resposta + dados do usuario)
       const payload = {
         suggestion: suggestionText,
         userName: userData?.name || 'Usuario do Site',
@@ -780,67 +772,69 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
               className="overflow-hidden"
             >
               <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-200">
-                    {suggestionMode === 'complement' ? 'Complementar atendimento' : 'Sugerir novo conhecimento'}
-                  </span>
-                  {suggestionMode === 'complement' && (
-                    <span className="text-[10px] text-yellow-600 dark:text-yellow-300">Compartilhe mais detalhes para continuarmos</span>
-                  )}
-                </div>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium mb-2">
-                  {suggestionMode === 'complement'
-                    ? 'Conte o que ainda ficou faltando na resposta para que possamos complementar.'
-                    : 'Descreva a informação que você gostaria que fosse adicionada.'}
-                </p>
-                <textarea
-                  value={suggestionText}
-                  onChange={(e) => setSuggestionText(e.target.value)}
-                  className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
-                  rows={3}
-                  placeholder="Ex: A resina X funciona bem com..."
-                  disabled={isLoading}
-                />
-
-                <div className="mt-3">
-                  <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1">
-                    {suggestionMode === 'complement' ? 'Envie uma imagem (opcional)' : 'Anexe uma foto do problema *'}
+                <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-200">
+                      {suggestionMode === 'complement' ? 'Complementar atendimento' : 'Sugerir novo conhecimento'}
+                    </span>
+                    {suggestionMode === 'complement' && (
+                      <span className="text-[10px] text-yellow-600 dark:text-yellow-300">Compartilhe mais detalhes para continuarmos</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">
+                    {suggestionMode === 'complement'
+                      ? 'Conte o que ainda ficou faltando na resposta para que possamos complementar.'
+                      : 'Descreva a informação que você gostaria que fosse adicionada.'}
                   </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={suggestionFileInputRef}
-                    onChange={handleSuggestionImageSelect}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => suggestionFileInputRef.current?.click()}
-                    className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md"
+                  <textarea
+                    value={suggestionText}
+                    onChange={(e) => setSuggestionText(e.target.value)}
+                    className="w-full p-2 border rounded text-sm dark:bg-gray-700 dark:border-gray-600"
+                    rows={3}
+                    placeholder="Ex: A resina X funciona bem com..."
                     disabled={isLoading}
-                  >
-                    {suggestionImage ? 'Trocar foto' : 'Selecionar foto'}
-                  </button>
+                  />
 
-                  {suggestionImage && (
-                    <div className="mt-2 relative inline-block">
-                      <img
-                        src={URL.createObjectURL(suggestionImage)}
-                        alt="Sugestão"
-                        className="w-24 h-24 object-cover rounded-lg border-2 border-yellow-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setSuggestionImage(null)}
-                        className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                      {suggestionMode === 'complement' ? 'Envie uma imagem (opcional)' : 'Anexe uma foto do problema'}
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={suggestionFileInputRef}
+                      onChange={handleSuggestionImageSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => suggestionFileInputRef.current?.click()}
+                      className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md"
+                      disabled={isLoading}
+                    >
+                      {suggestionImage ? 'Trocar foto' : 'Selecionar foto'}
+                    </button>
+
+                    {suggestionImage && (
+                      <div className="mt-2 relative inline-block">
+                        <img
+                          src={URL.createObjectURL(suggestionImage)}
+                          alt="Sugestão"
+                          className="w-24 h-24 object-cover rounded-lg border-2 border-yellow-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSuggestionImage(null)}
+                          className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex justify-end gap-2 mt-3">
+                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-yellow-200 dark:border-yellow-800">
                   <button 
                     onClick={() => {
                       setShowSuggestion(false)
