@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { X, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag, AlertTriangle, RefreshCw, Check } from 'lucide-react'
+import { Badge } from '@/components/ui/badge.jsx'
 import { toast } from 'sonner'
 import { PartnersManager } from './PartnersManager.jsx'
 import { MetricsTab } from './admin/MetricsTab.jsx'
@@ -299,6 +300,9 @@ export function AdminPanel({ onClose }) {
   const [newResinName, setNewResinName] = useState('')
   const [newPrinterBrand, setNewPrinterBrand] = useState('')
   const [newPrinterModel, setNewPrinterModel] = useState('')
+  const [ragStatus, setRagStatus] = useState(null)
+  const [ragLoading, setRagLoading] = useState(false)
+  const [ragError, setRagError] = useState('')
   const [editingProfile, setEditingProfile] = useState(null)
   const emptyProfileForm = {
     resinId: '',
@@ -359,6 +363,13 @@ export function AdminPanel({ onClose }) {
     })
     return url.toString()
   }, [apiBaseUrl, defaultApiBase])
+
+  const formatDateTime = (value) => {
+    if (!value) return '-'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return '-'
+    return parsed.toLocaleString('pt-BR')
+  }
 
   const handleLogin = async () => {
     const trimmedSecret = adminSecret.trim()
@@ -423,7 +434,8 @@ export function AdminPanel({ onClose }) {
         loadCustomRequests(tokenToUse),
         loadVisualKnowledge(tokenToUse),
         loadPendingVisualPhotos(tokenToUse),
-        loadParamsData(tokenToUse)
+        loadParamsData(tokenToUse),
+        loadRagStatus(tokenToUse)
       ])
       setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
@@ -468,6 +480,29 @@ export function AdminPanel({ onClose }) {
       refreshAllData()
     }
   }, [isAuthenticated, safeAdminToken])
+
+  const loadRagStatus = async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    setRagLoading(true)
+    setRagError('')
+    try {
+      const response = await fetch(buildAdminUrl('/rag-status'), {
+        headers: buildAuthHeaders({}, token)
+      })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || 'Erro ao carregar status do RAG')
+      }
+      setRagStatus(data.status)
+    } catch (error) {
+      console.error('Erro ao consultar RAG:', error)
+      setRagError(error.message)
+    } finally {
+      setRagLoading(false)
+    }
+  }
 
   const loadCustomRequests = async (tokenToUse) => {
     try {
@@ -866,6 +901,33 @@ export function AdminPanel({ onClose }) {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
+          {(ragStatus || ragError) && (
+            <div className="mb-6 space-y-2">
+              <Card className="p-4 flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Base de conhecimento (RAG)</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className={`px-3 py-1 ${ragStatus?.isHealthy ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {ragStatus?.isHealthy ? 'Saudável' : 'Monitorando'}
+                    </Badge>
+                    {ragLoading && <span className="text-xs text-gray-500 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin"/> Atualizando...</span>}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">Docs indexados: {ragStatus?.databaseEntries ?? 0} · Arquivos locais: {ragStatus?.knowledgeFiles ?? 0}</p>
+                  <p className="text-xs text-gray-500">Última verificação: {formatDateTime(ragStatus?.lastCheck)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 mb-2">Mongo: {ragStatus?.databaseStatus || 'desconhecido'}</p>
+                  <Button variant="outline" size="sm" onClick={() => loadRagStatus()} disabled={ragLoading}>Atualizar RAG</Button>
+                </div>
+              </Card>
+              {ragError && (
+                <Card className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm">
+                  {ragError}
+                </Card>
+              )}
+            </div>
+          )}
+
           {activeTab === 'metrics' && <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />}
           
           {activeTab === 'suggestions' && <SuggestionsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setSuggestionsCount} refreshKey={suggestionsRefreshKey} />}
