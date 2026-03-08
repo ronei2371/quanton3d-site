@@ -300,7 +300,18 @@ export function AdminPanel({ onClose }) {
   const [newPrinterBrand, setNewPrinterBrand] = useState('')
   const [newPrinterModel, setNewPrinterModel] = useState('')
   const [editingProfile, setEditingProfile] = useState(null)
-  const [profileFormData, setProfileFormData] = useState({})
+  const emptyProfileForm = {
+    resinId: '',
+    printerId: '',
+    brand: '',
+    model: '',
+    status: 'active',
+    layerHeightMm: '',
+    exposureTimeS: '',
+    baseExposureTimeS: '',
+    baseLayers: ''
+  }
+  const [profileFormData, setProfileFormData] = useState(emptyProfileForm)
   
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
@@ -628,6 +639,9 @@ export function AdminPanel({ onClose }) {
         profilesRes.json(),
         statsRes.json()
       ])
+      if (resinsData.warning) {
+        toast.warning(`Modo offline de resinas: ${resinsData.warning}`)
+      }
       if (resinsData.success) setParamsResins(resinsData.resins || [])
       if (printersData.success) setParamsPrinters(printersData.printers || [])
       if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
@@ -662,16 +676,28 @@ export function AdminPanel({ onClose }) {
 
   const addPrinter = async () => {
     if (!safeAdminToken) return
-    if (!newPrinterBrand.trim()) return
-    const response = await fetch(buildAdminUrl('/params/printers'), {
-      method: 'POST',
-      headers: buildAuthHeaders({'Content-Type': 'application/json'}),
-      body: JSON.stringify({brand: newPrinterBrand, model: newPrinterModel})
-    })
-    if (handleUnauthorizedResponse(response.status)) return
-    setNewPrinterBrand('')
-    setNewPrinterModel('')
-    loadParamsData()
+    if (!newPrinterBrand.trim() || !newPrinterModel.trim()) {
+      toast.error('Informe marca e modelo da impressora')
+      return
+    }
+    try {
+      const response = await fetch(buildAdminUrl('/params/printers'), {
+        method: 'POST',
+        headers: buildAuthHeaders({'Content-Type': 'application/json'}),
+        body: JSON.stringify({brand: newPrinterBrand, model: newPrinterModel})
+      })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || 'Erro ao adicionar impressora')
+      }
+      toast.success('Impressora adicionada!')
+      setNewPrinterBrand('')
+      setNewPrinterModel('')
+      loadParamsData()
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   const deletePrinter = async (id) => {
@@ -682,39 +708,89 @@ export function AdminPanel({ onClose }) {
     loadParamsData()
   }
 
-  const openEditProfile = (profile) => {
-    setEditingProfile(profile)
-    setProfileFormData({
-      resinId: profile.resinId || '',
-      printerId: profile.printerId || '',
-      status: profile.status || 'active',
-      ...profile.params
-    })
+  const openEditProfile = (profile = null) => {
+    if (profile && (profile.id || profile._id)) {
+      setEditingProfile(profile)
+      setProfileFormData({
+        resinId: profile.resinId || '',
+        printerId: profile.printerId || '',
+        brand: profile.brand || '',
+        model: profile.model || '',
+        status: profile.status || 'active',
+        layerHeightMm: profile.params?.layerHeightMm || '',
+        exposureTimeS: profile.params?.exposureTimeS || '',
+        baseExposureTimeS: profile.params?.baseExposureTimeS || profile.params?.bottomExposureS || '',
+        baseLayers: profile.params?.baseLayers || ''
+      })
+    } else {
+      setEditingProfile({ isNew: true })
+      setProfileFormData(emptyProfileForm)
+    }
   }
+
+  const buildProfilePayload = () => ({
+    resinId: profileFormData.resinId?.trim(),
+    printerId: profileFormData.printerId?.trim(),
+    brand: profileFormData.brand?.trim(),
+    model: profileFormData.model?.trim(),
+    status: profileFormData.status || 'active',
+    params: {
+      layerHeightMm: profileFormData.layerHeightMm,
+      exposureTimeS: profileFormData.exposureTimeS,
+      baseExposureTimeS: profileFormData.baseExposureTimeS,
+      baseLayers: profileFormData.baseLayers
+    }
+  })
 
   const saveProfile = async () => {
     if (!safeAdminToken) return
-    const response = await fetch(buildAdminUrl('/params/profiles'), {
-      method: 'POST',
-      headers: buildAuthHeaders({'Content-Type': 'application/json'}),
-      body: JSON.stringify({
-        resinId: profileFormData.resinId,
-        printerId: profileFormData.printerId,
-        status: profileFormData.status || 'active',
-        params: profileFormData
+    if (!profileFormData.resinId || !profileFormData.printerId) {
+      toast.error('Selecione resina e impressora')
+      return
+    }
+
+    const payload = buildProfilePayload()
+    const isEditingExisting = editingProfile && !editingProfile.isNew && (editingProfile.id || editingProfile._id)
+    const endpoint = isEditingExisting
+      ? `/params/profiles/${editingProfile.id || editingProfile._id}`
+      : '/params/profiles'
+    const method = isEditingExisting ? 'PATCH' : 'POST'
+
+    try {
+      const response = await fetch(buildAdminUrl(endpoint), {
+        method,
+        headers: buildAuthHeaders({'Content-Type': 'application/json'}),
+        body: JSON.stringify(payload)
       })
-    })
-    if (handleUnauthorizedResponse(response.status)) return
-    setEditingProfile(null)
-    loadParamsData()
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || 'Erro ao salvar perfil')
+      }
+      toast.success(isEditingExisting ? 'Perfil atualizado!' : 'Perfil criado!')
+      setEditingProfile(null)
+      setProfileFormData(emptyProfileForm)
+      loadParamsData()
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   const deleteProfile = async (id) => {
     if(!isAdmin || !safeAdminToken) return
     if(!confirm('Deletar?')) return
-    const response = await fetch(buildAdminUrl(`/params/profiles/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
-    if (handleUnauthorizedResponse(response.status)) return
-    loadParamsData()
+    try {
+      const response = await fetch(buildAdminUrl(`/params/profiles/${id}`), {method: 'DELETE', headers: buildAuthHeaders()})
+      if (handleUnauthorizedResponse(response.status)) return
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload?.error || 'Erro ao deletar perfil')
+      }
+      toast.success('Perfil removido')
+      loadParamsData()
+    } catch (error) {
+      toast.error(error.message)
+    }
   }
 
   if (!isAuthenticated) {
@@ -889,7 +965,7 @@ export function AdminPanel({ onClose }) {
               </div>
 
               <Card className="p-4">
-                <div className="flex justify-between mb-4"><h3 className="font-bold">Perfis</h3><Button onClick={()=>openEditProfile({})}>Novo</Button></div>
+                <div className="flex justify-between mb-4"><h3 className="font-bold">Perfis</h3><Button onClick={()=>openEditProfile(null)}>Novo</Button></div>
                 <table className="w-full text-sm">
                   <thead><tr><th>Resina</th><th>Impressora</th><th>Camada</th><th>Exp.</th><th>Ações</th></tr></thead>
                   <tbody>
@@ -906,7 +982,7 @@ export function AdminPanel({ onClose }) {
               {editingProfile && (
                 <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
                   <Card className="p-6 w-full max-w-lg bg-white dark:bg-gray-800 overflow-y-auto max-h-[90vh]">
-                    <h3 className="font-bold mb-4">Editar Perfil</h3>
+                    <h3 className="font-bold mb-4">{editingProfile?.isNew ? 'Novo Perfil' : 'Editar Perfil'}</h3>
                     <div className="grid grid-cols-2 gap-2">
                       <select value={profileFormData.resinId} onChange={e=>setProfileFormData({...profileFormData, resinId: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
                         <option value="">Resina...</option>{paramsResins.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
@@ -914,13 +990,20 @@ export function AdminPanel({ onClose }) {
                       <select value={profileFormData.printerId} onChange={e=>setProfileFormData({...profileFormData, printerId: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
                         <option value="">Impressora...</option>{paramsPrinters.map(p=><option key={p.id} value={p.id}>{p.brand} {p.model}</option>)}
                       </select>
+                      <Input placeholder="Marca" value={profileFormData.brand} onChange={e=>setProfileFormData({...profileFormData, brand: e.target.value})}/>
+                      <Input placeholder="Modelo" value={profileFormData.model} onChange={e=>setProfileFormData({...profileFormData, model: e.target.value})}/>
                       <Input placeholder="Camada (mm)" value={profileFormData.layerHeightMm} onChange={e=>setProfileFormData({...profileFormData, layerHeightMm: e.target.value})}/>
                       <Input placeholder="Expo (s)" value={profileFormData.exposureTimeS} onChange={e=>setProfileFormData({...profileFormData, exposureTimeS: e.target.value})}/>
                       <Input placeholder="Base (s)" value={profileFormData.baseExposureTimeS} onChange={e=>setProfileFormData({...profileFormData, baseExposureTimeS: e.target.value})}/>
                       <Input placeholder="Camadas Base" value={profileFormData.baseLayers} onChange={e=>setProfileFormData({...profileFormData, baseLayers: e.target.value})}/>
+                      <select value={profileFormData.status} onChange={e=>setProfileFormData({...profileFormData, status: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
+                        <option value="active">Ativo</option>
+                        <option value="draft">Rascunho</option>
+                        <option value="coming_soon">Coming Soon</option>
+                      </select>
                     </div>
                     <div className="flex justify-end gap-2 mt-4">
-                      <Button variant="outline" onClick={()=>setEditingProfile(null)}>Cancelar</Button>
+                      <Button variant="outline" onClick={()=>{setEditingProfile(null); setProfileFormData(emptyProfileForm)}}>Cancelar</Button>
                       <Button onClick={saveProfile}>Salvar</Button>
                     </div>
                   </Card>
