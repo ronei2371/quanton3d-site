@@ -315,6 +315,24 @@ export function AdminPanel({ onClose }) {
   
   const isAdmin = accessLevel === 'admin'
 
+  const resolveRequestDate = useCallback((request) => {
+    const raw = request?.createdAt || request?.date || request?.updatedAt
+    if (!raw) return 'Sem data'
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return 'Sem data'
+    return parsed.toLocaleString('pt-BR')
+  }, [])
+
+  const resolveRequestFeature = useCallback((request) => {
+    return request?.desiredFeature || request?.caracteristica || request?.details || request?.description || 'Sem detalhes'
+  }, [])
+
+  const resolveRequestPhone = useCallback((request) => {
+    const phone = request?.phone || request?.telefone || request?.whatsapp || ''
+    const digits = phone.replace(/\D/g, '')
+    return digits.length ? digits : ''
+  }, [])
+
   const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
     let finalPath = path.startsWith('/') ? path : `/${path}`
     const shouldSkipPrefix = finalPath.startsWith('/api') || finalPath.startsWith('/auth') || finalPath.startsWith('/admin') || finalPath.startsWith('/health')
@@ -913,13 +931,32 @@ export function AdminPanel({ onClose }) {
 
           {activeTab === 'custom' && (
             <div>
-              {customRequests.length === 0 ? <p className="text-center p-8 text-gray-500">Sem pedidos.</p> : customRequests.map((req, i) => (
-                <Card key={i} className="p-4 mb-4">
-                  <div className="flex justify-between"><h4 className="font-bold">{req.name}</h4><span className="text-xs">{new Date(req.createdAt).toLocaleDateString()}</span></div>
-                  <p className="text-sm">Característica: {req.caracteristica}</p>
-                  <Button size="sm" className="mt-2 bg-green-600" onClick={()=>window.open(`https://wa.me/55${req.phone}`)}><Phone className="h-4 w-4 mr-2"/> WhatsApp</Button>
-                </Card>
-              ))}
+              {customRequests.length === 0 ? <p className="text-center p-8 text-gray-500">Sem pedidos.</p> : customRequests.map((req, i) => {
+                const phoneDigits = resolveRequestPhone(req)
+                const featureText = resolveRequestFeature(req)
+                const requestDate = resolveRequestDate(req)
+
+                return (
+                  <Card key={req.id || i} className="p-4 mb-4">
+                    <div className="flex justify-between">
+                      <h4 className="font-bold">{req.name || 'Cliente'}</h4>
+                      <span className="text-xs">{requestDate}</span>
+                    </div>
+                    <p className="text-sm">Característica: {featureText}</p>
+                    {req.color && <p className="text-sm text-gray-600">Cor desejada: {req.color}</p>}
+                    {req.email && <p className="text-xs text-gray-500">Email: {req.email}</p>}
+                    {phoneDigits && (
+                      <Button
+                        size="sm"
+                        className="mt-2 bg-green-600"
+                        onClick={() => window.open(`https://wa.me/55${phoneDigits}`)}
+                      >
+                        <Phone className="h-4 w-4 mr-2" /> WhatsApp
+                      </Button>
+                    )}
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>
