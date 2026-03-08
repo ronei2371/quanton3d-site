@@ -112,6 +112,9 @@ export function ImproveKnowledgeModal({ isOpen, onClose, lastUserMessage = '', l
       setSuccessMessage(data?.message || 'Enviado! Já vai para revisão do Ronei.')
       setFormData(initialForm)
       localStorage.removeItem(STORAGE_KEY)
+      setTimeout(() => {
+        setSuccessMessage('')
+      }, 3000)
     } catch (err) {
       setError(err.message)
     } finally {
