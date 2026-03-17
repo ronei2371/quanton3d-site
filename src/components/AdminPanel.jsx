@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, Component } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -13,6 +13,28 @@ import { GalleryTab } from './admin/GalleryTab.jsx'
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
 
+// 🛡️ ERROR BOUNDARY SIMPLES
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+  
+  componentDidCatch(error, errorInfo) {
+    console.error('[ErrorBoundary]', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <div>Erro ao carregar componente.</div>;
+    }
+    return this.props.children;
+  }
+}
 const STORAGE_KEYS = {
   token: 'quanton3d_admin_token',
   apiBase: 'quanton3d_admin_api_base'
@@ -68,12 +90,18 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
       if (!response.ok) throw new Error(`Erro: ${response.status}`)
       let data
       try { data = JSON.parse(text) } catch { throw new Error('Erro JSON') }
-      const safeList = Array.isArray(data.documents) ? data.documents : []
+      
+      // ✅ MELHORIA: Mostra TODAS as fotos (aprovadas E pendentes)
+      const safeList = Array.isArray(data.documents) ? data.documents : 
+                       Array.isArray(data.photos) ? data.photos : 
+                       Array.isArray(data) ? data : []
+      
+      console.log('[GALERIA] Fotos carregadas:', safeList.length)
       setPhotos(safeList)
       if (onPendingCountChange) onPendingCountChange(safeList.filter(p => !p.approved).length)
     } catch (err) {
-      console.error(err)
-      setError('Erro ao carregar.')
+      console.error('[GALERIA] Erro:', err)
+      setError('Erro ao carregar fotos.')
       setPhotos([])
     } finally {
       setLoading(false)
@@ -1040,7 +1068,13 @@ export function AdminPanel({ onClose }) {
           
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           
-          {activeTab === 'partners' && <PartnersManager isAdmin={isAdmin} />}
+          {activeTab === 'partners' && (
+            <div className="p-4">
+              <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar a página ou contate o suporte.</p></div>}>
+                <PartnersManager isAdmin={isAdmin} />
+              </ErrorBoundary>
+            </div>
+          )}
 
           {/* VISUAL (MANTIDO) */}
           {activeTab === 'visual' && (
@@ -1144,10 +1178,10 @@ export function AdminPanel({ onClose }) {
                       </select>
                       <Input placeholder="Marca" value={profileFormData.brand} onChange={e=>setProfileFormData({...profileFormData, brand: e.target.value})}/>
                       <Input placeholder="Modelo" value={profileFormData.model} onChange={e=>setProfileFormData({...profileFormData, model: e.target.value})}/>
-                      <Input placeholder="Camada (mm)" value={profileFormData.layerHeightMm} onChange={e=>setProfileFormData({...profileFormData, layerHeightMm: e.target.value})}/>
-                      <Input placeholder="Expo (s)" value={profileFormData.exposureTimeS} onChange={e=>setProfileFormData({...profileFormData, exposureTimeS: e.target.value})}/>
-                      <Input placeholder="Base (s)" value={profileFormData.baseExposureTimeS} onChange={e=>setProfileFormData({...profileFormData, baseExposureTimeS: e.target.value})}/>
-                      <Input placeholder="Camadas Base" value={profileFormData.baseLayers} onChange={e=>setProfileFormData({...profileFormData, baseLayers: e.target.value})}/>
+                      <Input placeholder="Camada (mm)" value={profileFormData.layerHeightMm} onChange={e=>setProfileFormData({...profileFormData, layerHeightMm: e.target.value.replace(/[^\d.]/g, '')})}/>
+                      <Input placeholder="Expo (s)" value={profileFormData.exposureTimeS} onChange={e=>setProfileFormData({...profileFormData, exposureTimeS: e.target.value.replace(/[^\d.]/g, '')})}/>
+                      <Input placeholder="Base (s)" value={profileFormData.baseExposureTimeS} onChange={e=>setProfileFormData({...profileFormData, baseExposureTimeS: e.target.value.replace(/[^\d.]/g, '')})}/>
+                      <Input placeholder="Camadas Base" value={profileFormData.baseLayers} onChange={e=>setProfileFormData({...profileFormData, baseLayers: e.target.value.replace(/[^\d.]/g, '')})}/>
                       <select value={profileFormData.status} onChange={e=>setProfileFormData({...profileFormData, status: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
                         <option value="active">Ativo</option>
                         <option value="draft">Rascunho</option>
