@@ -290,6 +290,7 @@ export function AdminPanel({ onClose }) {
   const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
+  const [contacts, setContacts] = useState([])
 
   const [paramsLoading, setParamsLoading] = useState(false)
   const [paramsResins, setParamsResins] = useState([])
@@ -943,50 +944,75 @@ export function AdminPanel({ onClose }) {
                   <BarChart3 className="h-5 w-5" />
                   Origem dos Clientes
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Card Instagram */}
-                  <Card className="p-6 bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium opacity-90">📱 Instagram</span>
-                    </div>
-                    <div className="text-4xl font-bold">
-                      {contactCount > 0 ? (
-                        // Filtra contatos do estado contacts (quando disponível via ContactsTab)
-                        0 // Placeholder - será preenchido quando contacts estiver disponível
-                      ) : (
-                        0
-                      )}
-                    </div>
-                    <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                  </Card>
+                
+                {/* Calcula estatísticas de origem */}
+                {(() => {
+                  const marketingStats = {
+                    Instagram: contacts.filter(c => 
+                      c.origin?.toLowerCase() === 'instagram'
+                    ).length,
+                    YouTube: contacts.filter(c => 
+                      c.origin?.toLowerCase() === 'youtube'
+                    ).length,
+                    Google: contacts.filter(c => 
+                      c.origin?.toLowerCase() === 'google'
+                    ).length,
+                    Outros: contacts.filter(c => 
+                      c.origin && 
+                      c.origin.toLowerCase() !== 'instagram' && 
+                      c.origin.toLowerCase() !== 'youtube' && 
+                      c.origin.toLowerCase() !== 'google'
+                    ).length
+                  };
+                  
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Card Instagram */}
+                      <Card className="p-6 bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium opacity-90">📱 Instagram</span>
+                        </div>
+                        <div className="text-4xl font-bold">
+                          {marketingStats.Instagram}
+                        </div>
+                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                      </Card>
 
-                  {/* Card YouTube */}
-                  <Card className="p-6 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium opacity-90">🎥 YouTube</span>
-                    </div>
-                    <div className="text-4xl font-bold">0</div>
-                    <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                  </Card>
+                      {/* Card YouTube */}
+                      <Card className="p-6 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium opacity-90">🎥 YouTube</span>
+                        </div>
+                        <div className="text-4xl font-bold">
+                          {marketingStats.YouTube}
+                        </div>
+                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                      </Card>
 
-                  {/* Card Google */}
-                  <Card className="p-6 bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium opacity-90">🔍 Google</span>
-                    </div>
-                    <div className="text-4xl font-bold">0</div>
-                    <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                  </Card>
+                      {/* Card Google */}
+                      <Card className="p-6 bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium opacity-90">🔍 Google</span>
+                        </div>
+                        <div className="text-4xl font-bold">
+                          {marketingStats.Google}
+                        </div>
+                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                      </Card>
 
-                  {/* Card Outros */}
-                  <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium opacity-90">🌐 Outros</span>
+                      {/* Card Outros */}
+                      <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium opacity-90">🌐 Outros</span>
+                        </div>
+                        <div className="text-4xl font-bold">
+                          {marketingStats.Outros}
+                        </div>
+                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                      </Card>
                     </div>
-                    <div className="text-4xl font-bold">0</div>
-                    <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                  </Card>
-                </div>
+                  );
+                })()}
                 <p className="text-xs text-gray-500 mt-4 text-center">
                   💡 Para ver as métricas reais, acesse a aba "Contatos" primeiro para carregar os dados.
                 </p>
@@ -1012,7 +1038,7 @@ export function AdminPanel({ onClose }) {
           
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           
-          {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} refreshKey={contactRefreshKey} />}
+          {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           
           {activeTab === 'partners' && <PartnersManager isAdmin={isAdmin} />}
 
