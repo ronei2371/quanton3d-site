@@ -26,9 +26,9 @@ const normalizeBaseUrl = (value) => {
   } catch { return '' }
 }
 
+// CORREÇÃO: Forçamos o link do seu servidor oficial para evitar erro de login
 const deriveDefaultApiBase = () => {
-  const envUrl = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com'
-  return normalizeBaseUrl(envUrl)
+  return "https://quanton3d-bot-v2.onrender.com"
 }
 
 export function AdminPanel({ onClose }) {
@@ -39,13 +39,11 @@ export function AdminPanel({ onClose }) {
   const [activeTab, setActiveTab] = useState('metrics')
   const [loading, setLoading] = useState(false)
   
-  // Estados de dados
   const [contacts, setContacts] = useState([])
   const [paramsResins, setParamsResins] = useState([])
   const [paramsPrinters, setParamsPrinters] = useState([])
   const [paramsProfiles, setParamsProfiles] = useState([])
   
-  // Estados de formulário (Recuperados do seu original)
   const [editingProfile, setEditingProfile] = useState(null)
   const [newResinName, setNewResinName] = useState('')
   const [newPrinterBrand, setNewPrinterBrand] = useState('')
@@ -55,6 +53,15 @@ export function AdminPanel({ onClose }) {
     layerHeightMm: '', exposureTimeS: '', baseExposureTimeS: '', baseLayers: ''
   })
 
+  // Trava de segurança para limpar logins antigos que dão erro
+  useEffect(() => {
+    if (adminToken === 'undefined' || adminToken === 'null') {
+      localStorage.removeItem(STORAGE_KEYS.token);
+      setAdminToken('');
+      setIsAuthenticated(false);
+    }
+  }, [adminToken]);
+
   const buildAdminUrl = (path) => {
     const base = apiBaseUrl || defaultApiBase
     const cleanPath = path.startsWith('/') ? path : `/${path}`
@@ -62,7 +69,6 @@ export function AdminPanel({ onClose }) {
     return `${base}${finalPath}`
   }
 
-  // MÉTRICAS DE MARKETING (Instagram/YouTube)
   const marketingStats = useMemo(() => {
     const stats = { Instagram: 0, YouTube: 0, Google: 0, Outros: 0 }
     contacts.forEach(c => {
@@ -75,7 +81,7 @@ export function AdminPanel({ onClose }) {
     return stats
   }, [contacts])
 
-  // CORREÇÃO: Função que limpa o lixo "mmmmm" ao abrir para editar
+  // VACINA: Limpa o "mmmmm" na hora de editar
   const openEditProfile = (profile = null) => {
     if (profile && (profile.id || profile._id)) {
       setEditingProfile(profile)
@@ -113,101 +119,125 @@ export function AdminPanel({ onClose }) {
       if (dR.success) setParamsResins(dR.resins || [])
       if (dPr.success) setParamsPrinters(dPr.printers || [])
       if (dPf.success) setParamsProfiles(dPf.profiles || [])
-    } catch (err) { console.error("Erro ao sincronizar dados.") } finally { setLoading(false) }
+    } catch (err) { 
+      console.error("Erro na sincronização. Verificando acesso...");
+    } finally { setLoading(false) }
   }, [adminToken, apiBaseUrl])
 
   useEffect(() => { if (isAuthenticated) loadAllData() }, [isAuthenticated, loadAllData])
 
-  if (!isAuthenticated) return <div className="p-20 text-center">Aguardando login...</div>
+  const handleLogout = () => {
+    localStorage.removeItem(STORAGE_KEYS.token)
+    setAdminToken('')
+    setIsAuthenticated(false)
+  }
+
+  if (!isAuthenticated) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+      <Card className="p-8 bg-gray-800 border-gray-700 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500"/>
+        <h2 className="text-xl font-bold">Aguardando login administrativo...</h2>
+        <p className="text-gray-400 mt-2 text-sm">Se esta tela travar, tente limpar o cache do navegador.</p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">Tentar Reconectar</Button>
+      </Card>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 overflow-y-auto">
       <div className="container mx-auto max-w-7xl">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Quanton3D</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent italic tracking-tighter">QUANTON3D ADMIN</h1>
           <div className="flex gap-2">
             <Button onClick={loadAllData} variant="outline" size="sm"><RefreshCw className={loading ? 'animate-spin' : ''}/></Button>
+            <Button onClick={handleLogout} variant="destructive" size="sm">Sair</Button>
             <Button onClick={onClose} variant="ghost" size="sm"><X/></Button>
           </div>
         </div>
 
-        {/* NAVEGAÇÃO COMPLETA (Todas as suas abas originais + novidades) */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'outline'} size="sm"><BarChart3 className="mr-2 h-4 w-4"/> Métricas</Button>
           <Button onClick={() => setActiveTab('params')} variant={activeTab === 'params' ? 'default' : 'outline'} size="sm"><Beaker className="mr-2 h-4 w-4"/> Parâmetros</Button>
           <Button onClick={() => setActiveTab('contacts')} variant={activeTab === 'contacts' ? 'default' : 'outline'} size="sm"><Phone className="mr-2 h-4 w-4"/> Contatos</Button>
           <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'outline'} size="sm"><Camera className="mr-2 h-4 w-4"/> Galeria</Button>
-          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'outline'} size="sm"><ShoppingBag className="mr-2 h-4 w-4"/> Pedidos</Button>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200">
           
-          {/* ABA MÉTRICAS: Seu original + Painel de Marketing novo */}
           {activeTab === 'metrics' && (
             <div className="space-y-8">
               <MetricsTab apiToken={adminToken} buildAdminUrl={buildAdminUrl} />
               <div className="pt-6 border-t">
-                <h3 className="font-bold mb-4 flex gap-2 text-blue-600"><Share2 className="h-5 w-5"/> Origem dos Clientes (Marketing)</h3>
+                <h3 className="font-bold mb-4 flex gap-2 text-blue-600 items-center"><Share2 className="h-5 w-5"/> RESULTADOS DE MARKETING</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card className="p-4 border-t-2 border-pink-500">
-                    <p className="text-xs text-gray-500 flex justify-between">Instagram <Instagram size={14}/></p>
-                    <p className="text-2xl font-bold">{marketingStats.Instagram}</p>
+                  <Card className="p-4 border-t-2 border-pink-500 shadow-sm">
+                    <p className="text-xs text-gray-500 flex justify-between uppercase font-bold">Instagram <Instagram size={14}/></p>
+                    <p className="text-3xl font-black">{marketingStats.Instagram}</p>
                   </Card>
-                  <Card className="p-4 border-t-2 border-red-600">
-                    <p className="text-xs text-gray-500 flex justify-between">YouTube <Youtube size={14}/></p>
-                    <p className="text-2xl font-bold">{marketingStats.YouTube}</p>
+                  <Card className="p-4 border-t-2 border-red-600 shadow-sm">
+                    <p className="text-xs text-gray-500 flex justify-between uppercase font-bold">YouTube <Youtube size={14}/></p>
+                    <p className="text-3xl font-black">{marketingStats.YouTube}</p>
                   </Card>
-                  <Card className="p-4 border-t-2 border-blue-500">
-                    <p className="text-xs text-gray-500">Google</p>
-                    <p className="text-2xl font-bold">{marketingStats.Google}</p>
+                  <Card className="p-4 border-t-2 border-blue-500 shadow-sm">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Google</p>
+                    <p className="text-3xl font-black">{marketingStats.Google}</p>
                   </Card>
-                  <Card className="p-4 border-t-2 border-gray-400">
-                    <p className="text-xs text-gray-500">Outros</p>
-                    <p className="text-2xl font-bold">{marketingStats.Outros}</p>
+                  <Card className="p-4 border-t-2 border-gray-400 shadow-sm">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Outros</p>
+                    <p className="text-3xl font-black">{marketingStats.Outros}</p>
                   </Card>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ABA PARAMS: Toda a sua lógica original de gestão de resinas restaurada */}
           {activeTab === 'params' && (
             <div className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
-                <Card className="p-4">
-                  <h3 className="font-bold mb-2">Resinas</h3>
+                <Card className="p-4 bg-gray-50 dark:bg-gray-900/50">
+                  <h3 className="font-bold mb-2 flex items-center gap-2 text-blue-600"><Beaker size={16}/> Resinas</h3>
                   <div className="flex gap-2 mb-2">
-                    <Input value={newResinName} onChange={e=>setNewResinName(e.target.value)} placeholder="Nova Resina"/>
+                    <Input value={newResinName} onChange={e=>setNewResinName(e.target.value)} placeholder="Nova Resina" className="bg-white"/>
                     <Button size="sm"><Plus/></Button>
                   </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {paramsResins.map(r => <div key={r.id} className="flex justify-between p-2 border-b text-sm">{r.name} <Trash2 className="h-4 w-4 text-red-500 cursor-pointer"/></div>)}
+                  <div className="max-h-60 overflow-y-auto bg-white rounded-md border">
+                    {paramsResins.map(r => <div key={r.id} className="flex justify-between p-2 border-b text-sm last:border-0 hover:bg-gray-50">{r.name} <Trash2 className="h-4 w-4 text-red-500 cursor-pointer"/></div>)}
                   </div>
                 </Card>
-                <Card className="p-4">
-                  <h3 className="font-bold mb-2">Impressoras</h3>
+                <Card className="p-4 bg-gray-50 dark:bg-gray-900/50">
+                  <h3 className="font-bold mb-2 flex items-center gap-2 text-blue-600"><Camera size={16}/> Impressoras</h3>
                   <div className="flex gap-2 mb-2">
-                    <Input placeholder="Marca" value={newPrinterBrand} onChange={e=>setNewPrinterBrand(e.target.value)}/>
+                    <Input placeholder="Marca/Modelo" value={newPrinterBrand} onChange={e=>setNewPrinterBrand(e.target.value)} className="bg-white"/>
                     <Button size="sm"><Plus/></Button>
                   </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {paramsPrinters.map(p => <div key={p.id} className="flex justify-between p-2 border-b text-sm">{p.brand} {p.model} <Trash2 className="h-4 w-4 text-red-500 cursor-pointer"/></div>)}
+                  <div className="max-h-60 overflow-y-auto bg-white rounded-md border">
+                    {paramsPrinters.map(p => <div key={p.id} className="flex justify-between p-2 border-b text-sm last:border-0 hover:bg-gray-50">{p.brand} {p.model} <Trash2 className="h-4 w-4 text-red-500 cursor-pointer"/></div>)}
                   </div>
                 </Card>
               </div>
               <Card className="p-4">
-                <div className="flex justify-between mb-4">
-                   <h3 className="font-bold">Perfis de Impressão (Ajustados)</h3>
-                   <Button size="sm" onClick={() => openEditProfile(null)}>Novo Perfil</Button>
+                <div className="flex justify-between mb-4 items-center">
+                   <h3 className="font-bold text-lg">Perfis de Impressão (Modo Limpo)</h3>
+                   <Button size="sm" onClick={() => openEditProfile(null)} className="bg-blue-600">+ Novo Perfil</Button>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border">
                   <table className="w-full text-left text-sm">
-                    <thead><tr className="border-b bg-gray-50"><th>Resina</th><th>Impressora</th><th>Camada</th><th>Exp.</th><th>Ações</th></tr></thead>
+                    <thead><tr className="border-b bg-gray-100 dark:bg-gray-700 font-bold">
+                      <th className="p-3">Resina</th><th className="p-3">Impressora</th><th className="p-3">Camada</th><th className="p-3">Exp.</th><th className="p-3">Ações</th>
+                    </tr></thead>
                     <tbody>
                       {paramsProfiles.map(p => (
-                        <tr key={p.id} className="border-b hover:bg-gray-50">
-                          <td className="p-2">{p.resinName}</td><td className="p-2">{p.brand} {p.model}</td><td className="p-2">{p.params?.layerHeightMm}</td><td className="p-2">{p.params?.exposureTimeS}s</td>
-                          <td className="p-2"><Edit3 onClick={()=>openEditProfile(p)} className="h-4 w-4 cursor-pointer inline mr-2 text-blue-500"/><Trash2 className="h-4 w-4 text-red-500 cursor-pointer inline"/></td>
+                        <tr key={p.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <td className="p-3 font-medium">{p.resinName}</td>
+                          <td className="p-3">{p.brand} {p.model}</td>
+                          <td className="p-3 text-blue-600 font-mono">{p.params?.layerHeightMm}mm</td>
+                          <td className="p-3 font-mono">{p.params?.exposureTimeS}s</td>
+                          <td className="p-3">
+                            <div className="flex gap-3">
+                              <Edit3 onClick={()=>openEditProfile(p)} className="h-5 w-5 cursor-pointer text-blue-500 hover:scale-110 transition-transform"/>
+                              <Trash2 className="h-5 w-5 text-red-500 cursor-pointer hover:scale-110 transition-transform"/>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
