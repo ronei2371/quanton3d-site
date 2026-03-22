@@ -543,7 +543,8 @@ export function PartnersManager() {
       {/* Lista de Parceiros */}
       {!isCreating && !editingPartner && (
         <div className="space-y-4">
-          {partners.length === 0 ? (
+          {/* 🛡️ ESCUDO APLICADO AQUI NO .LENGTH E NO .MAP */}
+          {(partners || []).length === 0 ? (
             <Card className="p-12 text-center">
               <ImageIcon className="h-16 w-16 mx-auto mb-4 text-gray-300" />
               <p className="text-gray-600 mb-4">Nenhum parceiro cadastrado ainda</p>
@@ -553,7 +554,7 @@ export function PartnersManager() {
               </Button>
             </Card>
           ) : (
-            partners.map(partner => (
+            (partners || []).map(partner => (
               <Card key={partner._id} className="p-6">
                 <div className="flex gap-6">
                   {/* Imagem de Preview */}
