@@ -1,184 +1,222 @@
+import 'dotenv/config'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import chatRoutes from './src/routes/chatRoutes.js'
-
-// --- CORREÇÃO DO CODEX ---
-const dbModule = await import('./db.js')
-const db = dbModule.default ?? dbModule
-// -------------------------
-
-dotenv.config()
+import { apiRoutes } from './src/routes/apiRoutes.js'
+import { suggestionsRoutes } from './src/routes/suggestionsRoutes.js'
+import { authRoutes } from './src/routes/authRoutes.js'
+import { buildAdminRoutes } from './src/routes/adminRoutes.js'
+import { metrics } from './src/utils/metrics.js'
+import { connectToMongo, isConnected } from './db.js'
+import { initializeRAG, checkRAGIntegrity, bootstrapKnowledgeFromFile } from './rag-search.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const systemPrompt = `PERSONA: Você é Ronei Fonseca, especialista prático.
-REGRAS DE OURO (LEI ABSOLUTA):
-1. SOBRE RESINA SPARK (AMARELAMENTO): JAMAIS sugira curas longas. A regra é: Curas rápidas de 3 segundos, espere esfriar, repita 3 vezes. Dica: Colocar na água para evitar UV direto. NUNCA sugira 3-5 minutos.
-2. SOBRE PEÇAS OCAS/VAZAMENTO: O vazamento é resina presa. Solução: Furos de drenagem + Lavagem interna com SERINGA. PROIBIDO sugerir "escova macia" (risca e não limpa dentro) ou cura de 20 minutos (quebra a peça). Cura máx 5-7 min.
-3. SOBRE DESCOLAMENTO: Se soltou da mesa, é NIVELAMENTO ou EXPOSIÇÃO BASE. Não fale de suportes se a falha for na base.
-4. SOBRE LIXAR MESA: Só em último caso. Em Saturn 5/Ultra, foque no nivelamento automático e Z-offset.
-`
-const VISUAL_SYSTEM_PROMPT = systemPrompt
 
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 10000
 const MONGODB_URI = process.env.MONGODB_URI || ''
-const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || ''
-const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean) || []
+
+// ==========================================================
+// CORS - PERMITE O FRONTEND
+// ==========================================================
+const allowedOrigins = [
+  'https://quanton3dia.onrender.com',
+  'http://localhost:5173',
+  'https://quanton3d-bot-v2.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:10000'
+];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log(`⚠️ Origem bloqueada/desconhecida: ${origin}`);
+        // Mantém compatibilidade com clientes legados conforme correção do Codex
+        callback(null, true); 
       }
-
-      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        return callback(null, true)
-      }
-
-      return callback(new Error('Not allowed by CORS'))
     },
     credentials: true,
   })
 )
+
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-const requireAdmin = (req, res, next) => {
-  if (!ADMIN_API_TOKEN) {
-    return next()
-  }
-
-  const authHeader = req.headers.authorization || ''
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
-
-  if (token !== ADMIN_API_TOKEN) {
-    return res.status(401).json({ success: false, message: 'Não autorizado.' })
-  }
-
-  return next()
-}
-
-if (MONGODB_URI && typeof db.connectToMongo === 'function') {
-  db.connectToMongo(MONGODB_URI)
-    .then(() => {
-      console.log('[MongoDB] Conectado com sucesso')
-    })
-    .catch((error) => {
-      console.error('[MongoDB] Falha na conexão', error)
-    })
-} else if (MONGODB_URI) {
-  console.warn('[MongoDB] Helper connectToMongo indisponível; conexão não iniciada')
-} else {
-  console.warn('[MongoDB] MONGODB_URI não configurada; conexão não iniciada')
-}
-
-app.get('/resins', async (req, res) => {
-  if (typeof db.getParametrosCollection !== 'function') {
-    return res.status(503).json({
-      success: false,
-      message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
-    })
-  }
-
-  const collection = db.getParametrosCollection()
-
-  if (!collection) {
-    return res.status(503).json({
-      success: false,
-      message: 'Banco de dados indisponível. Tente novamente mais tarde.',
-    })
-  }
-
+// ==========================================================
+// HEALTH CHECK
+// ==========================================================
+app.get('/health', async (req, res) => {
   try {
-    const resins = await collection.find({}).toArray()
-    return res.status(200).json({ success: true, resins })
-  } catch (error) {
-    console.error('[RESINS] Falha ao carregar resinas', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao carregar resinas.',
+    const dbStatus = isConnected?.() ? 'connected' : 'disconnected'
+    res.json({
+      status: 'ok',
+      database: dbStatus,
+      timestamp: new Date().toISOString(),
+      port: PORT
     })
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message })
   }
 })
 
-app.get('/api/admin/messages', requireAdmin, async (_req, res) => {
-  if (typeof db.getContactsCollection !== 'function') {
-    return res.status(503).json({
-      success: false,
-      message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
-    })
-  }
-
-  const collection = db.getContactsCollection()
-
-  if (!collection) {
-    return res.status(503).json({
-      success: false,
-      message: 'Banco de dados indisponível. Tente novamente mais tarde.',
-    })
-  }
-
-  try {
-    const messages = await collection.find({}).sort({ createdAt: -1 }).toArray()
-    return res.status(200).json({ success: true, messages })
-  } catch (error) {
-    console.error('[ADMIN][MESSAGES] Falha ao carregar mensagens', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao carregar mensagens.',
-    })
-  }
+// ==========================================================
+// MÉTRICAS
+// ==========================================================
+app.get('/health/metrics', (req, res) => {
+  res.json({
+    success: true,
+    metrics: metrics.getStats(),
+    timestamp: new Date().toISOString()
+  })
 })
 
-app.get('/api/admin/formulations', requireAdmin, async (_req, res) => {
-  if (typeof db.getCustomRequestsCollection !== 'function') {
-    return res.status(503).json({
-      success: false,
-      message: 'Helpers do banco indisponíveis. Tente novamente mais tarde.',
-    })
-  }
+// ==========================================================
+// AUTENTICAÇÃO (SEM VALIDAÇÃO PARA PAINEL ANTIGO)
+// ==========================================================
+app.use('/auth', authRoutes)
 
-  const collection = db.getCustomRequestsCollection()
+// ==========================================================
+// ROTAS ADMIN - PAINEL ANTIGO (SEM /api/)
+// ==========================================================
+const adminRoutes = buildAdminRoutes()
 
-  if (!collection) {
-    return res.status(503).json({
-      success: false,
-      message: 'Banco de dados indisponível. Tente novamente mais tarde.',
-    })
-  }
+// Compatibilidade: painel antigo (/admin/*) e frontend novo (/api/*)
+app.use('/admin', adminRoutes)
+app.use('/api', adminRoutes)
 
-  try {
-    const formulations = await collection.find({}).sort({ createdAt: -1 }).toArray()
-    return res.status(200).json({ success: true, formulations })
-  } catch (error) {
-    console.error('[ADMIN][FORMULATIONS] Falha ao carregar formulações', error)
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao carregar formulações.',
-    })
+// ==========================================================
+// ROTAS DA API
+// ==========================================================
+
+// 🔄 DESVIO DE ROTAS (Corrige a alteração do Codex para Impressoras funcionarem)
+app.use((req, res, next) => {
+  const rewrites = {
+    '/api/params/printers': '/api/printers',
+    '/params/printers': '/printers',
+    '/api/params/profiles': '/api/profiles',
+    '/params/profiles': '/profiles',
+    '/api/params/stats': '/api/stats',
+    '/params/stats': '/stats'
+  };
+  if (rewrites[req.url]) {
+    req.url = rewrites[req.url];
   }
+  next();
+});
+
+app.use('/api', apiRoutes)
+app.use('/api', suggestionsRoutes)
+
+// Compatibilidade legado: alguns clientes públicos chamam sem prefixo /api
+app.get('/resins', (req, res, next) => {
+  req.url = '/resins'
+  apiRoutes(req, res, next)
 })
 
+app.get('/params/resins', (req, res, next) => {
+  req.url = '/params/resins'
+  apiRoutes(req, res, next)
+})
+
+// ==========================================================
+// ROTAS DO CHAT
+// ==========================================================
 app.use('/api', chatRoutes)
 app.use('/chat', chatRoutes)
 
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, 'dist')
+// ==========================================================
+// FRONTEND
+// ==========================================================
+const distPath = path.join(__dirname, 'dist')
+const adminPanelPath = path.join(__dirname, 'public', 'params-panel.html')
+app.use(express.static(distPath))
 
-  app.use(express.static(distPath))
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'))
+app.get(['/admin', '/admin/'], (req, res) => {
+  res.sendFile(adminPanelPath, (err) => {
+    if (err) {
+      res.sendFile(path.join(distPath, 'index.html'))
+    }
   })
-}
-
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Bot Quanton3D rodando na porta ${PORT}`)
 })
 
-export { app }
-export default server
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/admin/')) {
+    return res.status(404).json({ error: 'Rota não encontrada', path: req.path })
+  }
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Frontend não encontrado' })
+    }
+  })
+})
+
+// ==========================================================
+// INICIALIZAÇÃO
+// ==========================================================
+const startServer = async () => {
+  try {
+    console.log('\n🚀 INICIANDO QUANTON3D BOT...\n')
+
+    if (MONGODB_URI) {
+      await connectToMongo(MONGODB_URI)
+      console.log('[MongoDB] ✅ Conectado')
+      await new Promise(resolve => setTimeout(resolve, 2000))
+    } else {
+      console.warn('[MongoDB] ⚠️ MONGODB_URI não configurada')
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.log('[INIT] ⚠️ OPENAI_API_KEY não configurada')
+    } else {
+      console.log('[INIT] ✅ OpenAI API')
+    }
+
+    try {
+      if (isConnected()) {
+        await initializeRAG();
+        console.log('[INIT] ✅ RAG inicializado');
+
+        const ragStatus = await checkRAGIntegrity();
+        if (!ragStatus?.isValid || ragStatus.totalDocuments === 0) {
+          console.log('[INIT] ⚠️ Base de conhecimento vazia ou com embeddings faltando. Importando kb_index.json...');
+          try {
+            const bootstrapResult = await bootstrapKnowledgeFromFile();
+            console.log(`[INIT] 🔄 Bootstrap RAG: inseridos ${bootstrapResult.inserted || 0}, erros ${bootstrapResult.errors || 0}`);
+          } catch (bootstrapError) {
+            console.error('[INIT] ⚠️ Falha ao importar conhecimento local:', bootstrapError.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[INIT] ⚠️ RAG não disponível (continuando sem RAG)', error);
+    }
+
+    console.log('\n✨ Serviços prontos!\n')
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('═══════════════════════════════════════════════')
+      console.log('🤖 QUANTON3D BOT ONLINE!')
+      console.log('═══════════════════════════════════════════════')
+      console.log(`📡 Porta: ${PORT}`)
+      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`)
+      console.log(`💚 Health: /health`)
+      console.log(`🔐 Auth: /auth/login`)
+      console.log(`👤 Admin: /admin/*`)
+      console.log(`🤖 Chat: /api/ask`)
+      console.log('═══════════════════════════════════════════════\n')
+    })
+
+  } catch (error) {
+    console.error('\n❌ ERRO FATAL:', error)
+    process.exit(1)
+  }
+}
+
+startServer()
