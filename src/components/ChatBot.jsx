@@ -1,5 +1,3 @@
-[[reply_to_current]]
-```jsx
 // Arquivo: quanton3d-site/src/components/ChatBot.jsx
 // (Código com correção de caminho do robot-icon.png)
 
@@ -12,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const normalizeApiUrl = (rawUrl) => {
   const trimmed = (rawUrl || '').trim().replace(/\/+$/, '');
   if (!trimmed) return 'https://quanton3d-bot-v2.onrender.com/api';
-  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  return trimmed.endsWith('/api') ? trimmed : trimmed + '/api';
 };
 
 const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api');
@@ -61,6 +59,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
   const [phoneError, setPhoneError] = useState('');
   const [sessionId, setSessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
   const hasExternalProfile = Boolean(userProfile && (userProfile.email || userProfile.phone));
+  // Estado para armazenar ultima pergunta e resposta (para enviar nas sugestoes)
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [lastBotReply, setLastBotReply] = useState('');
   const [feedbackPrompt, setFeedbackPrompt] = useState(null);
@@ -76,6 +75,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
+  // Define a mensagem inicial com base no modo e restaura conversas salvas
   useEffect(() => {
     if (initializedRef.current) return;
 
@@ -184,6 +184,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     }
   }, []);
 
+
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -232,7 +233,10 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
             } else if (typeof errorPayload?.error === 'string') {
               errorMsg = errorPayload.error;
             }
-          } catch {}
+          } catch {
+            // Mantém a mensagem padrão quando não há JSON válido.
+          }
+
           if (response.status === 400) {
             errorMsg = errorMsg || '⚠️ Não foi possível validar a solicitação. Verifique os dados enviados.';
           } else if (response.status === 429) {
@@ -259,6 +263,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     e.preventDefault();
     if ((!inputValue.trim() && !selectedImage) || isLoading) return;
     
+    // Após a primeira resposta, exigimos cadastro para continuar
     if (hasReceivedFirstReply && !userRegistered && !hasExternalProfile) {
       setShowUserForm(true);
       setError('Antes de continuar, informe seu nome e telefone.');
@@ -274,7 +279,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-    setError(null);
+    setError(null); // Limpar erro anterior
     
     try {
       const messageText = inputValue || (selectedImage ? 'Analise esta imagem' : '');
@@ -311,7 +316,11 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
       onConversationSnapshot({ user: userMessage.text, bot: botText });
     } catch (error) {
       console.error('Erro na API:', error);
+      
+      // Definir erro no estado para exibir componente de erro
       setError(error.message || 'Erro ao processar sua mensagem.');
+      
+      // Também adicionar mensagem de erro no chat
       const errorMessage = { 
         id: Date.now() + 1, 
         sender: 'bot', 
@@ -320,6 +329,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
       };
       setMessages((prev) => [...prev, errorMessage]);
       setFeedbackPrompt(null);
+      
+      // Limpar erro após 5 segundos
       setTimeout(() => setError(null), 5000);
     } finally {
       setIsLoading(false);
@@ -402,7 +413,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
       if (response.ok) {
         setUserRegistered(true);
         setShowUserForm(false);
-        setShowWelcomeScreen(true);
+        setShowWelcomeScreen(true); // Mostrar tela de boas-vindas
       }
     } catch (error) {
       console.error('Erro ao registrar usuário:', error);
@@ -494,6 +505,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     setFeedbackPrompt(null);
   };
 
+
   if (!isOpen) {
     return null;
   }
@@ -503,11 +515,12 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
-      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md.max-h-[850px] shadow-2xl rounded-lg flex flex-col z-50 overflow-hidden"
+      className="fixed bottom-0 right-0 md:bottom-8 md:right-8 w-full h-full md:w-[520px] md:h-[85vh] md:max-h-[850px] shadow-2xl rounded-lg flex flex-col z-50 overflow-hidden"
     >
       {/* Header */}
       <div className="p-4 bg-gradient-to-r from-blue-700 to-purple-700 text-white flex justify-between items-center rounded-t-lg">
         <div className="flex items-center gap-3">
+          {/* ===== LINHA CORRIGIDA (caminho público) ===== */}
           <img src="/assets/robot-icon.png" alt="Bot" className="h-8 w-8" />
           <div>
             <h3 className="font-bold">Quanton3D IA</h3>
@@ -518,11 +531,11 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
           <button
             type="button"
             onClick={resetConversation}
-            className="px-3 py-2 text-xs font-semibold bg.white/15 hover:bg-white/25 text-white rounded-lg border border-white/20 flex items-center gap-2 transition-all"
+            className="px-3 py-2 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-lg border border-white/20 flex items-center gap-2 transition-all"
           >
             <RefreshCcw size={14} /> Nova conversa
           </button>
-          <button onClick={toggleOpen} className="text-white.opacity-70 hover:opacity-100">
+          <button onClick={toggleOpen} className="text-white opacity-70 hover:opacity-100">
             <X size={20} />
           </button>
         </div>
@@ -548,10 +561,17 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                 src="/robot-welcome-quanton.png"
                 alt="Quanton3D 24/7 com você"
                 className="w-full max-w-md mx-auto mb-6 rounded-lg shadow-lg"
-                animate={{ scale: [1, 1.02, 1], opacity: [0.95, 1, 0.95] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                animate={{ 
+                  scale: [1, 1.02, 1],
+                  opacity: [0.95, 1, 0.95]
+                }}
+                transition={{ 
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: 'easeInOut'
+                }}
               />
-              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text.transparent">
+              <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Bem-vindo(a), {userData.name}! 🎉
               </h2>
               <p className="text-lg text-gray-700 dark:text-gray-300 mb-6">
@@ -575,7 +595,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                   };
                   setMessages((prev) => [...prev, botMessage]);
                 }}
-                className="w-full p-4 bg-gradient.to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 font-bold text-lg shadow-lg"
+                className="w-full p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 font-bold text-lg shadow-lg"
               >
                 🚀 Começar Agora!
               </motion.button>
@@ -584,21 +604,22 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
         )}
       </AnimatePresence>
 
-      {/* Modal de Cadastro */}
+      {/* Modal de Cadastro de Usuário */}
       <AnimatePresence>
         {showUserForm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 flex items.center justify-center z-50 p-4"
+            className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white.dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full relative"
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl max-w-md w-full relative"
             >
+              {/* Botão X para fechar */}
               <button
                 onClick={() => setShowUserForm(false)}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
@@ -629,7 +650,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                     value={userData.phone}
                     onChange={(e) => {
                       setUserData({ ...userData, phone: e.target.value });
-                      setPhoneError('');
+                      setPhoneError(''); // Limpar erro ao digitar
                     }}
                     className={`w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white ${phoneError ? 'border-red-500 border-2' : ''}`}
                     required
@@ -648,7 +669,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                 <select
                   value={userData.problemType || ''}
                   onChange={(e) => setUserData({ ...userData, problemType: e.target.value })}
-                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark.border-gray-600 dark:text-white"
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="">Qual o seu problema? (opcional)</option>
                   <option value="Adesao">Adesão na plataforma</option>
@@ -661,7 +682,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                 <select
                   value={userData.resin}
                   onChange={(e) => setUserData({ ...userData, resin: e.target.value })}
-                  className="w-full p-3.border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   <option value="">Qual resina você utiliza? (opcional)</option>
                   <option value="Pyroblast+">Pyroblast+</option>
@@ -683,7 +704,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                 </select>
                 <button
                   type="submit"
-                  className="w-full p-3 bg-gradient.to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold"
+                  className="w-full p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold"
                 >
                   Enviar
                 </button>
@@ -693,7 +714,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
         )}
       </AnimatePresence>
 
-      {/* Área de Mensagens */}
+      {/* Area de Mensagens - Fundo com Circuitos (sem overlay para mostrar circuitos) */}
       <div 
         className="flex-1 p-4 overflow-y-auto space-y-4 relative"
         style={{ 
@@ -704,6 +725,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
           backgroundAttachment: 'local'
         }}
       >
+        {/* Sem overlay - circuitos sempre visiveis */}
         <div className="space-y-4 relative z-10">
           {messages.map((msg) => (
             <motion.div 
@@ -736,7 +758,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
               animate={{ opacity: 1, y: 0 }}
               className="flex justify-start"
             >
-              <div className="p-3 rounded-lg bg-gradient.to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-800 shadow-md">
+              <div className="p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 border border-blue-200 dark:border-blue-800 shadow-md">
                 <div className="flex gap-2 items-center">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
                   <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
@@ -750,8 +772,9 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
         </div>
       </div>
 
-      {/* Área inferior */}
+      {/* Botão de Sugestão (o "💡") */}
       <div className="p-3 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+        
         <AnimatePresence>
           {showSuggestion && (
              <motion.div
@@ -762,8 +785,8 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
             >
               <div className="p-3 mb-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
                 <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
-                  <div className="flex.items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-yellow-700.dark:text-yellow-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-200">
                       {suggestionMode === 'complement' ? 'Complementar atendimento' : 'Sugerir novo conhecimento'}
                     </span>
                     {suggestionMode === 'complement' && (
@@ -798,7 +821,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                     <button
                       type="button"
                       onClick={() => suggestionFileInputRef.current?.click()}
-                      className="text-xs px-3 py-2 rounded-lg bg-gradient.to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md"
+                      className="text-xs px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 shadow-md"
                       disabled={isLoading}
                     >
                       {suggestionImage ? 'Trocar foto' : 'Selecionar foto'}
@@ -814,7 +837,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                         <button
                           type="button"
                           onClick={() => setSuggestionImage(null)}
-                          className="absolute -top-2 -right-2 bg-gradient.to-r from-red-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg"
+                          className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg"
                         >
                           ×
                         </button>
@@ -826,18 +849,18 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
                 <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-yellow-200 dark:border-yellow-800">
                   <button 
                     onClick={() => {
-                      setShowSuggestion(false);
-                      setSuggestionImage(null);
-                      setSuggestionMode('improve');
+                      setShowSuggestion(false)
+                      setSuggestionImage(null)
+                      setSuggestionMode('improve')
                     }}
-                    className="text-xs px-4 py-2 rounded-lg bg-gradient.to-r from-gray-400 to-gray-500 text-white hover:from-gray-500.hover:to-gray-600 font-semibold shadow-md transition-all"
+                    className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-gray-400 to-gray-500 text-white hover:from-gray-500 hover:to-gray-600 font-semibold shadow-md transition-all"
                     disabled={isLoading}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSuggestionSubmit}
-                    className="text-xs px-4 py-2 rounded-lg bg-gradient.to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 font-semibold shadow-md transition-all"
+                    className="text-xs px-4 py-2 rounded-lg bg-gradient-to-r from-yellow-400 to-orange-500 text-white hover:from-yellow-500 hover:to-orange-600 font-semibold shadow-md transition-all"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Enviando...' : '✨ Enviar Sugestão'}
@@ -858,7 +881,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
             setSuggestionMode('improve');
             setShowSuggestion(true);
           }}
-          className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg.transition-all ${showSuggestion && suggestionMode === 'improve' ? 'bg-gradient.to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+          className={`flex items-center gap-2 text-xs mb-2 px-3 py-1.5 rounded-lg transition-all ${showSuggestion && suggestionMode === 'improve' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
         >
           <Lightbulb size={14} /> Sugerir Conhecimento <ChevronsUpDown size={14} />
         </button>
@@ -868,18 +891,18 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
             <p className="text-xs font-semibold text-blue-700 dark:text-blue-200">
               Essa resposta ajudou?
             </p>
-            <div className="flex flex-wrap gap-2.mt-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               <button
                 type="button"
                 onClick={() => handleFeedbackAction('approve')}
-                className="flex items.center gap-1 px-3 py-1.5 text-xs rounded-full.bg-emerald-500 text-white hover:bg-emerald-600 shadow"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-emerald-500 text-white hover:bg-emerald-600 shadow"
               >
                 <ThumbsUp size={14} /> Aprovar
               </button>
               <button
                 type="button"
                 onClick={() => handleFeedbackAction('reject')}
-                className="flex.items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-red-500 text-white hover:bg-red-600 shadow"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-red-500 text-white hover:bg-red-600 shadow"
               >
                 <ThumbsDown size={14} /> Rejeitar
               </button>
@@ -895,11 +918,12 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
         )}
 
         {feedbackMessage && (
-          <div className="mb-2 p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-[11px].text-blue-800 dark:text-blue-100 border border-blue-200 dark:border-blue-800">
+          <div className="mb-2 p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-[11px] text-blue-800 dark:text-blue-100 border border-blue-200 dark:border-blue-800">
             {feedbackMessage}
           </div>
         )}
         
+        {/* Preview da imagem selecionada */}
         {selectedImage && (
           <div className="mb-2 relative inline-block">
             <img 
@@ -909,13 +933,14 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
             />
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute -top-2 -right-2 bg-gradient.to-r from-red-500 to-pink-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow-lg hover:scale-110 transition-transform"
+              className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shadow-lg hover:scale-110 transition-transform"
             >
               ×
             </button>
           </div>
         )}
         
+        {/* Mensagem de Erro */}
         <AnimatePresence>
           {error && (
             <motion.div
@@ -924,7 +949,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
               exit={{ opacity: 0, y: -10 }}
               className="mb-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg"
             >
-              <div className="flex items.start gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-red-500 text-lg">⚠️</span>
                 <div className="flex-1">
                   <p className="text-sm text-red-700 dark:text-red-300 font-medium">
@@ -947,7 +972,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
             <button
               type="button"
               onClick={onImproveKnowledge}
-              className="px-3 py-1.5 text-xs rounded-full bg-gradient.to-r from-purple-500 to-pink-500 text-white flex items-center gap-2 shadow hover:scale-105"
+              className="px-3 py-1.5 text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center gap-2 shadow hover:scale-105"
             >
               <MessageSquarePlus size={14} /> Complementar conhecimento
             </button>
@@ -961,6 +986,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
           </div>
         )}
         
+        {/* Input de Chat */}
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="file"
@@ -972,7 +998,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-gradient.to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:bg-gray-400.shadow-md transition-all hover:scale-105"
+            className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:bg-gray-400 shadow-md transition-all hover:scale-105"
             disabled={isLoading}
           >
             <ImagePlus size={20} />
@@ -988,7 +1014,7 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
           />
           <button
             type="submit"
-            className="p-3 bg-gradient.to-r from-blue-500 to-cyan-500 text-white rounded-xl.hover:from-blue-600 hover:to-cyan-600.disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md transition-all hover:scale-105 disabled:hover:scale-100"
+            className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md transition-all hover:scale-105 disabled:hover:scale-100"
             disabled={isLoading || (!inputValue.trim() && !selectedImage)}
           >
             {isLoading ? (
@@ -1010,4 +1036,3 @@ export function ChatBot({ isOpen, setIsOpen, mode = 'suporte', userProfile = nul
     </motion.div>
   );
 }
-```
