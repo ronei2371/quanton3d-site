@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Upload, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -53,6 +53,34 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
   const [error, setError] = useState(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // 🧠 NOVOS ESTADOS PARA AS LISTAS INTELIGENTES
+  const [resins, setResins] = useState([])
+  const [printers, setPrinters] = useState([])
+  const [isLoadingLists, setIsLoadingLists] = useState(false)
+
+  // 🚀 BUSCA AS RESINAS E IMPRESSORAS DO SEU BANCO DE DADOS
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchLists = async () => {
+      setIsLoadingLists(true)
+      try {
+        const [resRes, prinRes] = await Promise.all([
+          fetch(`${apiBaseUrl}/params/resins`),
+          fetch(`${apiBaseUrl}/params/printers`)
+        ])
+        const resData = await resRes.json()
+        const prinData = await prinRes.json()
+        if (resData.success) setResins(resData.resins)
+        if (prinData.success) setPrinters(prinData.printers)
+      } catch (e) {
+        console.error("Erro ao buscar listas", e)
+      } finally {
+        setIsLoadingLists(false)
+      }
+    }
+    fetchLists()
+  }, [isOpen, apiBaseUrl])
 
   if (!isOpen) return null
 
@@ -188,13 +216,31 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
                 <label className="text-sm font-medium text-gray-700">Contato (WhatsApp ou e-mail)</label>
                 <Input value={form.contact} onChange={(e) => handleChange('contact', e.target.value)} placeholder="ex: 31 99999-0000" />
               </div>
+              
+              {/* CAIXA DE SELEÇÃO: RESINA */}
               <div>
                 <label className="text-sm font-medium text-gray-700">Resina utilizada *</label>
-                <Input required value={form.resin} onChange={(e) => handleChange('resin', e.target.value)} placeholder="Quanton3D Spark, ABS, etc." />
+                {isLoadingLists ? (
+                  <div className="flex items-center text-sm text-gray-500 mt-2"><Loader2 className="h-4 w-4 animate-spin mr-2"/> Carregando...</div>
+                ) : (
+                  <select required value={form.resin} onChange={(e) => handleChange('resin', e.target.value)} className="w-full mt-1 p-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300">
+                    <option value="">Selecione a resina...</option>
+                    {resins.map(r => <option key={r._id || r.id} value={r.name}>{r.name}</option>)}
+                  </select>
+                )}
               </div>
+
+              {/* CAIXA DE SELEÇÃO: IMPRESSORA */}
               <div>
                 <label className="text-sm font-medium text-gray-700">Impressora *</label>
-                <Input required value={form.printer} onChange={(e) => handleChange('printer', e.target.value)} placeholder="Elegoo Saturn 3, Anycubic, etc." />
+                {isLoadingLists ? (
+                  <div className="flex items-center text-sm text-gray-500 mt-2"><Loader2 className="h-4 w-4 animate-spin mr-2"/> Carregando...</div>
+                ) : (
+                  <select required value={form.printer} onChange={(e) => handleChange('printer', e.target.value)} className="w-full mt-1 p-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300">
+                    <option value="">Selecione a impressora...</option>
+                    {printers.map(p => <option key={p._id || p.id} value={`${p.brand} ${p.model}`}>{p.brand} {p.model}</option>)}
+                  </select>
+                )}
               </div>
             </div>
 
