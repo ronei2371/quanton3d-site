@@ -133,8 +133,11 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
 
         let response = await fetch(actionUrl, requestOptions)
 
-        if (response.status === 404 && action === 'delete') {
-          response = await fetch(`${baseUrl}/gallery/${id}`, requestOptions)
+        if (response.status === 404) {
+          const fallbackUrl = action === 'approve'
+            ? `${baseUrl}/gallery/${id}/approve`
+            : `${baseUrl}/gallery/${id}`
+          response = await fetch(fallbackUrl, requestOptions)
         }
 
         if (response.status === 401) {
@@ -502,7 +505,10 @@ export function AdminPanel({ onClose }) {
         loadParamsData(tokenToUse),
         loadRagStatus(tokenToUse),
         (async () => {
-          const contactsRes = await fetch(buildAdminUrl('/api/contacts'), { headers })
+          let contactsRes = await fetch(buildAdminUrl('/api/contacts'), { headers })
+          if (contactsRes.status === 404) {
+            contactsRes = await fetch(buildAdminUrl('/contacts'), { headers })
+          }
           if (handleUnauthorizedResponse(contactsRes.status)) return
           const contactsData = await contactsRes.json()
           const loadedContacts = contactsData.contacts || []
