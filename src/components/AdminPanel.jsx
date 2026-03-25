@@ -131,11 +131,18 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
         }
 
-        const response = await fetch(actionUrl, requestOptions)
+        let response = await fetch(actionUrl, requestOptions)
+
+        if (response.status === 404 && action === 'delete') {
+          response = await fetch(`${baseUrl}/gallery/${id}`, requestOptions)
+        }
 
         if (response.status === 401) {
           onUnauthorized?.()
           return
+        }
+        if (!response.ok) {
+          throw new Error(`Erro ${response.status}`)
         }
         toast.success("Sucesso!")
         loadPhotos()
@@ -487,12 +494,21 @@ export function AdminPanel({ onClose }) {
       setOrdersRefreshKey((key) => key + 1)
       setKnowledgeRefreshKey((key) => key + 1)
       setContactRefreshKey((key) => key + 1)
+      const headers = buildAuthHeaders({}, tokenToUse)
       await Promise.all([
         loadCustomRequests(tokenToUse),
         loadVisualKnowledge(tokenToUse),
         loadPendingVisualPhotos(tokenToUse),
         loadParamsData(tokenToUse),
-        loadRagStatus(tokenToUse)
+        loadRagStatus(tokenToUse),
+        (async () => {
+          const contactsRes = await fetch(buildAdminUrl('/api/contacts'), { headers })
+          if (handleUnauthorizedResponse(contactsRes.status)) return
+          const contactsData = await contactsRes.json()
+          const loadedContacts = contactsData.contacts || []
+          setContacts(loadedContacts)
+          setContactCount(loadedContacts.length)
+        })()
       ])
       setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
