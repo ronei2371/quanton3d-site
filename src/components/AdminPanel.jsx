@@ -121,15 +121,20 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     if (!isAdmin) return
     setProcessingId(id)
     try {
-        const endpoint = action === 'delete' ? '' : '/approve'
         const method = action === 'delete' ? 'DELETE' : 'PUT'
-        
-        // 🔑 CORREÇÃO DO BOTÃO EXCLUIR: Agora bate na porta /api/gallery/ em vez de /api/visual-knowledge/
-        const response = await fetch(`${baseUrl}/api/gallery/${id}${endpoint}`, {
+        const galleryUrl = `${baseUrl}/api/gallery/${id}`
+        const requestOptions = {
             method,
             headers: { 'Content-Type': 'application/json', ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}) },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
-        })
+        }
+
+        let response = await fetch(galleryUrl, requestOptions)
+
+        if (action === 'approve' && response.status === 404) {
+          response = await fetch(`${galleryUrl}/approve`, requestOptions)
+        }
+
         if (response.status === 401) {
           onUnauthorized?.()
           return
@@ -160,6 +165,14 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
               <div className="text-xs space-y-1 mb-2">
                 <p><strong>Resina:</strong> {p.resin || 'Não informada'}</p>
                 <p><strong>Impressora:</strong> {p.printer || 'Não informada'}</p>
+              </div>
+
+              <div className="bg-gray-100 rounded-md p-2 text-xs text-gray-700 space-y-1 mb-2">
+                <p className="font-semibold text-gray-800">Configurações</p>
+                <p><strong>Layer Height:</strong> {p.settings?.layerHeightMm ?? '-'}</p>
+                <p><strong>Exposure Time:</strong> {p.settings?.exposureTimeS ?? '-'}</p>
+                <p><strong>Base Exposure:</strong> {p.settings?.baseExposureTimeS ?? '-'}</p>
+                <p><strong>Base Layers:</strong> {p.settings?.baseLayers ?? '-'}</p>
               </div>
 
               <div className="flex gap-2 mt-2">
@@ -983,81 +996,72 @@ export function AdminPanel({ onClose }) {
           {activeTab === 'metrics' && (
             <>
               <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
-              
-              {/* 📊 MÉTRICAS DE ORIGEM DOS CLIENTES */}
+
               <div className="mt-8">
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
                   Origem dos Clientes
                 </h3>
-                
-                {/* Calcula estatísticas de origem */}
+
                 {(() => {
-                  const marketingStats = {
-                    Instagram: contacts.filter(c => 
-                      c.origin?.toLowerCase() === 'instagram'
-                    ).length,
-                    YouTube: contacts.filter(c => 
-                      c.origin?.toLowerCase() === 'youtube'
-                    ).length,
-                    Google: contacts.filter(c => 
-                      c.origin?.toLowerCase() === 'google'
-                    ).length,
-                    Outros: contacts.filter(c => 
-                      c.origin && 
-                      c.origin.toLowerCase() !== 'instagram' && 
-                      c.origin.toLowerCase() !== 'youtube' && 
-                      c.origin.toLowerCase() !== 'google'
-                    ).length
-                  };
-                  
+                  const originCards = [
+                    {
+                      label: 'Instagram',
+                      icon: '📱',
+                      value: contacts.filter(c => c.origin?.toLowerCase().includes('instagram')).length,
+                      className: 'from-pink-500 to-purple-600'
+                    },
+                    {
+                      label: 'YouTube',
+                      icon: '🎥',
+                      value: contacts.filter(c => c.origin?.toLowerCase().includes('youtube')).length,
+                      className: 'from-red-500 to-red-700'
+                    },
+                    {
+                      label: 'Google',
+                      icon: '🔍',
+                      value: contacts.filter(c => c.origin?.toLowerCase().includes('google')).length,
+                      className: 'from-blue-500 to-green-500'
+                    },
+                    {
+                      label: 'Mercado Livre / Shopee',
+                      icon: '🛒',
+                      value: contacts.filter(c =>
+                        c.origin?.toLowerCase().includes('mercado livre') ||
+                        c.origin?.toLowerCase().includes('shopee')
+                      ).length,
+                      className: 'from-yellow-500 to-orange-600'
+                    },
+                    {
+                      label: 'Indicação',
+                      icon: '🤝',
+                      value: contacts.filter(c => c.origin?.toLowerCase().includes('indica')).length,
+                      className: 'from-emerald-500 to-teal-600'
+                    },
+                    {
+                      label: 'Já sou cliente',
+                      icon: '⭐',
+                      value: contacts.filter(c =>
+                        c.origin?.toLowerCase().includes('já sou cliente') ||
+                        c.origin?.toLowerCase().includes('ja sou cliente')
+                      ).length,
+                      className: 'from-slate-600 to-slate-800'
+                    }
+                  ]
+
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {/* Card Instagram */}
-                      <Card className="p-6 bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium opacity-90">📱 Instagram</span>
-                        </div>
-                        <div className="text-4xl font-bold">
-                          {marketingStats.Instagram}
-                        </div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
-
-                      {/* Card YouTube */}
-                      <Card className="p-6 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium opacity-90">🎥 YouTube</span>
-                        </div>
-                        <div className="text-4xl font-bold">
-                          {marketingStats.YouTube}
-                        </div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
-
-                      {/* Card Google */}
-                      <Card className="p-6 bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium opacity-90">🔍 Google</span>
-                        </div>
-                        <div className="text-4xl font-bold">
-                          {marketingStats.Google}
-                        </div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
-
-                      {/* Card Outros */}
-                      <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium opacity-90">🌐 Outros</span>
-                        </div>
-                        <div className="text-4xl font-bold">
-                          {marketingStats.Outros}
-                        </div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {originCards.map((card) => (
+                        <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
+                          </div>
+                          <div className="text-4xl font-bold">{card.value}</div>
+                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                        </Card>
+                      ))}
                     </div>
-                  );
+                  )
                 })()}
                 <p className="text-xs text-gray-500 mt-4 text-center">
                   💡 Para ver as métricas reais, acesse a aba "Contatos" primeiro para carregar os dados.
