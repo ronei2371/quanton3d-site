@@ -122,18 +122,16 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     setProcessingId(id)
     try {
         const method = action === 'delete' ? 'DELETE' : 'PUT'
-        const galleryUrl = `${baseUrl}/api/gallery/${id}`
+        const actionUrl = action === 'approve'
+          ? `${baseUrl}/api/gallery/${id}/approve`
+          : `${baseUrl}/api/gallery/${id}`
         const requestOptions = {
             method,
             headers: { 'Content-Type': 'application/json', ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}) },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
         }
 
-        let response = await fetch(galleryUrl, requestOptions)
-
-        if (action === 'approve' && response.status === 404) {
-          response = await fetch(`${galleryUrl}/approve`, requestOptions)
-        }
+        const response = await fetch(actionUrl, requestOptions)
 
         if (response.status === 401) {
           onUnauthorized?.()
@@ -1003,66 +1001,77 @@ export function AdminPanel({ onClose }) {
                   Origem dos Clientes
                 </h3>
 
-                {(() => {
-                  const originCards = [
-                    {
-                      label: 'Instagram',
-                      icon: '📱',
-                      value: contacts.filter(c => c.origin?.toLowerCase().includes('instagram')).length,
-                      className: 'from-pink-500 to-purple-600'
-                    },
-                    {
-                      label: 'YouTube',
-                      icon: '🎥',
-                      value: contacts.filter(c => c.origin?.toLowerCase().includes('youtube')).length,
-                      className: 'from-red-500 to-red-700'
-                    },
-                    {
-                      label: 'Google',
-                      icon: '🔍',
-                      value: contacts.filter(c => c.origin?.toLowerCase().includes('google')).length,
-                      className: 'from-blue-500 to-green-500'
-                    },
-                    {
-                      label: 'Mercado Livre / Shopee',
-                      icon: '🛒',
-                      value: contacts.filter(c =>
-                        c.origin?.toLowerCase().includes('mercado livre') ||
-                        c.origin?.toLowerCase().includes('shopee')
-                      ).length,
-                      className: 'from-yellow-500 to-orange-600'
-                    },
-                    {
-                      label: 'Indicação',
-                      icon: '🤝',
-                      value: contacts.filter(c => c.origin?.toLowerCase().includes('indica')).length,
-                      className: 'from-emerald-500 to-teal-600'
-                    },
-                    {
-                      label: 'Já sou cliente',
-                      icon: '⭐',
-                      value: contacts.filter(c =>
-                        c.origin?.toLowerCase().includes('já sou cliente') ||
-                        c.origin?.toLowerCase().includes('ja sou cliente')
-                      ).length,
-                      className: 'from-slate-600 to-slate-800'
-                    }
-                  ]
-
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {originCards.map((card) => (
-                        <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
-                          </div>
-                          <div className="text-4xl font-bold">{card.value}</div>
-                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                        </Card>
-                      ))}
+                {!Array.isArray(contacts) || contacts.length === 0 ? (
+                  <Card className="p-4 bg-amber-50 border border-amber-200 text-amber-800">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">Dados de contatos ainda não carregados.</p>
+                        <p className="text-sm mt-1">
+                          Acesse a aba "Contatos" para carregar a lista antes de processar as métricas de origem.
+                        </p>
+                      </div>
                     </div>
-                  )
-                })()}
+                  </Card>
+                ) : (
+                  (() => {
+                    const originCards = [
+                      {
+                        label: 'Instagram',
+                        icon: '📱',
+                        value: contacts.filter(c => c.origin?.toLowerCase().includes('instagram')).length,
+                        className: 'from-pink-500 to-purple-600'
+                      },
+                      {
+                        label: 'YouTube',
+                        icon: '🎥',
+                        value: contacts.filter(c => c.origin?.toLowerCase().includes('youtube')).length,
+                        className: 'from-red-500 to-red-700'
+                      },
+                      {
+                        label: 'Google',
+                        icon: '🔍',
+                        value: contacts.filter(c => c.origin?.toLowerCase().includes('google')).length,
+                        className: 'from-blue-500 to-green-500'
+                      },
+                      {
+                        label: 'Mercado Livre / Shopee',
+                        icon: '🛒',
+                        value: contacts.filter(c =>
+                          c.origin?.toLowerCase().includes('mercado livre') ||
+                          c.origin?.toLowerCase().includes('shopee')
+                        ).length,
+                        className: 'from-yellow-500 to-orange-600'
+                      },
+                      {
+                        label: 'Indicação',
+                        icon: '🤝',
+                        value: contacts.filter(c => c.origin?.toLowerCase().includes('indica')).length,
+                        className: 'from-emerald-500 to-teal-600'
+                      },
+                      {
+                        label: 'Já sou cliente',
+                        icon: '⭐',
+                        value: contacts.filter(c => c.origin?.toLowerCase().includes('cliente')).length,
+                        className: 'from-slate-600 to-slate-800'
+                      }
+                    ]
+
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {originCards.map((card) => (
+                          <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
+                            </div>
+                            <div className="text-4xl font-bold">{card.value}</div>
+                            <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                          </Card>
+                        ))}
+                      </div>
+                    )
+                  })()
+                )}
                 <p className="text-xs text-gray-500 mt-4 text-center">
                   💡 Para ver as métricas reais, acesse a aba "Contatos" primeiro para carregar os dados.
                 </p>
