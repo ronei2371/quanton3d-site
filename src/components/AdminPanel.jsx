@@ -57,7 +57,7 @@ const deriveDefaultApiBase = () => {
   return 'https://quanton3d-bot-v2.onrender.com'
 }
 
-// --- GALERIA INTERNA BLINDADA (A Correção com a Chave Mestra) ---
+// --- GALERIA INTERNA BLINDADA ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange, apiBaseUrl, onUnauthorized }) {
   const baseUrl = apiBaseUrl || deriveDefaultApiBase()
   const [photos, setPhotos] = useState([])
@@ -70,7 +70,6 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     setLoading(true)
     setError(null)
     try {
-      // 🔑 CHAVE MESTRA: Agora bate na porta certa (/gallery/all) que o Codex criou
       let response = await fetch(`${baseUrl}/api/gallery/all`, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
@@ -92,7 +91,6 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
       let data
       try { data = JSON.parse(text) } catch { throw new Error('Erro JSON') }
       
-      // ✅ TRADUTOR: Lê o novo formato de imagens e ajusta para o painel antigo não quebrar
       const rawList = Array.isArray(data.images) ? data.images : 
                       Array.isArray(data.documents) ? data.documents : 
                       Array.isArray(data.photos) ? data.photos : 
@@ -125,7 +123,9 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     try {
         const endpoint = action === 'delete' ? '' : '/approve'
         const method = action === 'delete' ? 'DELETE' : 'PUT'
-        const response = await fetch(`${baseUrl}/api/visual-knowledge/${id}${endpoint}`, {
+        
+        // 🔑 CORREÇÃO DO BOTÃO EXCLUIR: Agora bate na porta /api/gallery/ em vez de /api/visual-knowledge/
+        const response = await fetch(`${baseUrl}/api/gallery/${id}${endpoint}`, {
             method,
             headers: { 'Content-Type': 'application/json', ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}) },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
@@ -152,13 +152,11 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {photos.map(p => (
             <Card key={p._id} className="p-3 relative">
-              {/* Badge de Status */}
               {!p.approved && <Badge className="absolute top-2 right-2 bg-yellow-500">Pendente</Badge>}
               {p.approved && <Badge className="absolute top-2 right-2 bg-green-500">Aprovada</Badge>}
               
               <img src={p.imageUrl} className="w-full h-40 object-cover rounded mb-2 bg-gray-100"/>
               
-              {/* Informações da Configuração */}
               <div className="text-xs space-y-1 mb-2">
                 <p><strong>Resina:</strong> {p.resin || 'Não informada'}</p>
                 <p><strong>Impressora:</strong> {p.printer || 'Não informada'}</p>
