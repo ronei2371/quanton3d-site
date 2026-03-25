@@ -57,7 +57,7 @@ const deriveDefaultApiBase = () => {
   return 'https://quanton3d-bot-v2.onrender.com'
 }
 
-// --- GALERIA INTERNA BLINDADA (A Correção) ---
+// --- GALERIA INTERNA BLINDADA (A Correção com a Chave Mestra) ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange, apiBaseUrl, onUnauthorized }) {
   const baseUrl = apiBaseUrl || deriveDefaultApiBase()
   const [photos, setPhotos] = useState([])
@@ -70,7 +70,8 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     setLoading(true)
     setError(null)
     try {
-      let response = await fetch(`${baseUrl}/api/visual-knowledge`, {
+      // 🔑 CHAVE MESTRA: Agora bate na porta certa (/gallery/all) que o Codex criou
+      let response = await fetch(`${baseUrl}/api/gallery/all`, {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
       })
       if (response.status === 401) {
@@ -78,7 +79,7 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
         return
       }
       if (response.status === 404) {
-        response = await fetch(`${baseUrl}/visual-knowledge`, {
+        response = await fetch(`${baseUrl}/gallery/all`, {
           headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
         })
         if (response.status === 401) {
@@ -91,10 +92,18 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
       let data
       try { data = JSON.parse(text) } catch { throw new Error('Erro JSON') }
       
-      // ✅ MELHORIA: Mostra TODAS as fotos (aprovadas E pendentes)
-      const safeList = Array.isArray(data.documents) ? data.documents : 
-                       Array.isArray(data.photos) ? data.photos : 
-                       Array.isArray(data) ? data : []
+      // ✅ TRADUTOR: Lê o novo formato de imagens e ajusta para o painel antigo não quebrar
+      const rawList = Array.isArray(data.images) ? data.images : 
+                      Array.isArray(data.documents) ? data.documents : 
+                      Array.isArray(data.photos) ? data.photos : 
+                      Array.isArray(data) ? data : []
+                      
+      const safeList = rawList.map(item => ({
+        ...item,
+        _id: item._id || item.id,
+        imageUrl: item.imageUrl || item.image || (Array.isArray(item.images) ? item.images[0] : ''),
+        approved: item.approved || item.status === 'approved'
+      }))
       
       console.log('[GALERIA] Fotos carregadas:', safeList.length)
       setPhotos(safeList)
@@ -142,8 +151,19 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
        photos.length === 0 ? <p className="text-center text-gray-500 py-10">Vazio.</p> : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {photos.map(p => (
-            <Card key={p._id} className="p-3">
+            <Card key={p._id} className="p-3 relative">
+              {/* Badge de Status */}
+              {!p.approved && <Badge className="absolute top-2 right-2 bg-yellow-500">Pendente</Badge>}
+              {p.approved && <Badge className="absolute top-2 right-2 bg-green-500">Aprovada</Badge>}
+              
               <img src={p.imageUrl} className="w-full h-40 object-cover rounded mb-2 bg-gray-100"/>
+              
+              {/* Informações da Configuração */}
+              <div className="text-xs space-y-1 mb-2">
+                <p><strong>Resina:</strong> {p.resin || 'Não informada'}</p>
+                <p><strong>Impressora:</strong> {p.printer || 'Não informada'}</p>
+              </div>
+
               <div className="flex gap-2 mt-2">
                 {isAdmin && !p.approved && <Button size="sm" className="flex-1 bg-green-600" onClick={() => handleAction(p._id, 'approve')} disabled={processingId === p._id}><Check className="h-4 w-4"/></Button>}
                 {isAdmin && <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleAction(p._id, 'delete')} disabled={processingId === p._id}><Trash2 className="h-4 w-4"/></Button>}
