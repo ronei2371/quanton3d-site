@@ -101,7 +101,7 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
         _id: item._id || item.id,
         imageUrl: item.imageUrl || item.image || (Array.isArray(item.images) ? item.images[0] : ''),
         approved: item.approved || item.status === 'approved'
-      }))
+      })).filter((item) => item.status !== 'deleted')
       
       console.log('[GALERIA] Fotos carregadas:', safeList.length)
       setPhotos(safeList)
@@ -144,6 +144,14 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
       let response = await fetch(primaryUrl, requestOptions)
       if ((response.status === 404 || response.status === 500) && primaryUrl !== fallbackUrl) {
         response = await fetch(fallbackUrl, requestOptions)
+      }
+      if (action === 'delete' && (response.status === 404 || response.status === 500)) {
+        const vkPrimary = `${baseUrl}/api/visual-knowledge/${id}`
+        const vkFallback = `${baseUrl}/visual-knowledge/${id}`
+        response = await fetch(vkPrimary, { method: 'DELETE', headers: { ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}) } })
+        if ((response.status === 404 || response.status === 500) && vkPrimary !== vkFallback) {
+          response = await fetch(vkFallback, { method: 'DELETE', headers: { ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}) } })
+        }
       }
 
       if (response.status === 401) {
@@ -302,7 +310,7 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   )
 }
 
-export function AdminPanel({ onClose }) {
+export function AdminPanel({ onClose, externalAdminToken = "" }) {
   const autoAdminPassword = import.meta.env.VITE_ADMIN_AUTO_PASSWORD || 'quanton2026'
   const autoAdminUsername = import.meta.env.VITE_ADMIN_AUTO_USERNAME || import.meta.env.VITE_ADMIN_USERNAME || ''
   const autoAdminSecret = import.meta.env.VITE_ADMIN_AUTO_SECRET || import.meta.env.VITE_ADMIN_SECRET_OVERRIDE || import.meta.env.VITE_ADMIN_SECRET || ''
@@ -320,7 +328,14 @@ export function AdminPanel({ onClose }) {
   const [adminSecret, setAdminSecret] = useState(defaultAdminSecret)
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
 
-  const safeAdminToken = adminToken
+  const safeAdminToken = externalAdminToken || adminToken
+
+  useEffect(() => {
+    if (externalAdminToken && externalAdminToken !== adminToken) {
+      setAdminToken(externalAdminToken)
+      setIsAuthenticated(true)
+    }
+  }, [externalAdminToken])
 
   useEffect(() => {
     if (apiBaseUrl) {
@@ -551,6 +566,10 @@ export function AdminPanel({ onClose }) {
   }
 
   useEffect(() => {
+    if (externalAdminToken) {
+      setAutoLoginAttempted(true)
+      return
+    }
     if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
       const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
       setAutoLoginAttempted(true)
@@ -1138,6 +1157,27 @@ export function AdminPanel({ onClose }) {
 
                     return (
                       <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Card className="p-4 border-dashed">
+                            <p className="text-xs uppercase text-gray-500">Cadastros últimos 7 dias</p>
+                            <p className="text-3xl font-bold mt-2">{safeContacts.filter((contact) => {
+                              const rawDate = contact.createdAt || contact.updatedAt
+                              if (!rawDate) return false
+                              const parsed = new Date(rawDate)
+                              if (Number.isNaN(parsed.getTime())) return false
+                              return (Date.now() - parsed.getTime()) <= 7 * 24 * 60 * 60 * 1000
+                            }).length}</p>
+                          </Card>
+                          <Card className="p-4 border-dashed">
+                            <p className="text-xs uppercase text-gray-500">Origem líder</p>
+                            <p className="text-xl font-bold mt-2">{[...originCards].sort((a, b) => b.value - a.value)[0]?.label || '-'}</p>
+                          </Card>
+                          <Card className="p-4 border-dashed">
+                            <p className="text-xs uppercase text-gray-500">Clientes acumulados</p>
+                            <p className="text-3xl font-bold mt-2">{safeContacts.length}</p>
+                          </Card>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                           {originCards.map((card) => (
                             <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
@@ -1382,3 +1422,4 @@ export function AdminPanel({ onClose }) {
     </div>
   )
 }
+
