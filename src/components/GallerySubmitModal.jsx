@@ -1,163 +1,409 @@
-import { useState, useEffect } from 'react'
-import { X, ChevronLeft, ChevronRight, Settings2, Printer, Beaker } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { X, Upload, Loader2, CheckSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
+import { Input } from '@/components/ui/input.jsx'
 
-const formatSettingValue = (value, suffix = '') => {
-  if (value === undefined || value === null || value === '') return '-'
-  return `${value}${suffix}`
+const initialForm = {
+  name: '',
+  contact: '',
+  printer: '',
+  resin: '',
+  layerHeight: '',
+  normalExposure: '',
+  baseExposure: '',
+  baseLayers: '',
+  note: ''
 }
 
-export function GalleryModal({ isOpen, onClose, images = [], initialIndex = 0 }) {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+const MAX_FILE_SIZE_MB = 8
+const MAX_ERROR_PREVIEW = 180
 
-  const normalizeImages = (imgs) => {
-    if (!Array.isArray(imgs)) return []
-    return imgs.map((img) => {
-      if (typeof img === 'string') {
-        return { url: img, title: '', desc: '', resin: '-', printer: '-', settings: {} }
+const sanitizeNumber = (value) => {
+  const trimmed = value?.toString().trim()
+  if (!trimmed) return null
+  return trimmed.replace(',', '.')
+}
+
+const buildSettingsPayload = (form) => {
+  const payload = {}
+  const layerHeight = sanitizeNumber(form.layerHeight)
+  const normalExposure = sanitizeNumber(form.normalExposure)
+  const baseExposure = sanitizeNumber(form.baseExposure)
+  const baseLayers = sanitizeNumber(form.baseLayers)
+
+  if (layerHeight) payload.layerHeightMm = layerHeight
+  if (normalExposure) payload.exposureTimeS = normalExposure
+  if (baseExposure) payload.baseExposureTimeS = baseExposure
+  if (baseLayers) payload.baseLayers = baseLayers
+
+  if (Object.keys(payload).length === 0) return null
+  return payload
+}
+
+const extractReadableError = (rawText) => {
+  if (!rawText) return 'O servidor não respondeu como esperado. Tente novamente.'
+  const cleaned = rawText
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!cleaned) return 'O servidor não respondeu como esperado. Tente novamente.'
+  return cleaned.slice(0, MAX_ERROR_PREVIEW)
+}
+
+const normalizeOptionList = (items = [], kind = 'resin') => {
+  if (!Array.isArray(items)) return []
+  const seen = new Set()
+
+  return items
+    .map((item) => {
+      if (typeof item === 'string') {
+        const name = item.trim()
+        if (!name) return null
+        return { id: name, name, label: name }
       }
 
-      const rawUrl = img?.url || img?.imageUrl || img?.image || (Array.isArray(img?.images) ? img.images[0] : '')
-      const url = typeof rawUrl === 'string' ? rawUrl : rawUrl?.url || ''
+      const brand = (item?.brand || '').toString().trim()
+      const model = (item?.model || '').toString().trim()
+      const rawName = (item?.name || item?.label || item?.resinName || '').toString().trim()
+      const label = kind === 'printer'
+        ? ([brand, model].filter(Boolean).join(' ').trim() || rawName)
+        : ((rawName || item?.resin || '').toString().trim())
+
+      if (!label) return null
       return {
-        url,
-        title: img?.title || img?.name || 'Impressão compartilhada',
-        desc: img?.desc || img?.description || img?.note || '',
-        resin: img?.resin || '-',
-        printer: img?.printer || '-',
-        note: img?.note || '',
-        contact: img?.contact || '',
-        createdAt: img?.createdAt || null,
-        settings: img?.settings || {}
+        id: item?._id || item?.id || label,
+        name: label,
+        label
       }
-    }).filter((img) => typeof img.url === 'string' && img.url)
-  }
+    })
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = entry.label.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
 
-  const safeImages = normalizeImages(images)
+export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
+  const [form, setForm] = useState(initialForm)
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [resins, setResins] = useState([])
+  const [printers, setPrinters] = useState([])
+  const [isLoadingLists, setIsLoadingLists] = useState(false)
+
+  const resolvedBaseUrl = useMemo(() => {
+    const raw = (apiBaseUrl || '').trim()
+    if (!raw) return 'https://quanton3d-bot-v2.onrender.com/api'
+    return raw.replace(/\/$/, '')
+  }, [apiBaseUrl])
 
   useEffect(() => {
-    setCurrentIndex(initialIndex)
-  }, [initialIndex, isOpen])
+    if (!isOpen) return
 
-  if (!isOpen || safeImages.length === 0) return null
+    const candidates = (suffix) => {
+      const baseNoApi = resolvedBaseUrl.replace(/\/api$/i, '')
+      return [
+        `${resolvedBaseUrl}${suffix}`,
+        `${baseNoApi}/api${suffix}`,
+        `${baseNoApi}${suffix}`
+      ]
+    }
 
-  const current = safeImages[currentIndex]
+    const fetchFirstSuccess = async (urls) => {
+      let lastError = null
+      for (const url of urls) {
+        try {
+          const response = await fetch(url)
+          if (!response.ok) {
+            lastError = new Error(`HTTP ${response.status}`)
+            continue
+          }
+          const data = await response.json()
+          if (data?.success) return data
+        } catch (err) {
+          lastError = err
+        }
+      }
+      throw lastError || new Error('Falha ao carregar listas')
+    }
 
-  const handleNext = (e) => {
-    e?.stopPropagation()
-    setCurrentIndex((prev) => (prev + 1) % safeImages.length)
+    const fetchLists = async () => {
+      setIsLoadingLists(true)
+      try {
+        const [resData, prinData] = await Promise.all([
+          fetchFirstSuccess([...candidates('/params/resins'), ...candidates('/resins')]),
+          fetchFirstSuccess([...candidates('/params/printers'), ...candidates('/printers')])
+        ])
+
+        setResins(normalizeOptionList(resData?.resins || [], 'resin'))
+        setPrinters(normalizeOptionList(prinData?.printers || [], 'printer'))
+      } catch (e) {
+        console.error('Erro ao buscar listas', e)
+        setResins([])
+        setPrinters([])
+      } finally {
+        setIsLoadingLists(false)
+      }
+    }
+
+    fetchLists()
+  }, [isOpen, resolvedBaseUrl])
+
+  if (!isOpen) return null
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handlePrev = (e) => {
-    e?.stopPropagation()
-    setCurrentIndex((prev) => (prev - 1 + safeImages.length) % safeImages.length)
+  const handleFileChange = (event) => {
+    const selected = event.target.files?.[0]
+    if (!selected) {
+      setFile(null)
+      setPreview(null)
+      return
+    }
+
+    if (selected.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setError(`Arquivo muito grande. Limite: ${MAX_FILE_SIZE_MB}MB.`)
+      return
+    }
+
+    setError(null)
+    setFile(selected)
+    const reader = new FileReader()
+    reader.onload = (e) => setPreview(e.target.result)
+    reader.readAsDataURL(selected)
+  }
+
+  const resetState = () => {
+    setForm(initialForm)
+    setFile(null)
+    setPreview(null)
+    setError(null)
+    setSuccessMessage('')
+    setIsSubmitting(false)
+  }
+
+  const handleSubmit = async (event) => {
+    if (event?.preventDefault) event.preventDefault()
+    if (isSubmitting) return
+
+    if (!form.resin.trim() || !form.printer.trim()) {
+      setError('Informe a resina e a impressora utilizadas.')
+      return
+    }
+    if (!file) {
+      setError('Envie pelo menos uma foto da peça pronta.')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+      setSuccessMessage('')
+
+      const formData = new FormData()
+      formData.append('resin', form.resin.trim())
+      formData.append('printer', form.printer.trim())
+      if (form.name) formData.append('name', form.name.trim())
+      if (form.contact) formData.append('contact', form.contact.trim())
+      if (form.note) formData.append('note', form.note.trim())
+
+      const settingsPayload = buildSettingsPayload(form)
+      if (settingsPayload) {
+        formData.append('settings', JSON.stringify(settingsPayload))
+        Object.entries(settingsPayload).forEach(([key, value]) => formData.append(key, String(value)))
+      }
+
+      formData.append('image', file)
+
+      const response = await fetch(`${resolvedBaseUrl}/gallery`, {
+        method: 'POST',
+        body: formData
+      })
+
+      const text = await response.text()
+      const contentType = response.headers.get('content-type') || ''
+      let data
+      if (contentType.includes('application/json')) {
+        try {
+          data = JSON.parse(text)
+        } catch (parseError) {
+          console.warn('Falha ao interpretar JSON da galeria:', parseError)
+        }
+      }
+
+      if (!response.ok || !data?.success) {
+        const readable = data?.error || extractReadableError(text)
+        throw new Error(readable || 'Não foi possível enviar agora. Tente novamente mais tarde.')
+      }
+
+      const message = data?.message || 'Recebemos sua peça! Ela entra na fila de revisão do time.'
+      setSuccessMessage(message)
+      onSuccess?.(data)
+
+      setTimeout(() => {
+        resetState()
+        onClose?.()
+      }, 1500)
+    } catch (err) {
+      console.error('Erro ao enviar galeria:', err)
+      setError(err.message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleClose = () => {
+    resetState()
+    onClose?.()
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
-      <Button
-        variant="ghost"
-        className="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full p-2 h-12 w-12 z-50"
-        onClick={onClose}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={handleClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden max-h-[92vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
-        <X className="h-8 w-8" />
-      </Button>
+        <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 z-10" onClick={handleClose}>
+          <X className="h-6 w-6" />
+        </button>
 
-      <Button
-        variant="ghost"
-        className="absolute left-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full p-2 h-16 w-16 hidden md:flex items-center justify-center"
-        onClick={handlePrev}
-      >
-        <ChevronLeft className="h-10 w-10" />
-      </Button>
+        <div className="p-6 pb-3">
+          <h3 className="text-2xl font-bold text-gray-900">Compartilhe sua impressão</h3>
+          <p className="text-sm text-gray-500">
+            Envie uma foto da peça e os parâmetros que você usou. Depois da revisão, a peça entra na galeria pública com as configurações usadas.
+          </p>
+        </div>
 
-      <div className="relative max-w-6xl max-h-[90vh] w-full flex flex-col items-center p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6 w-full items-start">
-          <div className="flex flex-col items-center">
-            <img
-              src={current.url}
-              alt={current.title || 'Impressão compartilhada'}
-              className="max-h-[72vh] max-w-full object-contain rounded-lg shadow-2xl border border-white/10 bg-black/20"
-            />
+        <form className="flex-1 overflow-y-auto px-6 pb-4 space-y-4" onSubmit={handleSubmit}>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Seu nome (opcional)</label>
+              <Input value={form.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="Como gostaria de aparecer" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Contato (WhatsApp ou e-mail)</label>
+              <Input value={form.contact} onChange={(e) => handleChange('contact', e.target.value)} placeholder="ex: 31 99999-0000" />
+            </div>
 
-            <div className="mt-4 text-center">
-              <p className="text-white text-lg md:text-2xl font-bold tracking-wide">
-                {current.title || 'Impressão compartilhada'}
-              </p>
-              {current.customerName && (
-                <p className="text-cyan-300 text-sm md:text-base mt-1 font-medium">Cliente: {current.customerName}</p>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Resina utilizada *</label>
+              {isLoadingLists ? (
+                <div className="flex items-center text-sm text-gray-500 mt-2"><Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando...</div>
+              ) : (
+                <select
+                  required
+                  value={form.resin}
+                  onChange={(e) => handleChange('resin', e.target.value)}
+                  className="w-full mt-1 p-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                >
+                  <option value="">Selecione a resina...</option>
+                  {resins.map((r) => <option key={r.id} value={r.name}>{r.label}</option>)}
+                </select>
               )}
-              {current.desc && (
-                <p className="text-white/80 text-sm md:text-base mt-2 max-w-3xl">
-                  {current.desc}
-                </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Impressora *</label>
+              {isLoadingLists ? (
+                <div className="flex items-center text-sm text-gray-500 mt-2"><Loader2 className="h-4 w-4 animate-spin mr-2" /> Carregando...</div>
+              ) : (
+                <select
+                  required
+                  value={form.printer}
+                  onChange={(e) => handleChange('printer', e.target.value)}
+                  className="w-full mt-1 p-2 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300"
+                >
+                  <option value="">Selecione a impressora...</option>
+                  {printers.map((p) => <option key={p.id} value={p.name}>{p.label}</option>)}
+                </select>
               )}
-              <p className="text-white/50 text-sm mt-2">
-                {currentIndex + 1} de {safeImages.length}
-              </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md p-5 text-white shadow-2xl">
-            <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Settings2 className="h-5 w-5" />
-              Configurações usadas
-            </h4>
-
-            <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-2">
-                <Beaker className="h-4 w-4 mt-0.5 text-cyan-300" />
-                <div>
-                  <p className="text-white/70">Resina</p>
-                  <p className="font-semibold">{current.resin || '-'}</p>
-                </div>
+          <div className="rounded-xl border bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-700 flex items-center gap-2 mb-3">
+              <CheckSquare className="h-4 w-4" />
+              Configurações que vão aparecer na galeria
+            </p>
+            <div className="grid md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Altura de camada (mm)</label>
+                <Input value={form.layerHeight} onChange={(e) => handleChange('layerHeight', e.target.value)} placeholder="0.05" />
               </div>
-
-              <div className="flex items-start gap-2">
-                <Printer className="h-4 w-4 mt-0.5 text-cyan-300" />
-                <div>
-                  <p className="text-white/70">Impressora</p>
-                  <p className="font-semibold">{current.printer || '-'}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Exposição normal (s)</label>
+                <Input value={form.normalExposure} onChange={(e) => handleChange('normalExposure', e.target.value)} placeholder="2.8" />
               </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-white/60 text-xs uppercase">Layer Height</p>
-                  <p className="font-bold">{formatSettingValue(current.settings?.layerHeightMm, ' mm')}</p>
-                </div>
-                <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-white/60 text-xs uppercase">Exposure</p>
-                  <p className="font-bold">{formatSettingValue(current.settings?.exposureTimeS, ' s')}</p>
-                </div>
-                <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-white/60 text-xs uppercase">Base Exposure</p>
-                  <p className="font-bold">{formatSettingValue(current.settings?.baseExposureTimeS, ' s')}</p>
-                </div>
-                <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-white/60 text-xs uppercase">Base Layers</p>
-                  <p className="font-bold">{formatSettingValue(current.settings?.baseLayers)}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Exposição de base (s)</label>
+                <Input value={form.baseExposure} onChange={(e) => handleChange('baseExposure', e.target.value)} placeholder="30" />
               </div>
-
-              {current.note && (
-                <div className="rounded-xl bg-black/20 p-3">
-                  <p className="text-white/60 text-xs uppercase mb-1">Observações</p>
-                  <p className="leading-relaxed">{current.note}</p>
-                </div>
-              )}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Camadas de base</label>
+                <Input value={form.baseLayers} onChange={(e) => handleChange('baseLayers', e.target.value)} placeholder="5" />
+              </div>
             </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">Observações adicionais</label>
+            <textarea
+              className="w-full border rounded-lg p-3 text-sm shadow-inner focus:ring-2 focus:ring-blue-200"
+              rows="3"
+              value={form.note}
+              onChange={(e) => handleChange('note', e.target.value)}
+              placeholder="Cole aqui detalhes do preset do Chitubox ou dicas importantes."
+            />
+          </div>
+
+          <div className="border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center bg-gray-50 min-h-[200px]">
+            <input type="file" accept="image/*" className="hidden" id="gallery-upload-input" onChange={handleFileChange} />
+            {preview ? (
+              <img src={preview} alt="Pré-visualização" className="max-h-40 rounded-lg object-contain mb-3" />
+            ) : (
+              <Upload className="h-10 w-10 text-blue-500 mb-2" />
+            )}
+            <p className="text-sm text-gray-600">Envie uma imagem da sua peça finalizada ({MAX_FILE_SIZE_MB}MB máx).</p>
+            <Button type="button" variant="outline" className="mt-3" onClick={() => document.getElementById('gallery-upload-input').click()}>
+              Selecionar arquivo
+            </Button>
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
+        </form>
+
+        <div className="border-t bg-white p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-xs text-gray-500">
+              Ao enviar você concorda em compartilhar a imagem e os parâmetros no site Quanton3D após revisão.
+            </p>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 shrink-0"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</span>
+              ) : (
+                'Enviar para revisão'
+              )}
+            </Button>
           </div>
         </div>
       </div>
-
-      <Button
-        variant="ghost"
-        className="absolute right-4 text-white/70 hover:text-white hover:bg-white/10 rounded-full p-2 h-16 w-16 hidden md:flex items-center justify-center"
-        onClick={handleNext}
-      >
-        <ChevronRight className="h-10 w-10" />
-      </Button>
     </div>
   )
 }
+
+export default GallerySubmitModal
