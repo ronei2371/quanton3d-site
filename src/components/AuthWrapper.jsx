@@ -84,6 +84,8 @@ export function AuthWrapper({ children }) {
     setError('')
   }
 
+  const currentToken = localStorage.getItem('quanton3d_jwt_token') || ''
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -171,5 +173,5 @@ export function AuthWrapper({ children }) {
     )
   }
 
-  return children({ onLogout: handleLogout })
+  return children({ onLogout: handleLogout, adminToken: currentToken })
 }
