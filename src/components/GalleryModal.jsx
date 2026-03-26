@@ -84,6 +84,9 @@ export function GalleryModal({ isOpen, onClose, images = [], initialIndex = 0 })
               <p className="text-white text-lg md:text-2xl font-bold tracking-wide">
                 {current.title || 'Impressão compartilhada'}
               </p>
+              {current.customerName && (
+                <p className="text-cyan-300 text-sm md:text-base mt-1 font-medium">Cliente: {current.customerName}</p>
+              )}
               {current.desc && (
                 <p className="text-white/80 text-sm md:text-base mt-2 max-w-3xl">
                   {current.desc}
