@@ -115,9 +115,9 @@ function App() {
     setGalleryLoading(true)
     setGalleryError(null)
     try {
-      let response = await fetch(`${API_BASE_URL}/visual-knowledge?limit=50`)
+      let response = await fetch(`${API_BASE_URL}/gallery?limit=50`)
       if (!response.ok) {
-        response = await fetch(`${API_BASE_URL}/gallery?limit=50`)
+        response = await fetch(`${API_BASE_URL}/visual-knowledge?limit=50`)
       }
       const text = await response.text()
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -144,7 +144,8 @@ function App() {
 
         return {
           url,
-          title: item.title || item.name || 'Peça compartilhada',
+          title: item.resin || item.title || 'Peça compartilhada',
+          customerName: item.name || item.userName || '',
           desc: item.description || item.note || '',
           resin: item.resin || '-',
           printer: item.printer || '-',
@@ -357,11 +358,12 @@ function App() {
 
       {isAdminPanelOpen && (
         <AuthWrapper>
-          {({ onLogout }) => (
+          {({ onLogout, adminToken }) => (
             <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
               <div className="absolute inset-0" onClick={() => setIsAdminPanelOpen(false)} />
               <div className="relative h-full overflow-auto">
                 <AdminPanel
+                  externalAdminToken={adminToken}
                   onClose={() => setIsAdminPanelOpen(false)}
                   onLogout={() => {
                     onLogout()
