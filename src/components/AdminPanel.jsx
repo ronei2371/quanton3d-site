@@ -438,6 +438,25 @@ export function AdminPanel({ onClose }) {
     return parsed.toLocaleString('pt-BR')
   }
 
+
+  const normalizeResinsForPanel = (items = []) => items
+    .map((item) => ({
+      id: item?.id || item?._id || item?.resinId || item?.name || '',
+      name: item?.name || item?.resinName || item?.resin || '',
+      profiles: Number.isFinite(Number(item?.profiles)) ? Number(item.profiles) : 0
+    }))
+    .filter((item) => item.id && item.name)
+
+  const normalizePrintersForPanel = (items = []) => items
+    .map((item) => ({
+      id: item?.id || item?._id || item?.printerId || item?.model || item?.name || '',
+      printerId: item?.printerId || item?.id || item?._id || item?.model || item?.name || '',
+      brand: item?.brand || '',
+      model: item?.model || item?.name || '',
+      name: item?.name || `${item?.brand || ''} ${item?.model || ''}`.trim() || item?.printerId || ''
+    }))
+    .filter((item) => item.id && (item.model || item.name))
+
   const handleLogin = async () => {
     const trimmedSecret = adminSecret.trim()
     const trimmedUsername = username.trim()
@@ -756,8 +775,8 @@ export function AdminPanel({ onClose }) {
       if (resinsData.warning) {
         toast.warning(`Modo offline de resinas: ${resinsData.warning}`)
       }
-      if (resinsData.success) setParamsResins(resinsData.resins || [])
-      if (printersData.success) setParamsPrinters(printersData.printers || [])
+      if (resinsData.success) setParamsResins(normalizeResinsForPanel(resinsData.resins || []))
+      if (printersData.success) setParamsPrinters(normalizePrintersForPanel(printersData.printers || []))
       if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
       if (statsData.success) setParamsStats(statsData.stats || null)
     } catch (error) {
@@ -1080,22 +1099,55 @@ export function AdminPanel({ onClose }) {
                     ]
 
                     return (
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {originCards.map((card) => (
-                          <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
-                            </div>
-                            <div className="text-4xl font-bold">{card.value}</div>
-                            <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                          </Card>
-                        ))}
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {originCards.map((card) => (
+                            <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
+                              </div>
+                              <div className="text-4xl font-bold">{card.value}</div>
+                              <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                            </Card>
+                          ))}
+                        </div>
+
+                        <Card className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold">Entradas registradas</h4>
+                            <span className="text-xs text-gray-500">{contacts.length} registro(s)</span>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b text-left">
+                                  <th className="py-2 pr-4">Nome</th>
+                                  <th className="py-2 pr-4">WhatsApp</th>
+                                  <th className="py-2 pr-4">E-mail</th>
+                                  <th className="py-2 pr-4">Origem</th>
+                                  <th className="py-2 pr-4">Entrada</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {contacts.map((contact) => (
+                                  <tr key={contact.id || `${contact.email}-${contact.createdAt}`} className="border-b last:border-0 align-top">
+                                    <td className="py-2 pr-4">{contact.name || '-'}</td>
+                                    <td className="py-2 pr-4">{contact.phone || '-'}</td>
+                                    <td className="py-2 pr-4 break-all">{contact.email || '-'}</td>
+                                    <td className="py-2 pr-4">{contact.origin || 'Direto'}</td>
+                                    <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(contact.createdAt || contact.updatedAt)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </Card>
                       </div>
                     )
                   })()
                 )}
                 <p className="text-xs text-gray-500 mt-4 text-center">
-                  💡 Para ver as métricas reais, acesse a aba "Contatos" primeiro para carregar os dados.
+                  💡 Os cards acima somam todas as entradas registradas e a tabela mostra nome, contato, origem e data.
                 </p>
               </div>
             </>
@@ -1186,7 +1238,7 @@ export function AdminPanel({ onClose }) {
                 <div className="grid grid-cols-4 gap-4">
                   <Card className="p-4"><p>Resinas</p><p className="text-2xl font-bold">{paramsStats.totalResins}</p></Card>
                   <Card className="p-4"><p>Impressoras</p><p className="text-2xl font-bold">{paramsStats.totalPrinters}</p></Card>
-                  <Card className="p-4"><p>Perfis</p><p className="text-2xl font-bold">{paramsStats.activeProfiles}</p></Card>
+                  <Card className="p-4"><p>Perfis</p><p className="text-2xl font-bold">{paramsStats.totalProfiles ?? paramsStats.activeProfiles ?? 0}</p></Card>
                 </div>
               )}
               
@@ -1194,12 +1246,12 @@ export function AdminPanel({ onClose }) {
                 <Card className="p-4">
                   <h3 className="font-bold mb-2">Resinas</h3>
                   <div className="flex gap-2 mb-2"><Input value={newResinName} onChange={e=>setNewResinName(e.target.value)}/><Button onClick={addResin}><Plus/></Button></div>
-                  {paramsResins.map(r => <div key={r.id} className="flex justify-between p-1 border-b">{r.name} <Trash2 onClick={()=>deleteResin(r.id)} className="h-4 w-4 cursor-pointer text-red-500"/></div>)}
+                  {paramsResins.map(r => <div key={r.id || r._id} className="flex justify-between p-1 border-b">{r.name} <Trash2 onClick={()=>deleteResin(r.id || r._id)} className="h-4 w-4 cursor-pointer text-red-500"/></div>)}
                 </Card>
                 <Card className="p-4">
                   <h3 className="font-bold mb-2">Impressoras</h3>
                   <div className="flex gap-2 mb-2"><Input placeholder="Marca" value={newPrinterBrand} onChange={e=>setNewPrinterBrand(e.target.value)}/><Input placeholder="Modelo" value={newPrinterModel} onChange={e=>setNewPrinterModel(e.target.value)}/><Button onClick={addPrinter}><Plus/></Button></div>
-                  {paramsPrinters.map(p => <div key={p.id} className="flex justify-between p-1 border-b">{p.brand} {p.model} <Trash2 onClick={()=>deletePrinter(p.id)} className="h-4 w-4 cursor-pointer text-red-500"/></div>)}
+                  {paramsPrinters.map(p => <div key={p.id || p._id} className="flex justify-between p-1 border-b">{p.brand ? `${p.brand} ${p.model}` : (p.model || p.name)} <Trash2 onClick={()=>deletePrinter(p.id || p._id)} className="h-4 w-4 cursor-pointer text-red-500"/></div>)}
                 </Card>
               </div>
 
@@ -1224,10 +1276,10 @@ export function AdminPanel({ onClose }) {
                     <h3 className="font-bold mb-4">{editingProfile?.isNew ? 'Novo Perfil' : 'Editar Perfil'}</h3>
                     <div className="grid grid-cols-2 gap-2">
                       <select value={profileFormData.resinId} onChange={e=>setProfileFormData({...profileFormData, resinId: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
-                        <option value="">Resina...</option>{paramsResins.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}
+                        <option value="">Resina...</option>{paramsResins.map(r=><option key={r.id || r._id} value={r.id || r._id}>{r.name}</option>)}
                       </select>
                       <select value={profileFormData.printerId} onChange={e=>setProfileFormData({...profileFormData, printerId: e.target.value})} className="border p-2 rounded bg-white dark:bg-gray-700">
-                        <option value="">Impressora...</option>{paramsPrinters.map(p=><option key={p.id} value={p.id}>{p.brand} {p.model}</option>)}
+                        <option value="">Impressora...</option>{paramsPrinters.map(p=><option key={p.id || p._id} value={p.id || p._id}>{p.brand ? `${p.brand} ${p.model}` : (p.model || p.name)}</option>)}
                       </select>
                       <Input placeholder="Marca" value={profileFormData.brand} onChange={e=>setProfileFormData({...profileFormData, brand: e.target.value})}/>
                       <Input placeholder="Modelo" value={profileFormData.model} onChange={e=>setProfileFormData({...profileFormData, model: e.target.value})}/>
