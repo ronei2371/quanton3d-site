@@ -37,18 +37,14 @@ export function AuthWrapper({ children }) {
     try {
       const trimmedSecret = adminSecret.trim()
       const finalUsername = (username || DEFAULT_ADMIN_USERNAME).trim() || DEFAULT_ADMIN_USERNAME
-      const headers = { 'Content-Type': 'application/json' }
-      const payload = trimmedSecret
-        ? { password: password.trim() }
-        : { username: finalUsername, password: password.trim() }
 
-      if (trimmedSecret) {
-        headers['x-admin-secret'] = trimmedSecret
-      }
+      const payload = trimmedSecret
+        ? { secret: trimmedSecret, password: password.trim() }
+        : { username: finalUsername, password: password.trim() }
 
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
 
