@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, Component } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Component } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -73,11 +73,25 @@ function InternalGalleryTab({ isAdmin, adminToken, apiBaseUrl, onPendingCountCha
   const [loading, setLoading] = useState(false)
   const [processingId, setProcessingId] = useState(null)
   const [error, setError] = useState('')
+  const requestInFlightRef = useRef(false)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const loadPhotos = useCallback(async () => {
-    if (!adminToken) return
-    setLoading(true)
-    setError('')
+    if (!adminToken || requestInFlightRef.current) return
+
+    requestInFlightRef.current = true
+    if (mountedRef.current) {
+      setLoading(true)
+      setError('')
+    }
+
     try {
       const headers = { Authorization: `Bearer ${adminToken}` }
       let response = await fetch(`${baseUrl}/api/gallery/all`, { headers })
@@ -91,7 +105,16 @@ function InternalGalleryTab({ isAdmin, adminToken, apiBaseUrl, onPendingCountCha
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data?.error || `Erro ${response.status}`)
 
-      const rawList = Array.isArray(data.images) ? data.images : Array.isArray(data.items) ? data.items : Array.isArray(data.documents) ? data.documents : Array.isArray(data) ? data : []
+      const rawList = Array.isArray(data.images)
+        ? data.images
+        : Array.isArray(data.items)
+          ? data.items
+          : Array.isArray(data.documents)
+            ? data.documents
+            : Array.isArray(data)
+              ? data
+              : []
+
       const list = rawList.map((item) => ({
         raw: item,
         _id: item._id || item.id || item.legacyId || '',
@@ -107,21 +130,29 @@ function InternalGalleryTab({ isAdmin, adminToken, apiBaseUrl, onPendingCountCha
         settings: item.settings || {}
       })).filter((item) => item.imageUrl && item.status !== 'deleted')
 
-      setPhotos(list)
-      onPendingCountChange?.(list.filter((item) => !item.approved).length)
-      console.log('[GALERIA] Fotos carregadas:', list.length)
+      if (mountedRef.current) {
+        setPhotos(list)
+        onPendingCountChange?.(list.filter((item) => !item.approved).length)
+        console.log('[GALERIA] Fotos carregadas:', list.length)
+      }
     } catch (err) {
       console.error('[GALERIA] Erro ao carregar:', err)
-      setError(err.message || 'Erro ao carregar fotos.')
-      setPhotos([])
+      if (mountedRef.current) {
+        setError(err.message || 'Erro ao carregar fotos.')
+        setPhotos([])
+      }
     } finally {
-      setLoading(false)
+      requestInFlightRef.current = false
+      if (mountedRef.current) {
+        setLoading(false)
+      }
     }
   }, [adminToken, baseUrl, onPendingCountChange, onUnauthorized])
 
   useEffect(() => {
+    if (!adminToken) return
     loadPhotos()
-  }, [loadPhotos])
+  }, [adminToken, loadPhotos])
 
   const attemptAction = async (candidateId, action) => {
     const method = action === 'delete' ? 'DELETE' : 'PUT'
@@ -324,6 +355,10 @@ export function AdminPanel({ onClose, externalAdminToken = '' }) {
       return true
     }
     return false
+  }, [handleLogout])
+
+  const handleGalleryUnauthorized = useCallback(() => {
+    handleLogout('Sessão expirada. Faça login novamente.')
   }, [handleLogout])
 
   const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
@@ -781,7 +816,7 @@ export function AdminPanel({ onClose, externalAdminToken = '' }) {
 
           {activeTab === 'suggestions' && <SuggestionsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={suggestionsRefreshKey} onCountChange={() => {}} />}
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={ordersRefreshKey} onCountChange={() => {}} />}
-          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} adminToken={safeAdminToken} apiBaseUrl={apiBaseUrl} onPendingCountChange={setGalleryPendingCount} onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')} />}
+          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} adminToken={safeAdminToken} apiBaseUrl={apiBaseUrl} onPendingCountChange={setGalleryPendingCount} onUnauthorized={handleGalleryUnauthorized} />}
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           {activeTab === 'partners' && (
