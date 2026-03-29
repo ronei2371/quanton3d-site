@@ -1,194 +1,376 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Admin - Quanton3D</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quanton3D • Admin (JWT)</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    }
-  </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
-  <div id="app"></div>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
+  <div id="app" class="min-h-screen"></div>
 
   <script>
-    const ADMIN_PASSWORD = 'quanton3d2024';
-    const API_URL = 'https://quanton3d-bot-v2.onrender.com';
-    
-    let isAuthenticated = false;
-    let suggestions = [];
+    // -----------------------------
+    // Storage keys
+    // -----------------------------
+    const LS = {
+      backend: "q3d_admin_backend",
+      token: "q3d_admin_jwt",
+      username: "q3d_admin_username",
+      secret: "q3d_admin_secret",
+    };
 
-    function renderLogin() {
-      document.getElementById('app').innerHTML = `
-        <div class="min-h-screen flex items-center justify-center p-4">
-          <div class="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-            <h2 class="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Painel Administrativo
-            </h2>
-            <p class="text-center text-gray-600 mb-6">
-              Gerenciamento de Sugestões de Conhecimento
-            </p>
-            <div class="space-y-4">
-              <input
-                type="password"
-                id="password"
-                placeholder="Senha de administrador"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onclick="handleLogin()"
-                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition"
-              >
-                Entrar
-              </button>
+    const $app = document.getElementById("app");
+
+    function log(...args) {
+      console.log("[ADMIN.html]", ...args);
+      const el = document.getElementById("debugLog");
+      if (!el) return;
+      const line = document.createElement("div");
+      line.className = "text-xs text-slate-600 break-all";
+      line.textContent = args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ");
+      el.prepend(line);
+    }
+
+    function normalizeBaseUrl(raw) {
+      try {
+        const url = new URL(raw.trim());
+        return url.origin.replace(/\/$/, "");
+      } catch {
+        return (raw || "").trim().replace(/\/$/, "");
+      }
+    }
+
+    function getState() {
+      return {
+        backend: normalizeBaseUrl(localStorage.getItem(LS.backend) || "https://quanton3d-bot-v2.onrender.com"),
+        token: localStorage.getItem(LS.token) || "",
+        username: (localStorage.getItem(LS.username) || "").trim(),
+        secret: (localStorage.getItem(LS.secret) || "").trim(),
+      };
+    }
+
+    function setState(patch) {
+      const s = getState();
+      const next = { ...s, ...patch };
+      localStorage.setItem(LS.backend, next.backend);
+      if (next.token) localStorage.setItem(LS.token, next.token); else localStorage.removeItem(LS.token);
+      if (next.username) localStorage.setItem(LS.username, next.username); else localStorage.removeItem(LS.username);
+      if (next.secret) localStorage.setItem(LS.secret, next.secret); else localStorage.removeItem(LS.secret);
+      return next;
+    }
+
+    function authHeaders(extra = {}) {
+      const s = getState();
+      const h = { ...extra };
+      if (s.token) h["Authorization"] = `Bearer ${s.token}`;
+      // Compat: alguns deploys aceitam token estático como "x-admin-token" / "x-admin-secret"
+      if (s.secret) {
+        h["x-admin-token"] = s.secret;
+        h["x-admin-secret"] = s.secret;
+      }
+      return h;
+    }
+
+    async function apiFetch(path, opts = {}) {
+      const s = getState();
+      const base = s.backend;
+      // Tenta com /api e sem /api para reduzir fricção entre versões
+      const candidates = [];
+      const cleanPath = path.startsWith("/") ? path : "/" + path;
+      candidates.push(base + "/api" + cleanPath);
+      candidates.push(base + cleanPath);
+
+      let last;
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, {
+            ...opts,
+            headers: authHeaders(opts.headers || {}),
+          });
+          // 401 = token inválido/expirou
+          if (res.status === 401) {
+            log("401 em", url, "→ limpando token e voltando ao login");
+            setState({ token: "" });
+            renderLogin("Sessão expirada. Faça login novamente.");
+            return null;
+          }
+          // Alguns middlewares retornam 404 para esconder rotas admin quando não autorizado
+          if (res.status === 404) {
+            last = res;
+            continue;
+          }
+          return res;
+        } catch (e) {
+          last = e;
+          log("Falha de rede em", url, e?.message || e);
+        }
+      }
+      if (last && last.status) log("Todas tentativas falharam. Último status:", last.status);
+      return last || null;
+    }
+
+    // -----------------------------
+    // UI
+    // -----------------------------
+    function shell(content) {
+      $app.innerHTML = `
+        <div class="max-w-6xl mx-auto p-4 md:p-8">
+          <div class="flex items-center justify-between gap-3 mb-6">
+            <div>
+              <div class="text-2xl font-extrabold tracking-tight text-slate-900">Quanton3D • Admin</div>
+              <div class="text-sm text-slate-500">Painel HTML (fallback) com JWT + compatibilidade /api</div>
             </div>
+            <div class="flex items-center gap-2">
+              <button id="btnLogout" class="px-3 py-2 rounded-lg bg-white border hover:bg-slate-50 text-sm">Sair</button>
+            </div>
+          </div>
+          ${content}
+        </div>
+      `;
+      const btn = document.getElementById("btnLogout");
+      if (btn) btn.onclick = () => { setState({ token: "" }); renderLogin(); };
+    }
+
+    function renderLogin(message) {
+      const s = getState();
+      $app.innerHTML = `
+        <div class="min-h-screen flex items-center justify-center p-4">
+          <div class="w-full max-w-md bg-white rounded-2xl shadow-lg border p-6 space-y-4">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-slate-900">Painel Administrativo</div>
+              <div class="text-sm text-slate-500">Login via JWT (tenta /auth/login e /admin/login)</div>
+            </div>
+
+            ${message ? `<div class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">${message}</div>` : ""}
+
+            <label class="text-xs text-slate-500">URL do Backend</label>
+            <input id="backend" class="w-full px-3 py-2 border rounded-lg" placeholder="https://quanton3d-bot-v2.onrender.com" value="${s.backend}"/>
+
+            <div class="grid grid-cols-1 gap-2">
+              <label class="text-xs text-slate-500">Usuário (opcional)</label>
+              <input id="username" class="w-full px-3 py-2 border rounded-lg" placeholder="admin" value="${s.username || ""}"/>
+
+              <label class="text-xs text-slate-500">Senha</label>
+              <input id="password" type="password" class="w-full px-3 py-2 border rounded-lg" placeholder="••••••••"/>
+
+              <details class="mt-1">
+                <summary class="cursor-pointer text-xs text-slate-500">Opções avançadas (compatibilidade)</summary>
+                <div class="mt-2">
+                  <label class="text-xs text-slate-500">Secret/Token (ADMIN_SECRET ou ADMIN_API_TOKEN)</label>
+                  <input id="secret" class="w-full px-3 py-2 border rounded-lg" placeholder="quanton3d_admin_secret" value="${s.secret || ""}"/>
+                  <div class="text-[11px] text-slate-400 mt-1">Se preencher o Secret e deixar usuário em branco, o login tenta o modo de compatibilidade.</div>
+                </div>
+              </details>
+            </div>
+
+            <button id="btnLogin" class="w-full px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
+              Entrar
+            </button>
+
+            <div id="debugLog" class="max-h-32 overflow-auto border rounded-lg p-2 bg-slate-50"></div>
           </div>
         </div>
       `;
 
-      document.getElementById('password').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleLogin();
+      document.getElementById("btnLogin").onclick = doLogin;
+      document.getElementById("password").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doLogin();
       });
     }
 
-    function handleLogin() {
-      const password = document.getElementById('password').value;
-      if (password === ADMIN_PASSWORD) {
-        isAuthenticated = true;
-        loadSuggestions();
-      } else {
-        alert('Senha incorreta!');
-      }
-    }
+    async function doLogin() {
+      const backend = normalizeBaseUrl(document.getElementById("backend").value);
+      const username = (document.getElementById("username").value || "").trim();
+      const password = (document.getElementById("password").value || "").trim();
+      const secret = (document.getElementById("secret").value || "").trim();
 
-    async function loadSuggestions() {
-      document.getElementById('app').innerHTML = `
-        <div class="min-h-screen p-4">
-          <div class="container mx-auto max-w-6xl py-8">
-            <div class="flex items-center justify-center">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-            <p class="text-center mt-4 text-gray-600">Carregando sugestões...</p>
-          </div>
-        </div>
-      `;
+      setState({ backend, username, secret });
+      log("Backend:", backend);
 
-      try {
-        const response = await fetch(`${API_URL}/suggestions?auth=quanton3d_admin_secret`);
-        const data = await response.json();
-        suggestions = data.suggestions || [];
-        renderDashboard();
-      } catch (error) {
-        console.error('Erro ao carregar sugestões:', error);
-        document.getElementById('app').innerHTML = `
-          <div class="min-h-screen p-4">
-            <div class="container mx-auto max-w-6xl py-8">
-              <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <p class="text-red-600 font-semibold">Erro ao carregar sugestões</p>
-                <p class="text-red-500 text-sm mt-2">${error.message}</p>
-                <button onclick="loadSuggestions()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Tentar Novamente
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
+      if (!password) return renderLogin("Digite a senha.");
+
+      const headers = { "Content-Type": "application/json" };
+      if (secret) {
+        headers["x-admin-token"] = secret;
+        headers["x-admin-secret"] = secret;
       }
+
+      const payload = secret && !username
+        ? { password, secret }
+        : { username, password, secret };
+
+      const candidates = [`${backend}/auth/login`, `${backend}/admin/login`];
+      let token = "";
+      let lastErr = "";
+
+      for (const url of candidates) {
+        try {
+          log("POST", url);
+          const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data?.token) {
+            token = data.token;
+            break;
+          }
+          // tenta próximo se rota não existir
+          if (res.status === 404) { lastErr = data?.error || "Rota não encontrada"; continue; }
+          lastErr = data?.error || `Falha no login (HTTP ${res.status})`;
+        } catch (e) {
+          lastErr = e?.message || "Falha de rede";
+        }
+      }
+
+      if (!token) return renderLogin(lastErr || "Credenciais inválidas. (Senha é case-sensitive)");
+
+      setState({ token });
+      log("✅ Login OK. Token salvo.");
+      renderDashboard();
     }
 
     function renderDashboard() {
-      const suggestionsHTML = suggestions.length === 0 ? `
-        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
-          <svg class="h-16 w-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <p class="text-gray-600">Nenhuma sugestão pendente no momento</p>
+      shell(`
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white border rounded-2xl p-4">
+            <div class="font-semibold text-slate-900 mb-2">Ações rápidas</div>
+            <div class="flex flex-col gap-2">
+              <button id="btnLoadContacts" class="px-3 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800">Carregar Contatos</button>
+              <button id="btnLoadGallery" class="px-3 py-2 rounded-lg bg-slate-900 text-white text-sm hover:bg-slate-800">Carregar Galeria</button>
+            </div>
+            <div class="text-xs text-slate-500 mt-3">Este admin.html é um fallback para depurar rotas JWT/CORS rapidamente.</div>
+          </div>
+
+          <div class="md:col-span-2 bg-white border rounded-2xl p-4">
+            <div class="font-semibold text-slate-900 mb-2">Log</div>
+            <div id="debugLog" class="max-h-56 overflow-auto border rounded-lg p-2 bg-slate-50"></div>
+          </div>
         </div>
-      ` : suggestions.map((suggestion, index) => `
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                ${suggestion.userName?.charAt(0) || 'U'}
-              </div>
-              <div>
-                <p class="font-semibold">${suggestion.userName || 'Usuário'}</p>
-                <div class="flex items-center gap-4 text-sm text-gray-600">
-                  <span>📱 ${suggestion.userPhone || 'N/A'}</span>
-                  <span>📅 ${new Date(suggestion.timestamp).toLocaleString('pt-BR')}</span>
-                </div>
-              </div>
-            </div>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${
-              suggestion.status === 'pending' 
-                ? 'bg-yellow-100 text-yellow-800'
-                : suggestion.status === 'approved'
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-            }">
-              ${suggestion.status === 'pending' ? 'Pendente' : suggestion.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
-            </span>
+
+        <div class="mt-6 grid grid-cols-1 gap-6">
+          <div class="bg-white border rounded-2xl p-4">
+            <div class="font-semibold text-slate-900 mb-3">Contatos</div>
+            <div id="contactsWrap" class="text-sm text-slate-600">Clique em “Carregar Contatos”.</div>
           </div>
 
-          <div class="bg-gray-50 rounded-lg p-4 mb-4">
-            <p class="text-sm whitespace-pre-wrap">${suggestion.suggestion}</p>
+          <div class="bg-white border rounded-2xl p-4">
+            <div class="font-semibold text-slate-900 mb-3">Galeria (aprovar/deletar)</div>
+            <div id="galleryWrap" class="text-sm text-slate-600">Clique em “Carregar Galeria”.</div>
           </div>
-
-          ${suggestion.status === 'pending' ? `
-            <div class="flex gap-2">
-              <button 
-                onclick="alert('Sugestão aprovada! Para adicionar ao conhecimento, edite o arquivo knowledge-base.js no backend.')"
-                class="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
-              >
-                ✓ Aprovar e Adicionar ao Conhecimento
-              </button>
-              <button 
-                onclick="alert('Sugestão rejeitada!')"
-                class="flex-1 border border-gray-300 py-2 rounded-lg font-semibold hover:bg-gray-50 transition"
-              >
-                ✗ Rejeitar
-              </button>
-            </div>
-          ` : ''}
         </div>
-      `).join('');
+      `);
 
-      document.getElementById('app').innerHTML = `
-        <div class="min-h-screen p-4">
-          <div class="container mx-auto max-w-6xl py-8">
-            <div class="flex items-center justify-between mb-8">
-              <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Sugestões de Conhecimento
-              </h1>
-              <button 
-                onclick="loadSuggestions()"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-              >
-                🔄 Atualizar
-              </button>
-            </div>
+      document.getElementById("btnLogout").onclick = () => { setState({ token: "" }); renderLogin(); };
+      document.getElementById("btnLoadContacts").onclick = loadContacts;
+      document.getElementById("btnLoadGallery").onclick = loadGallery;
+    }
 
-            ${suggestionsHTML}
+    async function loadContacts() {
+      const wrap = document.getElementById("contactsWrap");
+      wrap.innerHTML = "Carregando...";
+      const res = await apiFetch("/contacts");
+      if (!res) return;
+      const data = await res.json().catch(() => []);
+      log("Contatos:", Array.isArray(data) ? data.length : Object.keys(data||{}).length);
 
-            <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 class="font-bold mb-2">📝 Como usar este painel:</h3>
-              <ul class="text-sm space-y-1 text-gray-700">
-                <li>• Revise cada sugestão enviada pelos usuários</li>
-                <li>• Aprove sugestões úteis para adicionar à base de conhecimento do bot</li>
-                <li>• Rejeite sugestões irrelevantes ou duplicadas</li>
-                <li>• As sugestões aprovadas devem ser manualmente adicionadas ao arquivo knowledge-base.js do backend</li>
-              </ul>
-            </div>
-          </div>
+      const items = Array.isArray(data) ? data : (data?.items || []);
+      if (!items.length) {
+        wrap.innerHTML = "<div class='text-slate-500'>Nenhum contato encontrado.</div>";
+        return;
+      }
+
+      wrap.innerHTML = `
+        <div class="overflow-auto">
+          <table class="min-w-full text-xs">
+            <thead>
+              <tr class="text-left text-slate-500">
+                <th class="py-2 pr-3">Nome</th>
+                <th class="py-2 pr-3">Telefone</th>
+                <th class="py-2 pr-3">Origem</th>
+                <th class="py-2 pr-3">Criado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.slice(0, 50).map(c => `
+                <tr class="border-t">
+                  <td class="py-2 pr-3">${(c.name||c.nome||"-")}</td>
+                  <td class="py-2 pr-3">${(c.phone||c.telefone||"-")}</td>
+                  <td class="py-2 pr-3">${(c.origin||c.origem||"-")}</td>
+                  <td class="py-2 pr-3">${(c.createdAt||c.created_at||"-")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
         </div>
       `;
     }
 
-    // Inicializar
-    renderLogin();
+    async function loadGallery() {
+      const wrap = document.getElementById("galleryWrap");
+      wrap.innerHTML = "Carregando...";
+      const res = await apiFetch("/gallery/all");
+      if (!res) return;
+      const data = await res.json().catch(() => []);
+      const photos = Array.isArray(data) ? data : (data?.photos || []);
+      log("Galeria:", photos.length);
+
+      if (!photos.length) {
+        wrap.innerHTML = "<div class='text-slate-500'>Nenhuma foto encontrada.</div>";
+        return;
+      }
+
+      wrap.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${photos.slice(0, 30).map(p => {
+            const id = p._id || p.id;
+            const img = p.imageUrl || p.url || p.image || "";
+            const status = p.status || (p.approved ? "approved" : "pending");
+            return `
+              <div class="border rounded-xl overflow-hidden">
+                <div class="aspect-video bg-slate-100 overflow-hidden">
+                  ${img ? `<img src="${img}" class="w-full h-full object-cover" />` : ""}
+                </div>
+                <div class="p-3 text-xs">
+                  <div class="font-semibold">${p.resinName || p.resin || "Resina"} • ${p.printerModel || p.printer || "Impressora"}</div>
+                  <div class="text-slate-500">Status: ${status}</div>
+                  <div class="mt-3 flex gap-2">
+                    <button data-act="approve" data-id="${id}" class="flex-1 px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700">Aprovar</button>
+                    <button data-act="delete" data-id="${id}" class="flex-1 px-2 py-1 rounded bg-rose-600 text-white hover:bg-rose-700">Deletar</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+
+      wrap.querySelectorAll("button[data-act]").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.getAttribute("data-id");
+          const act = btn.getAttribute("data-act");
+          await galleryAction(act, id);
+          await loadGallery();
+        };
+      });
+    }
+
+    async function galleryAction(action, id) {
+      if (!id) return;
+      // delete: DELETE /gallery/:id
+      // approve: PUT /gallery/:id/approve
+      const method = action === "delete" ? "DELETE" : "PUT";
+      const path = action === "delete" ? `/gallery/${id}` : `/gallery/${id}/approve`;
+      log(method, path);
+      const res = await apiFetch(path, { method });
+      if (!res) return;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) log("Erro:", res.status, data);
+      else log("OK:", data);
+    }
+
+    // Boot
+    const s = getState();
+    if (s.token) renderDashboard();
+    else renderLogin();
   </script>
 </body>
 </html>
