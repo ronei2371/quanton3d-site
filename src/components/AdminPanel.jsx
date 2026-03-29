@@ -160,30 +160,64 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     loadPhotos()
   }, [isVisible, adminToken, refreshKey, loadPhotos])
 
+  const buildActionAttempts = useCallback((candidateId, action) => {
+    const safeId = encodeURIComponent(String(candidateId || '').trim())
+
+    if (action === 'approve') {
+      return [
+        { method: 'PUT', path: `/api/gallery/${safeId}/approve` },
+        { method: 'POST', path: `/api/gallery/${safeId}/approve` },
+        { method: 'PUT', path: `/gallery/${safeId}/approve` },
+        { method: 'POST', path: `/gallery/${safeId}/approve` }
+      ]
+    }
+
+    return [
+      { method: 'DELETE', path: `/api/gallery/${safeId}` },
+      { method: 'POST', path: `/api/gallery/${safeId}/delete` },
+      { method: 'DELETE', path: `/gallery/${safeId}` },
+      { method: 'POST', path: `/gallery/${safeId}/delete` }
+    ]
+  }, [])
+
   const attemptAction = useCallback(async (candidateId, action) => {
-    const method = action === 'delete' ? 'DELETE' : 'PUT'
-    const path = action === 'approve'
-      ? `/api/gallery/${encodeURIComponent(candidateId)}/approve`
-      : `/api/gallery/${encodeURIComponent(candidateId)}`
-    const fallback = action === 'approve'
-      ? `/gallery/${encodeURIComponent(candidateId)}/approve`
-      : `/gallery/${encodeURIComponent(candidateId)}`
+    const attempts = buildActionAttempts(candidateId, action)
+    let lastResponse = null
 
-    const options = {
-      method,
-      headers: {
-        ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
-        ...(action === 'approve' ? { 'Content-Type': 'application/json' } : {})
-      },
-      body: action === 'approve' ? JSON.stringify({ approved: true }) : undefined
+    for (const attempt of attempts) {
+      const options = {
+        method: attempt.method,
+        headers: {
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+          ...((action === 'approve' || attempt.method === 'POST') ? { 'Content-Type': 'application/json' } : {})
+        },
+        body:
+          action === 'approve'
+            ? JSON.stringify({ approved: true })
+            : attempt.method === 'POST'
+              ? JSON.stringify({ id: candidateId })
+              : undefined
+      }
+
+      try {
+        const response = await fetch(`${baseUrl}${attempt.path}`, options)
+        lastResponse = response
+        if (response.status === 401) {
+          return response
+        }
+        if (response.ok) {
+          return response
+        }
+      } catch (error) {
+        console.error('[GALERIA] Falha de rede na tentativa:', error)
+      }
     }
 
-    let response = await fetch(`${baseUrl}${path}`, options)
-    if ((response.status === 404 || response.status === 500) && path !== fallback) {
-      response = await fetch(`${baseUrl}${fallback}`, options)
-    }
-    return response
-  }, [adminToken, baseUrl])
+    return lastResponse || new Response(
+      JSON.stringify({ success: false, error: 'Falha de rede' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }, [adminToken, baseUrl, buildActionAttempts])
 
   const handleAction = async (item, action) => {
     if (!isAdmin) return
@@ -515,13 +549,15 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadContacts = async (tokenOverride) => {
+  const loadContacts = useCallback(async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
     if (!token) return
     try {
-      const response = await fetch(buildAdminUrl('/api/contacts'), {
-        headers: buildAuthHeaders({}, token)
-      })
+      const headers = buildAuthHeaders({}, token)
+      let response = await fetch(buildAdminUrl('/contacts'), { headers })
+      if (response.status === 404) {
+        response = await fetch(buildAdminUrl('/api/contacts'), { headers })
+      }
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json().catch(() => ({}))
       const loaded = Array.isArray(data.contacts) ? data.contacts : []
@@ -530,7 +566,7 @@ export function AdminPanel({ onClose }) {
     } catch (error) {
       console.error('Erro ao carregar contatos:', error)
     }
-  }
+  }, [safeAdminToken, buildAuthHeaders, buildAdminUrl, handleUnauthorizedResponse])
 
   const refreshAllData = async (tokenOverride) => {
     const tokenToUse = tokenOverride || safeAdminToken
@@ -1120,7 +1156,7 @@ export function AdminPanel({ onClose }) {
                   )
                 })()}
                 <p className="text-xs text-gray-500 mt-4 text-center">
-                  💡 As métricas agora carregam automaticamente junto com o painel.
+                  💡 As métricas usam a lista de contatos carregada automaticamente. Se zerarem, clique em Atualizar.
                 </p>
               </div>
             </>
