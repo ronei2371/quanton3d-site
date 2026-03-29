@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, Component } from 'react'
+import { useCallback, useState, useEffect, useRef, Component } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -515,6 +515,23 @@ export function AdminPanel({ onClose }) {
     }
   }
 
+  const loadContacts = async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    try {
+      const response = await fetch(buildAdminUrl('/api/contacts'), {
+        headers: buildAuthHeaders({}, token)
+      })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      const loaded = Array.isArray(data.contacts) ? data.contacts : []
+      setContacts(loaded)
+      setContactCount(loaded.length)
+    } catch (error) {
+      console.error('Erro ao carregar contatos:', error)
+    }
+  }
+
   const refreshAllData = async (tokenOverride) => {
     const tokenToUse = tokenOverride || safeAdminToken
     if (!tokenToUse) {
@@ -528,6 +545,7 @@ export function AdminPanel({ onClose }) {
       setKnowledgeRefreshKey((key) => key + 1)
       setContactRefreshKey((key) => key + 1)
       await Promise.all([
+        loadContacts(tokenToUse),
         loadCustomRequests(tokenToUse),
         loadVisualKnowledge(tokenToUse),
         loadPendingVisualPhotos(tokenToUse),
@@ -1102,7 +1120,7 @@ export function AdminPanel({ onClose }) {
                   )
                 })()}
                 <p className="text-xs text-gray-500 mt-4 text-center">
-                  💡 Para ver as métricas reais, acesse a aba "Contatos" primeiro para carregar os dados.
+                  💡 As métricas agora carregam automaticamente junto com o painel.
                 </p>
               </div>
             </>
