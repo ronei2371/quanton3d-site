@@ -215,10 +215,10 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     for (const attempt of attempts) {
       const options = {
         method: attempt.method,
-        headers: {
-          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
-          ...((action === 'approve' || attempt.method === 'POST') ? { 'Content-Type': 'application/json' } : {})
-        },
+        headers: buildAuthHeaders(
+          ((action === 'approve' || attempt.method === 'POST') ? { 'Content-Type': 'application/json' } : {}),
+          adminToken
+        ),
         body: action === 'approve' ? JSON.stringify({ approved: true }) : attempt.method === 'POST' ? JSON.stringify({ id: candidateId }) : undefined
       }
 
@@ -383,9 +383,15 @@ export function AdminPanel({ onClose }) {
 
   const buildAuthHeaders = useCallback((headers = {}, tokenOverride) => {
     const token = tokenOverride || safeAdminToken
-    if (!token) return headers
-    return { ...headers, Authorization: `Bearer ${token}` }
-  }, [safeAdminToken])
+    const out = { ...headers }
+    if (token) out.Authorization = `Bearer ${token}`
+    // Compat: alguns endpoints/adminGuard aceitam token estático (ADMIN_API_TOKEN / ADMIN_SECRET)
+    if (adminSecret) {
+      out['x-admin-token'] = adminSecret
+      out['x-admin-secret'] = adminSecret
+    }
+    return out
+  }, [safeAdminToken, adminSecret])
 
   const handleLogout = useCallback((message) => {
     setAdminToken('')
@@ -510,9 +516,26 @@ export function AdminPanel({ onClose }) {
       const headers = { 'Content-Type': 'application/json' }
       if (useSecretLogin) headers['x-admin-secret'] = effectiveSecret
 
-      const res = await fetch(`${targetBase}/auth/login`, { method: 'POST', headers, body: JSON.stringify(payload) })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data?.token) throw new Error(data?.error || 'Credenciais inválidas')
+      const loginCandidates = [`${targetBase}/auth/login`, `${targetBase}/admin/login`]
+      let data = null
+      let lastErr = null
+
+      for (const url of loginCandidates) {
+        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) })
+        const j = await res.json().catch(() => ({}))
+        if (res.ok && j?.token) {
+          data = j
+          lastErr = null
+          break
+        }
+        if (res.status === 404) {
+          lastErr = j?.error || 'Rota não encontrada'
+          continue
+        }
+        lastErr = j?.error || 'Credenciais inválidas'
+      }
+
+      if (!data?.token) throw new Error(lastErr || 'Credenciais inválidas')
 
       setAccessLevel('admin')
       setAdminToken(data.token)
@@ -530,10 +553,14 @@ export function AdminPanel({ onClose }) {
 
   const loadContacts = useCallback(async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
-    if (!token) return
+    if (!token && !adminSecret) return
     try {
       const headers = buildAuthHeaders({}, token)
-      const response = await fetch(buildAdminUrl('/contacts'), { headers })
+      let response = await fetch(buildAdminUrl('/contacts'), { headers })
+      // Fallback: alguns deploys expõem rotas sem prefixo /api
+      if (response.status === 404) {
+        response = await fetch(buildAdminUrl('/contacts', true), { headers })
+      }
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json().catch(() => ({}))
       const loaded = Array.isArray(data.contacts) ? data.contacts : []
@@ -548,7 +575,7 @@ export function AdminPanel({ onClose }) {
 
   const loadRagStatus = useCallback(async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
-    if (!token) return
+    if (!token && !adminSecret) return
     setRagLoading(true)
     setRagError('')
     try {
@@ -580,7 +607,7 @@ export function AdminPanel({ onClose }) {
 
   const loadVisualKnowledge = useCallback(async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
-    if (!token) return
+    if (!token && !adminSecret) return
     setVisualLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/visual-knowledge'), { headers: buildAuthHeaders({}, token) })
@@ -596,7 +623,7 @@ export function AdminPanel({ onClose }) {
 
   const loadPendingVisualPhotos = useCallback(async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
-    if (!token) return
+    if (!token && !adminSecret) return
     setPendingVisualLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), { headers: buildAuthHeaders({}, token) })
@@ -612,7 +639,7 @@ export function AdminPanel({ onClose }) {
 
   const loadParamsData = useCallback(async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
-    if (!token) return
+    if (!token && !adminSecret) return
     setParamsLoading(true)
     try {
       const headers = buildAuthHeaders({}, token)
