@@ -1,59 +1,938 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useRef, Component } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { X, Check, Clock, User, Phone, Calendar } from 'lucide-react'
+import { X, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, Handshake, ShoppingBag, RefreshCw, Check } from 'lucide-react'
+import { Badge } from '@/components/ui/badge.jsx'
+import { toast } from 'sonner'
+import { PartnersManager } from './PartnersManager.jsx'
+import { MetricsTab } from './admin/MetricsTab.jsx'
+import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
+import { OrdersTab } from './admin/OrdersTab.jsx'
+import { DocumentsTab } from './admin/DocumentsTab.jsx'
+import { ContactsTab } from './admin/ContactsTab.jsx'
 
-export function AdminPanel({ onClose }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [password, setPassword] = useState('')
-  const [suggestions, setSuggestions] = useState([])
-  const [loading, setLoading] = useState(false)
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
 
-  const ADMIN_PASSWORD = 'Rmartins1201' // Senha simples - você pode mudar
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
 
-  const handleLogin = () => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      loadSuggestions()
-    } else {
-      alert('Senha incorreta!')
+  componentDidCatch(error, errorInfo) {
+    console.error('[ErrorBoundary]', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <div>Erro ao carregar componente.</div>
+    }
+    return this.props.children
+  }
+}
+
+const STORAGE_KEYS = {
+  token: 'quanton3d_admin_token',
+  apiBase: 'quanton3d_admin_api_base'
+}
+
+const normalizeBaseUrl = (value) => {
+  if (!value) return ''
+  try {
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+    const url = new URL(trimmed, trimmed.startsWith('http') ? undefined : window.location.origin)
+    return url.origin
+  } catch {
+    return ''
+  }
+}
+
+const deriveDefaultApiBase = () => 'https://quanton3d-bot-v2.onrender.com'
+
+function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
+  const [defectType, setDefectType] = useState(item.defectType || '')
+  const [diagnosis, setDiagnosis] = useState('')
+  const [solution, setSolution] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleApprove = async () => {
+    setSaving(true)
+    try {
+      await onApprove(item._id, defectType, diagnosis, solution)
+    } finally {
+      setSaving(false)
     }
   }
 
-  const loadSuggestions = async () => {
+  return (
+    <Card className="p-4">
+      <div className="flex gap-4 items-start">
+        <img src={item.imageUrl} className="w-32 h-32 object-cover rounded bg-gray-100" alt="Pendente visual" />
+        <div className="flex-1 space-y-3">
+          <div>
+            <p className="font-semibold">{item.userName || 'Usuário'}</p>
+            <p className="text-xs text-gray-500">{item.createdAt ? new Date(item.createdAt).toLocaleString('pt-BR') : '-'}</p>
+          </div>
+          <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full p-2 border rounded bg-white dark:bg-gray-700">
+            <option value="">Tipo de Defeito...</option>
+            <option value="descolamento da base">Descolamento</option>
+            <option value="falha de suportes">Falha de suportes</option>
+            <option value="outro">Outro</option>
+          </select>
+          <textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Diagnóstico" className="w-full p-2 border rounded bg-white dark:bg-gray-700" />
+          <textarea value={solution} onChange={(e) => setSolution(e.target.value)} placeholder="Solução" className="w-full p-2 border rounded bg-white dark:bg-gray-700" />
+          <div className="flex gap-2">
+            <Button onClick={handleApprove} disabled={saving} className="bg-green-600 hover:bg-green-700">
+              <Check className="h-4 w-4 mr-2" /> Aprovar
+            </Button>
+            {canDelete && (
+              <Button variant="destructive" onClick={() => onDelete(item._id)} disabled={saving}>
+                <Trash2 className="h-4 w-4 mr-2" /> Deletar
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange, apiBaseUrl, onUnauthorized, refreshKey = 0 }) {
+  const baseUrl = apiBaseUrl || deriveDefaultApiBase()
+  const [photos, setPhotos] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [processingId, setProcessingId] = useState(null)
+  const [error, setError] = useState('')
+  const requestInFlightRef = useRef(false)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  const buildGalleryIdCandidates = useCallback((item) => {
+    const values = [item?._id, item?.id, item?.legacyId, item?.raw?._id, item?.raw?.id, item?.raw?.legacyId]
+    return [...new Set(values.filter(Boolean).map((v) => String(v)))]
+  }, [])
+
+  const loadPhotos = useCallback(async () => {
+    if (!isVisible || !adminToken || requestInFlightRef.current) return
+    requestInFlightRef.current = true
+    if (mountedRef.current) {
+      setLoading(true)
+      setError('')
+    }
+    try {
+      const headers = { Authorization: `Bearer ${adminToken}` }
+      let response = await fetch(`${baseUrl}/api/gallery/all`, { headers })
+      if (response.status === 404) {
+        response = await fetch(`${baseUrl}/gallery/all`, { headers })
+      }
+      if (response.status === 401) {
+        onUnauthorized?.()
+        return
+      }
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data?.error || `Erro ${response.status}`)
+
+      const rawList = Array.isArray(data.images)
+        ? data.images
+        : Array.isArray(data.items)
+          ? data.items
+          : Array.isArray(data.documents)
+            ? data.documents
+            : Array.isArray(data)
+              ? data
+              : []
+
+      const list = rawList
+        .map((item) => ({
+          raw: item,
+          _id: item._id || item.id || item.legacyId || '',
+          id: item.id || item._id || item.legacyId || '',
+          legacyId: item.legacyId || '',
+          imageUrl: item.imageUrl || item.image || (Array.isArray(item.images) ? item.images[0] : ''),
+          approved: Boolean(item.approved || item.status === 'approved'),
+          status: item.status || (item.approved ? 'approved' : 'pending'),
+          resin: item.resin || '-',
+          printer: item.printer || '-',
+          customerName: item.name || item.userName || '',
+          note: item.note || item.description || '',
+          settings: item.settings || {}
+        }))
+        .filter((item) => item.imageUrl && item.status !== 'deleted')
+
+      if (mountedRef.current) {
+        setPhotos(list)
+        onPendingCountChange?.(list.filter((item) => !item.approved).length)
+      }
+    } catch (err) {
+      console.error('[GALERIA] Erro ao carregar:', err)
+      if (mountedRef.current) {
+        setError(err.message || 'Erro ao carregar fotos.')
+        setPhotos([])
+      }
+    } finally {
+      requestInFlightRef.current = false
+      if (mountedRef.current) setLoading(false)
+    }
+  }, [isVisible, adminToken, baseUrl, onPendingCountChange, onUnauthorized])
+
+  useEffect(() => {
+    if (!isVisible || !adminToken) return
+    loadPhotos()
+  }, [isVisible, adminToken, refreshKey, loadPhotos])
+
+  const buildActionAttempts = useCallback((candidateId, action) => {
+    const safeId = encodeURIComponent(String(candidateId || '').trim())
+    if (action === 'approve') {
+      return [
+        { method: 'PUT', path: `/api/gallery/${safeId}/approve` },
+        { method: 'POST', path: `/api/gallery/${safeId}/approve` },
+        { method: 'PUT', path: `/gallery/${safeId}/approve` },
+        { method: 'POST', path: `/gallery/${safeId}/approve` }
+      ]
+    }
+    return [
+      { method: 'DELETE', path: `/api/gallery/${safeId}` },
+      { method: 'POST', path: `/api/gallery/${safeId}/delete` },
+      { method: 'DELETE', path: `/gallery/${safeId}` },
+      { method: 'POST', path: `/gallery/${safeId}/delete` }
+    ]
+  }, [])
+
+  const attemptAction = useCallback(async (candidateId, action) => {
+    const attempts = buildActionAttempts(candidateId, action)
+    let lastResponse = null
+
+    for (const attempt of attempts) {
+      const options = {
+        method: attempt.method,
+        headers: {
+          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+          ...((action === 'approve' || attempt.method === 'POST') ? { 'Content-Type': 'application/json' } : {})
+        },
+        body: action === 'approve' ? JSON.stringify({ approved: true }) : attempt.method === 'POST' ? JSON.stringify({ id: candidateId }) : undefined
+      }
+
+      try {
+        const response = await fetch(`${baseUrl}${attempt.path}`, options)
+        lastResponse = response
+        if (response.status === 401) return response
+        if (response.ok) return response
+      } catch (networkError) {
+        console.error('[GALERIA] Falha de rede na tentativa:', networkError)
+      }
+    }
+
+    return lastResponse || new Response(JSON.stringify({ success: false, error: 'Falha de rede' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }, [adminToken, baseUrl, buildActionAttempts])
+
+  const handleAction = async (item, action) => {
+    if (!isAdmin) return
+    const displayId = String(item?._id || item?.id || item?.legacyId || '')
+    if (!displayId) {
+      toast.error('ID da foto não encontrado.')
+      return
+    }
+
+    setProcessingId(displayId)
+    try {
+      const candidates = buildGalleryIdCandidates(item)
+      let ok = false
+      for (const candidateId of candidates) {
+        const response = await attemptAction(candidateId, action)
+        if (response.status === 401) {
+          onUnauthorized?.()
+          return
+        }
+        const payload = await response.json().catch(() => ({}))
+        if (response.ok && payload?.success !== false) {
+          ok = true
+          break
+        }
+      }
+
+      if (!ok) throw new Error(action === 'delete' ? 'Não foi possível remover a foto.' : 'Não foi possível aprovar a foto.')
+
+      if (mountedRef.current) {
+        const candidateSet = new Set(candidates)
+        if (action === 'delete') {
+          setPhotos((prev) => prev.filter((photo) => !buildGalleryIdCandidates(photo).some((id) => candidateSet.has(id))))
+          toast.success('Foto removida.')
+        } else {
+          setPhotos((prev) => prev.map((photo) => buildGalleryIdCandidates(photo).some((id) => candidateSet.has(id)) ? { ...photo, approved: true, status: 'approved' } : photo))
+          toast.success('Foto aprovada.')
+        }
+      }
+
+      await loadPhotos()
+    } catch (err) {
+      console.error('[GALERIA] Falha na ação:', err)
+      toast.error(err.message || 'Não foi possível concluir a ação.')
+    } finally {
+      if (mountedRef.current) setProcessingId(null)
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 rounded">
+        <p>{error}</p>
+        <Button onClick={loadPhotos} size="sm" variant="outline" className="mt-2 bg-white">Tentar novamente</Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="font-bold flex gap-2"><Camera className="h-5 w-5" /> Galeria</h3>
+        <Button onClick={loadPhotos} size="sm" disabled={loading}><RefreshCw className="h-4 w-4" /></Button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>
+      ) : photos.length === 0 ? (
+        <p className="text-center text-gray-500 py-10">Vazio.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {photos.map((p) => {
+            const photoId = String(p._id || p.id || p.legacyId || '')
+            return (
+              <Card key={photoId} className="p-3 relative">
+                {!p.approved && <Badge className="absolute top-2 right-2 bg-yellow-500">Pendente</Badge>}
+                {p.approved && <Badge className="absolute top-2 right-2 bg-green-500">Aprovada</Badge>}
+                <img src={p.imageUrl} className="w-full h-40 object-cover rounded mb-2 bg-gray-100" alt="Galeria" />
+                <div className="text-xs space-y-1 mb-2">
+                  <p><strong>Resina:</strong> {p.resin || 'Não informada'}</p>
+                  <p><strong>Impressora:</strong> {p.printer || 'Não informada'}</p>
+                  {p.customerName && <p><strong>Cliente:</strong> {p.customerName}</p>}
+                </div>
+                <div className="bg-gray-100 rounded-md p-2 text-xs text-gray-700 space-y-1 mb-2">
+                  <p className="font-semibold text-gray-800">Configurações</p>
+                  <p><strong>Layer Height:</strong> {p.settings?.layerHeightMm ?? '-'}</p>
+                  <p><strong>Exposure Time:</strong> {p.settings?.exposureTimeS ?? '-'}</p>
+                  <p><strong>Base Exposure:</strong> {p.settings?.baseExposureTimeS ?? '-'}</p>
+                  <p><strong>Base Layers:</strong> {p.settings?.baseLayers ?? '-'}</p>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {isAdmin && !p.approved && (
+                    <Button size="sm" className="flex-1 bg-green-600" onClick={() => handleAction(p, 'approve')} disabled={processingId === photoId}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleAction(p, 'delete')} disabled={processingId === photoId}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function AdminPanel({ onClose }) {
+  const autoAdminPassword = import.meta.env.VITE_ADMIN_AUTO_PASSWORD || 'quanton2026'
+  const autoAdminUsername = import.meta.env.VITE_ADMIN_AUTO_USERNAME || import.meta.env.VITE_ADMIN_USERNAME || ''
+  const autoAdminSecret = import.meta.env.VITE_ADMIN_AUTO_SECRET || import.meta.env.VITE_ADMIN_SECRET_OVERRIDE || import.meta.env.VITE_ADMIN_SECRET || ''
+  const defaultAdminUsername = import.meta.env.VITE_ADMIN_USERNAME || ''
+  const defaultAdminSecret = import.meta.env.VITE_ADMIN_SECRET_OVERRIDE || import.meta.env.VITE_ADMIN_SECRET || ''
+  const defaultApiBase = deriveDefaultApiBase()
+
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '')
+  const [apiBaseUrl, setApiBaseUrl] = useState(() => normalizeBaseUrl(localStorage.getItem(STORAGE_KEYS.apiBase)) || defaultApiBase)
+  const [customApiBaseInput, setCustomApiBaseInput] = useState(() => apiBaseUrl || defaultApiBase)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(adminToken))
+  const [accessLevel, setAccessLevel] = useState('admin')
+  const [username, setUsername] = useState(defaultAdminUsername)
+  const [password, setPassword] = useState('')
+  const [adminSecret, setAdminSecret] = useState(defaultAdminSecret)
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
+  const [showAdvancedLogin, setShowAdvancedLogin] = useState(false)
+
+  const safeAdminToken = adminToken
+
+  useEffect(() => {
+    if (apiBaseUrl) {
+      localStorage.setItem(STORAGE_KEYS.apiBase, apiBaseUrl)
+      setCustomApiBaseInput(apiBaseUrl)
+    }
+  }, [apiBaseUrl])
+
+  useEffect(() => {
+    if (adminToken) localStorage.setItem(STORAGE_KEYS.token, adminToken)
+    else localStorage.removeItem(STORAGE_KEYS.token)
+    setIsAuthenticated(Boolean(adminToken))
+  }, [adminToken])
+
+  const buildAuthHeaders = useCallback((headers = {}, tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return headers
+    return { ...headers, Authorization: `Bearer ${token}` }
+  }, [safeAdminToken])
+
+  const handleLogout = useCallback((message) => {
+    setAdminToken('')
+    setPassword('')
+    setIsAuthenticated(false)
+    if (message) toast.error(message)
+    else toast.info('Sessão encerrada.')
+  }, [])
+
+  const handleUnauthorizedResponse = useCallback((status) => {
+    if (status === 401) {
+      handleLogout('Sessão expirada. Faça login novamente.')
+      return true
+    }
+    return false
+  }, [handleLogout])
+
+  const handleGalleryUnauthorized = useCallback(() => {
+    handleLogout('Sessão expirada. Faça login novamente.')
+  }, [handleLogout])
+
+  const [activeTab, setActiveTab] = useState('metrics')
+  const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
+  const [suggestionsCount, setSuggestionsCount] = useState(0)
+  const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0)
+  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0)
+  const [ordersPendingCount, setOrdersPendingCount] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0)
+  const [customRequests, setCustomRequests] = useState([])
+  const [galleryPendingCount, setGalleryPendingCount] = useState(0)
+  const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
+  const [contactCount, setContactCount] = useState(0)
+  const [contactRefreshKey, setContactRefreshKey] = useState(0)
+  const [contacts, setContacts] = useState([])
+
+  const [paramsLoading, setParamsLoading] = useState(false)
+  const [paramsResins, setParamsResins] = useState([])
+  const [paramsPrinters, setParamsPrinters] = useState([])
+  const [paramsProfiles, setParamsProfiles] = useState([])
+  const [paramsStats, setParamsStats] = useState(null)
+  const [newResinName, setNewResinName] = useState('')
+  const [newPrinterBrand, setNewPrinterBrand] = useState('')
+  const [newPrinterModel, setNewPrinterModel] = useState('')
+  const [ragStatus, setRagStatus] = useState(null)
+  const [ragLoading, setRagLoading] = useState(false)
+  const [ragError, setRagError] = useState('')
+  const [editingProfile, setEditingProfile] = useState(null)
+  const emptyProfileForm = {
+    resinId: '', printerId: '', brand: '', model: '', status: 'active', layerHeightMm: '', exposureTimeS: '', baseExposureTimeS: '', baseLayers: ''
+  }
+  const [profileFormData, setProfileFormData] = useState(emptyProfileForm)
+
+  const [visualKnowledge, setVisualKnowledge] = useState([])
+  const [visualLoading, setVisualLoading] = useState(false)
+  const [visualImage, setVisualImage] = useState(null)
+  const [visualImagePreview, setVisualImagePreview] = useState(null)
+  const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
+  const [pendingVisualLoading, setPendingVisualLoading] = useState(false)
+  const [visualDefectType, setVisualDefectType] = useState('')
+  const [visualDiagnosis, setVisualDiagnosis] = useState('')
+  const [visualSolution, setVisualSolution] = useState('')
+  const [addingVisual, setAddingVisual] = useState(false)
+
+  const isAdmin = accessLevel === 'admin'
+
+  const resolveRequestDate = useCallback((request) => {
+    const raw = request?.createdAt || request?.date || request?.updatedAt
+    if (!raw) return 'Sem data'
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return 'Sem data'
+    return parsed.toLocaleString('pt-BR')
+  }, [])
+
+  const resolveRequestFeature = useCallback((request) => request?.desiredFeature || request?.caracteristica || request?.details || request?.description || 'Sem detalhes', [])
+  const resolveRequestPhone = useCallback((request) => {
+    const phone = request?.phone || request?.telefone || request?.whatsapp || ''
+    const digits = phone.replace(/\D/g, '')
+    return digits.length ? digits : ''
+  }, [])
+
+  const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
+    let finalPath = path.startsWith('/') ? path : `/${path}`
+    const shouldSkipPrefix = finalPath.startsWith('/api') || finalPath.startsWith('/auth') || finalPath.startsWith('/admin') || finalPath.startsWith('/health')
+    if (!shouldSkipPrefix) finalPath = `/api${finalPath}`
+    const resolvedBase = normalizeBaseUrl(baseOverride) || apiBaseUrl || defaultApiBase
+    const url = new URL(finalPath, `${resolvedBase}/`)
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value)
+    })
+    return url.toString()
+  }, [apiBaseUrl, defaultApiBase])
+
+  const formatDateTime = (value) => {
+    if (!value) return '-'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return '-'
+    return parsed.toLocaleString('pt-BR')
+  }
+
+  const handleLogin = async () => {
+    const trimmedSecret = adminSecret.trim()
+    const effectiveUsername = (username.trim() || defaultAdminUsername || autoAdminUsername || '').trim()
+    const effectiveSecret = (trimmedSecret || defaultAdminSecret || autoAdminSecret || '').trim()
+    const useSecretLogin = !effectiveUsername && Boolean(effectiveSecret)
+
+    if (!effectiveUsername && !effectiveSecret) {
+      toast.error('Informe o usuário administrativo ou um secret válido.')
+      return
+    }
+    if (!password) {
+      toast.error('Informe a senha administrativa.')
+      return
+    }
+
+    const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
+    setApiBaseUrl(targetBase)
     setLoading(true)
     try {
-      const response = await fetch('https://quanton3d-bot-v2.onrender.com/suggestions?auth=quanton3d_admin_secret')
-      const data = await response.json()
-      setSuggestions(data.suggestions || [])
+      const payload = useSecretLogin ? { password } : { username: effectiveUsername, password }
+      const headers = { 'Content-Type': 'application/json' }
+      if (useSecretLogin) headers['x-admin-secret'] = effectiveSecret
+
+      const res = await fetch(`${targetBase}/auth/login`, { method: 'POST', headers, body: JSON.stringify(payload) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.token) throw new Error(data?.error || 'Credenciais inválidas')
+
+      setAccessLevel('admin')
+      setAdminToken(data.token)
+      setIsAuthenticated(true)
+      setPassword('')
+      setUsername(effectiveUsername)
+      toast.success('Sessão autenticada com sucesso!')
+      await refreshAllData(data.token)
     } catch (error) {
-      console.error('Erro ao carregar sugestões:', error)
+      toast.error(error.message || 'Erro ao autenticar')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadContacts = useCallback(async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    try {
+      const headers = buildAuthHeaders({}, token)
+      const response = await fetch(buildAdminUrl('/contacts'), { headers })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      const loaded = Array.isArray(data.contacts) ? data.contacts : []
+      setContacts(loaded)
+      setContactCount(loaded.length)
+    } catch (error) {
+      console.error('Erro ao carregar contatos:', error)
+      setContacts([])
+      setContactCount(0)
+    }
+  }, [safeAdminToken, buildAuthHeaders, buildAdminUrl, handleUnauthorizedResponse])
+
+  const loadRagStatus = useCallback(async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    setRagLoading(true)
+    setRagError('')
+    try {
+      const response = await fetch(buildAdminUrl('/rag-status'), { headers: buildAuthHeaders({}, token) })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data?.error || 'Erro ao carregar status do RAG')
+      setRagStatus(data.status)
+    } catch (error) {
+      console.error('Erro ao consultar RAG:', error)
+      setRagError(error.message)
+    } finally {
+      setRagLoading(false)
+    }
+  }, [safeAdminToken, buildAdminUrl, buildAuthHeaders, handleUnauthorizedResponse])
+
+  const loadCustomRequests = useCallback(async (tokenToUse) => {
+    try {
+      const token = tokenToUse || safeAdminToken
+      if (!token) return
+      const response = await fetch(buildAdminUrl('/api/formulations'), { headers: { Authorization: `Bearer ${token}` } })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      setCustomRequests(data.formulations || data.requests || [])
+    } catch (error) {
+      console.error('Erro ao carregar pedidos customizados:', error)
+    }
+  }, [safeAdminToken, buildAdminUrl, handleUnauthorizedResponse])
+
+  const loadVisualKnowledge = useCallback(async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    setVisualLoading(true)
+    try {
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), { headers: buildAuthHeaders({}, token) })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      setVisualKnowledge(data.documents || data.items || [])
+    } catch (error) {
+      console.error('Erro ao carregar conhecimento visual:', error)
+    } finally {
+      setVisualLoading(false)
+    }
+  }, [safeAdminToken, buildAdminUrl, buildAuthHeaders, handleUnauthorizedResponse])
+
+  const loadPendingVisualPhotos = useCallback(async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    setPendingVisualLoading(true)
+    try {
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), { headers: buildAuthHeaders({}, token) })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      setPendingVisualPhotos(data.pending || data.documents || [])
+    } catch (error) {
+      console.error('Erro ao carregar fotos pendentes:', error)
+    } finally {
+      setPendingVisualLoading(false)
+    }
+  }, [safeAdminToken, buildAdminUrl, buildAuthHeaders, handleUnauthorizedResponse])
+
+  const loadParamsData = useCallback(async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    setParamsLoading(true)
+    try {
+      const headers = buildAuthHeaders({}, token)
+      const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
+        fetch(buildAdminUrl('/params/resins'), { headers }),
+        fetch(buildAdminUrl('/params/printers'), { headers }),
+        fetch(buildAdminUrl('/params/profiles'), { headers }),
+        fetch(buildAdminUrl('/params/stats'), { headers })
+      ])
+      if ([resinsRes, printersRes, profilesRes, statsRes].some((res) => handleUnauthorizedResponse(res.status))) return
+      const [resinsData, printersData, profilesData, statsData] = await Promise.all([resinsRes.json(), printersRes.json(), profilesRes.json(), statsRes.json()])
+      if (resinsData.warning) toast.warning(`Modo offline de resinas: ${resinsData.warning}`)
+      if (resinsData.success) setParamsResins(resinsData.resins || [])
+      if (printersData.success) setParamsPrinters(printersData.printers || [])
+      if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
+      if (statsData.success) setParamsStats(statsData.stats || null)
+    } catch (error) {
+      console.error('Erro params:', error)
+    } finally {
+      setParamsLoading(false)
+    }
+  }, [safeAdminToken, buildAdminUrl, buildAuthHeaders, handleUnauthorizedResponse])
+
+  const refreshAllData = useCallback(async (tokenOverride) => {
+    const tokenToUse = tokenOverride || safeAdminToken
+    if (!tokenToUse) return
+    setLoading(true)
+    try {
+      setMetricsRefreshKey((key) => key + 1)
+      setSuggestionsRefreshKey((key) => key + 1)
+      setOrdersRefreshKey((key) => key + 1)
+      setKnowledgeRefreshKey((key) => key + 1)
+      setContactRefreshKey((key) => key + 1)
+      await Promise.all([
+        loadContacts(tokenToUse),
+        loadCustomRequests(tokenToUse),
+        loadVisualKnowledge(tokenToUse),
+        loadPendingVisualPhotos(tokenToUse),
+        loadParamsData(tokenToUse),
+        loadRagStatus(tokenToUse)
+      ])
+      setGalleryRefreshKey((key) => key + 1)
+    } catch (error) {
+      console.error('Erro ao atualizar painel:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [safeAdminToken, loadContacts, loadCustomRequests, loadVisualKnowledge, loadPendingVisualPhotos, loadParamsData, loadRagStatus])
+
+  useEffect(() => {
+    if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
+      const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
+      setAutoLoginAttempted(true)
+      fetch(`${targetBase}/auth/login`, {
+        method: 'POST',
+        headers: autoAdminSecret ? { 'Content-Type': 'application/json', 'x-admin-secret': autoAdminSecret } : { 'Content-Type': 'application/json' },
+        body: JSON.stringify(autoAdminSecret ? { password: autoAdminPassword } : { username: autoAdminUsername, password: autoAdminPassword })
+      })
+        .then(async (res) => {
+          if (!res.ok) return null
+          const data = await res.json()
+          if (data?.token) {
+            setAccessLevel('admin')
+            setAdminToken(data.token)
+            setIsAuthenticated(true)
+            setPassword('')
+            setUsername(autoAdminUsername)
+            await refreshAllData(data.token)
+          }
+          return null
+        })
+        .catch((err) => console.error('Auto login falhou:', err))
+    } else if (!autoLoginAttempted) {
+      setAutoLoginAttempted(true)
+    }
+  }, [adminToken, autoLoginAttempted, autoAdminPassword, autoAdminUsername, autoAdminSecret, customApiBaseInput, apiBaseUrl, defaultApiBase, refreshAllData])
+
+  useEffect(() => {
+    if (isAuthenticated && safeAdminToken) {
+      refreshAllData()
+    }
+  }, [isAuthenticated, safeAdminToken, refreshAllData])
+
+  const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+    if (!safeAdminToken) {
+      toast.error('Faça login novamente para aprovar entradas visuais.')
+      return false
+    }
+    if (!defectType || !diagnosis || !solution) {
+      toast.warning('Preencha todos os campos antes de aprovar')
+      return false
+    }
+    try {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}/approve`), {
+        method: 'PUT',
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ defectType, diagnosis, solution })
+      })
+      if (handleUnauthorizedResponse(response.status)) return false
+      const data = await response.json().catch(() => ({}))
+      if (data.success) {
+        toast.success('Conhecimento visual aprovado com sucesso!')
+        loadPendingVisualPhotos()
+        loadVisualKnowledge()
+        return true
+      }
+      return false
+    } catch {
+      toast.error('Erro ao aprovar')
+      return false
+    }
+  }
+
+  const deletePendingVisual = async (id) => {
+    if (!isAdmin || !safeAdminToken) return
+    if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), { method: 'DELETE', headers: buildAuthHeaders() })
+      if (handleUnauthorizedResponse(response.status)) return
+      loadPendingVisualPhotos()
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const addVisualKnowledgeEntry = async () => {
+    if (!safeAdminToken) {
+      toast.error('Faça login novamente para adicionar entradas visuais.')
+      return
+    }
+    if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
+      toast.warning('Preencha tudo')
+      return
+    }
+    setAddingVisual(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', visualImage)
+      formData.append('defectType', visualDefectType)
+      formData.append('diagnosis', visualDiagnosis)
+      formData.append('solution', visualSolution)
+      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), { method: 'POST', headers: buildAuthHeaders(), body: formData })
+      if (handleUnauthorizedResponse(response.status)) return
+      toast.success('Adicionado!')
+      setVisualImage(null)
+      setVisualImagePreview(null)
+      loadVisualKnowledge()
+    } catch {
+      toast.error('Erro ao adicionar')
+    } finally {
+      setAddingVisual(false)
+    }
+  }
+
+  const deleteVisualKnowledgeEntry = async (id) => {
+    if (!isAdmin || !safeAdminToken) return
+    if (!confirm('Deletar?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/api/visual-knowledge/${id}`), { method: 'DELETE', headers: buildAuthHeaders() })
+      if (handleUnauthorizedResponse(response.status)) return
+      loadVisualKnowledge()
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const addResin = async () => {
+    if (!safeAdminToken) return
+    if (!newResinName.trim()) return
+    const response = await fetch(buildAdminUrl('/params/resins'), {
+      method: 'POST',
+      headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ name: newResinName })
+    })
+    if (handleUnauthorizedResponse(response.status)) return
+    setNewResinName('')
+    loadParamsData()
+  }
+
+  const deleteResin = async (id) => {
+    if (!isAdmin || !safeAdminToken) return
+    if (!confirm('Deletar?')) return
+    const response = await fetch(buildAdminUrl(`/params/resins/${id}`), { method: 'DELETE', headers: buildAuthHeaders() })
+    if (handleUnauthorizedResponse(response.status)) return
+    loadParamsData()
+  }
+
+  const addPrinter = async () => {
+    if (!safeAdminToken) return
+    if (!newPrinterBrand.trim() || !newPrinterModel.trim()) {
+      toast.error('Informe marca e modelo da impressora')
+      return
+    }
+    try {
+      const response = await fetch(buildAdminUrl('/params/printers'), {
+        method: 'POST',
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ brand: newPrinterBrand, model: newPrinterModel })
+      })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.success) throw new Error(data?.error || 'Erro ao adicionar impressora')
+      toast.success('Impressora adicionada!')
+      setNewPrinterBrand('')
+      setNewPrinterModel('')
+      loadParamsData()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const deletePrinter = async (id) => {
+    if (!isAdmin || !safeAdminToken) return
+    if (!confirm('Deletar?')) return
+    const response = await fetch(buildAdminUrl(`/params/printers/${id}`), { method: 'DELETE', headers: buildAuthHeaders() })
+    if (handleUnauthorizedResponse(response.status)) return
+    loadParamsData()
+  }
+
+  const openEditProfile = (profile = null) => {
+    if (profile && (profile.id || profile._id)) {
+      const cleanNumericField = (value) => (value ? String(value).replace(/[^\d.]/g, '') : '')
+      setEditingProfile(profile)
+      setProfileFormData({
+        resinId: profile.resinId || '',
+        printerId: profile.printerId || '',
+        brand: profile.brand || '',
+        model: profile.model || '',
+        status: profile.status || 'active',
+        layerHeightMm: cleanNumericField(profile.params?.layerHeightMm),
+        exposureTimeS: cleanNumericField(profile.params?.exposureTimeS),
+        baseExposureTimeS: cleanNumericField(profile.params?.baseExposureTimeS || profile.params?.bottomExposureS),
+        baseLayers: cleanNumericField(profile.params?.baseLayers)
+      })
+    } else {
+      setEditingProfile({ isNew: true })
+      setProfileFormData(emptyProfileForm)
+    }
+  }
+
+  const buildProfilePayload = () => ({
+    resinId: profileFormData.resinId?.trim(),
+    printerId: profileFormData.printerId?.trim(),
+    brand: profileFormData.brand?.trim(),
+    model: profileFormData.model?.trim(),
+    status: profileFormData.status || 'active',
+    params: {
+      layerHeightMm: profileFormData.layerHeightMm,
+      exposureTimeS: profileFormData.exposureTimeS,
+      baseExposureTimeS: profileFormData.baseExposureTimeS,
+      baseLayers: profileFormData.baseLayers
+    }
+  })
+
+  const saveProfile = async () => {
+    if (!safeAdminToken) return
+    if (!profileFormData.resinId || !profileFormData.printerId) {
+      toast.error('Selecione resina e impressora')
+      return
+    }
+    const payload = buildProfilePayload()
+    const isEditingExisting = editingProfile && !editingProfile.isNew && (editingProfile.id || editingProfile._id)
+    const endpoint = isEditingExisting ? `/params/profiles/${editingProfile.id || editingProfile._id}` : '/params/profiles'
+    const method = isEditingExisting ? 'PATCH' : 'POST'
+    try {
+      const response = await fetch(buildAdminUrl(endpoint), {
+        method,
+        headers: buildAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload)
+      })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.success) throw new Error(data?.error || 'Erro ao salvar perfil')
+      toast.success(isEditingExisting ? 'Perfil atualizado!' : 'Perfil criado!')
+      setEditingProfile(null)
+      setProfileFormData(emptyProfileForm)
+      loadParamsData()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const deleteProfile = async (id) => {
+    if (!isAdmin || !safeAdminToken) return
+    if (!confirm('Deletar?')) return
+    try {
+      const response = await fetch(buildAdminUrl(`/params/profiles/${id}`), { method: 'DELETE', headers: buildAuthHeaders() })
+      if (handleUnauthorizedResponse(response.status)) return
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload?.error || 'Erro ao deletar perfil')
+      }
+      toast.success('Perfil removido')
+      loadParamsData()
+    } catch (error) {
+      toast.error(error.message)
     }
   }
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
-        <Card className="p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Painel Administrativo
-          </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
-            Gerenciamento de Sugestões de Conhecimento
-          </p>
-          <div className="space-y-4">
-            <Input
-              type="password"
-              placeholder="Senha de administrador"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-            />
-            <Button onClick={handleLogin} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
-              Entrar
+        <Card className="p-8 max-w-md w-full space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
+            <p className="text-sm text-center text-gray-500">Digite a senha uma única vez para acessar.</p>
+          </div>
+          <div className="space-y-3">
+            <Input type="password" placeholder="Senha do painel" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} autoComplete="current-password" />
+            <button type="button" className="text-sm text-blue-600 text-left" onClick={() => setShowAdvancedLogin((prev) => !prev)}>
+              {showAdvancedLogin ? 'Ocultar opções avançadas' : 'Mostrar opções avançadas'}
+            </button>
+            {showAdvancedLogin && (
+              <div className="space-y-3 rounded-lg border p-3">
+                <Input type="text" placeholder="Usuário" value={username} onChange={(e) => setUsername(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} autoComplete="username" />
+                <Input type="text" placeholder="Secret (opcional)" value={adminSecret} onChange={(e) => setAdminSecret(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} autoComplete="off" />
+                <Input type="url" placeholder="URL do backend (opcional)" value={customApiBaseInput} onChange={(e) => setCustomApiBaseInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
+              </div>
+            )}
+            <Button onClick={handleLogin} disabled={loading || !password} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </div>
         </Card>
@@ -63,109 +942,238 @@ export function AdminPanel({ onClose }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
-      <div className="container mx-auto max-w-6xl py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Sugestões de Conhecimento
-          </h1>
-          <div className="flex items-center gap-3">
-            <Button onClick={loadSuggestions} disabled={loading}>
-              {loading ? 'Carregando...' : 'Atualizar'}
-            </Button>
-            {onClose && (
-              <Button onClick={onClose} variant="outline">
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+      <div className="container mx-auto max-w-7xl py-8">
+        <div className="flex justify-between mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h1>
+          <div className="flex gap-3">
+            <Button onClick={() => refreshAllData()} disabled={loading}><Loader2 className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar</Button>
+            <Button onClick={() => handleLogout()} variant="outline">Sair</Button>
+            <Button onClick={onClose} variant="outline"><X className="h-4 w-4" /></Button>
           </div>
         </div>
 
-        {suggestions.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Clock className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600 dark:text-gray-400">
-              Nenhuma sugestão pendente no momento
-            </p>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {suggestions.map((suggestion) => (
-              <Card key={suggestion.id} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold">{suggestion.userName}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {suggestion.userPhone}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(suggestion.timestamp).toLocaleString('pt-BR')}
-                        </span>
-                      </div>
-                    </div>
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'outline'} className={activeTab === 'metrics' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><BarChart3 className="mr-2 h-4 w-4" /> Métricas</Button>
+          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'outline'} className={activeTab === 'suggestions' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><MessageSquare className="mr-2 h-4 w-4" /> Sugestões</Button>
+          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'outline'} className={activeTab === 'orders' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><ShoppingBag className="mr-2 h-4 w-4" /> Pedidos</Button>
+          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'outline'} className={activeTab === 'gallery' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Camera className="mr-2 h-4 w-4" /> Galeria</Button>
+          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'outline'} className={activeTab === 'visual' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Eye className="mr-2 h-4 w-4" /> Treinamento Visual</Button>
+          <Button onClick={() => { setActiveTab('params'); loadParamsData() }} variant={activeTab === 'params' ? 'default' : 'outline'} className={activeTab === 'params' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4" /> Parâmetros</Button>
+          <Button onClick={() => setActiveTab('documents')} variant={activeTab === 'documents' ? 'default' : 'outline'} className={activeTab === 'documents' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><BookOpen className="mr-2 h-4 w-4" /> Documentos</Button>
+          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'outline'} className={activeTab === 'partners' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Handshake className="mr-2 h-4 w-4" /> Parceiros</Button>
+          <Button onClick={() => setActiveTab('contacts')} variant={activeTab === 'contacts' ? 'default' : 'outline'} className={activeTab === 'contacts' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Phone className="mr-2 h-4 w-4" /> Contatos</Button>
+          <Button onClick={() => { setActiveTab('custom'); loadCustomRequests(safeAdminToken) }} variant={activeTab === 'custom' ? 'default' : 'outline'} className={activeTab === 'custom' ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : ''}><Beaker className="mr-2 h-4 w-4" /> Formulações</Button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border dark:border-gray-700">
+          {(ragStatus || ragError) && (
+            <div className="mb-6 space-y-2">
+              <Card className="p-4 flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Base de conhecimento (RAG)</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className={`px-3 py-1 ${ragStatus?.isHealthy ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {ragStatus?.isHealthy ? 'Saudável' : 'Monitorando'}
+                    </Badge>
+                    {ragLoading && <span className="text-xs text-gray-500 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Atualizando...</span>}
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    suggestion.status === 'pending' 
-                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                      : suggestion.status === 'approved'
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                  }`}>
-                    {suggestion.status === 'pending' ? 'Pendente' : suggestion.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
-                  </span>
+                  <p className="text-sm text-gray-600 mt-2">Docs indexados: {ragStatus?.databaseEntries ?? 0} · Arquivos locais: {ragStatus?.knowledgeFiles ?? 0}</p>
+                  <p className="text-xs text-gray-500">Última verificação: {formatDateTime(ragStatus?.lastCheck)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 mb-2">Mongo: {ragStatus?.databaseStatus || 'desconhecido'}</p>
+                  <Button variant="outline" size="sm" onClick={() => loadRagStatus()} disabled={ragLoading}>Atualizar RAG</Button>
+                </div>
+              </Card>
+              {ragError && <Card className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm">{ragError}</Card>}
+            </div>
+          )}
+
+          {activeTab === 'metrics' && (
+            <>
+              <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+              <div className="mt-8">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Origem dos Clientes</h3>
+                {(() => {
+                  const originCards = [
+                    { label: 'Instagram', icon: '📱', value: contacts.filter(c => c.origin?.toLowerCase().includes('instagram')).length, className: 'from-pink-500 to-purple-600' },
+                    { label: 'YouTube', icon: '🎥', value: contacts.filter(c => c.origin?.toLowerCase().includes('youtube')).length, className: 'from-red-500 to-red-700' },
+                    { label: 'Google', icon: '🔍', value: contacts.filter(c => c.origin?.toLowerCase().includes('google')).length, className: 'from-blue-500 to-green-500' },
+                    { label: 'Mercado Livre / Shopee', icon: '🛒', value: contacts.filter(c => c.origin?.toLowerCase().includes('mercado livre') || c.origin?.toLowerCase().includes('shopee')).length, className: 'from-yellow-500 to-orange-600' },
+                    { label: 'Indicação', icon: '🤝', value: contacts.filter(c => c.origin?.toLowerCase().includes('indica')).length, className: 'from-emerald-500 to-teal-600' },
+                    { label: 'Já sou cliente', icon: '⭐', value: contacts.filter(c => c.origin?.toLowerCase().includes('já sou cliente') || c.origin?.toLowerCase().includes('ja sou cliente')).length, className: 'from-slate-600 to-slate-800' }
+                  ]
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {originCards.map((card) => (
+                        <Card key={card.label} className={`p-6 bg-gradient-to-br ${card.className} text-white shadow-lg hover:shadow-xl transition-shadow`}>
+                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span></div>
+                          <div className="text-4xl font-bold">{card.value}</div>
+                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                        </Card>
+                      ))}
+                    </div>
+                  )
+                })()}
+                <p className="text-xs text-gray-500 mt-4 text-center">💡 As métricas usam a lista de contatos carregada automaticamente. Se zerarem, clique em Atualizar.</p>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'suggestions' && <SuggestionsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setSuggestionsCount} refreshKey={suggestionsRefreshKey} />}
+          {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
+          {activeTab === 'gallery' && <InternalGalleryTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} apiBaseUrl={apiBaseUrl} onPendingCountChange={setGalleryPendingCount} onUnauthorized={handleGalleryUnauthorized} refreshKey={galleryRefreshKey} />}
+          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
+          {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
+
+          {activeTab === 'partners' && (
+            <div className="p-4">
+              <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar a página ou contate o suporte.</p></div>}>
+                <PartnersManager isAdmin={isAdmin} />
+              </ErrorBoundary>
+            </div>
+          )}
+
+          {activeTab === 'visual' && (
+            <div className="space-y-4">
+              <Card className="p-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Eye className="h-5 w-5" /> Treinamento Visual</h3>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-4 mb-6">
+                  <h4 className="font-semibold flex gap-2"><Upload className="h-4 w-4" /> Adicionar Novo</h4>
+                  <input type="file" onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    setVisualImage(file)
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onload = () => setVisualImagePreview(reader.result)
+                      reader.readAsDataURL(file)
+                    }
+                  }} className="w-full border rounded p-2 bg-white dark:bg-gray-600" />
+                  {visualImagePreview && <img src={visualImagePreview} className="h-32 object-contain" alt="Preview" />}
+                  <select value={visualDefectType} onChange={(e) => setVisualDefectType(e.target.value)} className="w-full p-2 border rounded bg-white dark:bg-gray-600">
+                    <option value="">Tipo de Defeito...</option>
+                    <option value="descolamento da base">Descolamento</option>
+                    <option value="falha de suportes">Suportes</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                  <textarea value={visualDiagnosis} onChange={(e) => setVisualDiagnosis(e.target.value)} placeholder="Diagnóstico" className="w-full p-2 border rounded bg-white dark:bg-gray-600" />
+                  <textarea value={visualSolution} onChange={(e) => setVisualSolution(e.target.value)} placeholder="Solução" className="w-full p-2 border rounded bg-white dark:bg-gray-600" />
+                  <Button onClick={addVisualKnowledgeEntry} disabled={addingVisual} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">{addingVisual ? 'Enviando...' : 'Adicionar'}</Button>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
-                  <p className="text-sm whitespace-pre-wrap">{suggestion.suggestion}</p>
-                </div>
-
-                {suggestion.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                      onClick={() => {
-                        // Aqui você pode adicionar lógica para aprovar
-                        alert('Sugestão aprovada! (Implementar lógica de aprovação)')
-                      }}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Aprovar e Adicionar ao Conhecimento
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        // Aqui você pode adicionar lógica para rejeitar
-                        alert('Sugestão rejeitada! (Implementar lógica de rejeição)')
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Rejeitar
-                    </Button>
+                {pendingVisualPhotos.length > 0 && (
+                  <div className="space-y-4 mb-6">
+                    <h4 className="font-bold text-yellow-600">Pendentes ({pendingVisualPhotos.length})</h4>
+                    {pendingVisualPhotos.map((item) => <PendingVisualItemForm key={item._id} item={item} onApprove={approvePendingVisual} onDelete={deletePendingVisual} canDelete={isAdmin} />)}
                   </div>
                 )}
-              </Card>
-            ))}
-          </div>
-        )}
 
-        <Card className="mt-8 p-6 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-          <h3 className="font-bold mb-2">📝 Como usar este painel:</h3>
-          <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-            <li>• Revise cada sugestão enviada pelos usuários</li>
-            <li>• Aprove sugestões úteis para adicionar à base de conhecimento do bot</li>
-            <li>• Rejeite sugestões irrelevantes ou duplicadas</li>
-            <li>• As sugestões aprovadas devem ser manualmente adicionadas ao arquivo knowledge-base.js do backend</li>
-          </ul>
-        </Card>
+                <div className="grid gap-4">
+                  {visualKnowledge.map((item) => (
+                    <div key={item._id || item.id} className="flex gap-4 p-4 border rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <img src={item.imageUrl} className="w-24 h-24 object-cover rounded" alt={item.defectType || item.title || 'Visual'} />
+                      <div className="flex-1">
+                        <p className="font-bold">{item.defectType || item.title}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{item.diagnosis || item.description}</p>
+                        {isAdmin && <Button size="sm" variant="outline" onClick={() => deleteVisualKnowledgeEntry(item._id || item.id)} className="mt-2 text-red-500 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Deletar</Button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'params' && (
+            <div className="space-y-6">
+              {paramsStats && (
+                <div className="grid grid-cols-4 gap-4">
+                  <Card className="p-4"><p>Resinas</p><p className="text-2xl font-bold">{paramsStats.totalResins}</p></Card>
+                  <Card className="p-4"><p>Impressoras</p><p className="text-2xl font-bold">{paramsStats.totalPrinters}</p></Card>
+                  <Card className="p-4"><p>Perfis</p><p className="text-2xl font-bold">{paramsStats.activeProfiles ?? paramsStats.totalProfiles ?? 0}</p></Card>
+                </div>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <Card className="p-4">
+                  <h3 className="font-bold mb-2">Resinas</h3>
+                  <div className="flex gap-2 mb-2"><Input value={newResinName} onChange={e => setNewResinName(e.target.value)} /><Button onClick={addResin}><Plus /></Button></div>
+                  {paramsResins.map((r) => <div key={r.id || r._id} className="flex justify-between p-1 border-b">{r.name} <Trash2 onClick={() => deleteResin(r.id || r._id)} className="h-4 w-4 cursor-pointer text-red-500" /></div>)}
+                </Card>
+                <Card className="p-4">
+                  <h3 className="font-bold mb-2">Impressoras</h3>
+                  <div className="flex gap-2 mb-2"><Input placeholder="Marca" value={newPrinterBrand} onChange={e => setNewPrinterBrand(e.target.value)} /><Input placeholder="Modelo" value={newPrinterModel} onChange={e => setNewPrinterModel(e.target.value)} /><Button onClick={addPrinter}><Plus /></Button></div>
+                  {paramsPrinters.map((p) => <div key={p.id || p._id} className="flex justify-between p-1 border-b">{p.brand || ''} {p.model || p.name} <Trash2 onClick={() => deletePrinter(p.id || p._id)} className="h-4 w-4 cursor-pointer text-red-500" /></div>)}
+                </Card>
+              </div>
+
+              <Card className="p-4">
+                <div className="flex justify-between mb-4"><h3 className="font-bold">Perfis</h3><Button onClick={() => openEditProfile(null)}>Novo</Button></div>
+                <table className="w-full text-sm">
+                  <thead><tr><th>Resina</th><th>Impressora</th><th>Camada</th><th>Exp.</th><th>Ações</th></tr></thead>
+                  <tbody>
+                    {paramsProfiles.map((p) => (
+                      <tr key={p.id} className="border-b">
+                        <td>{p.resinName}</td><td>{p.brand} {p.model}</td><td>{p.params?.layerHeightMm}</td><td>{p.params?.exposureTimeS}</td>
+                        <td><Edit3 onClick={() => openEditProfile(p)} className="h-4 w-4 cursor-pointer inline mr-2" /><Trash2 onClick={() => deleteProfile(p.id)} className="h-4 w-4 cursor-pointer text-red-500 inline" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+
+              {editingProfile && (
+                <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+                  <Card className="p-6 w-full max-w-lg bg-white dark:bg-gray-800 overflow-y-auto max-h-[90vh]">
+                    <h3 className="font-bold mb-4">{editingProfile?.isNew ? 'Novo Perfil' : 'Editar Perfil'}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select value={profileFormData.resinId} onChange={e => setProfileFormData({ ...profileFormData, resinId: e.target.value })} className="border p-2 rounded bg-white dark:bg-gray-700">
+                        <option value="">Resina...</option>{paramsResins.map((r) => <option key={r.id || r._id} value={r.id || r._id}>{r.name}</option>)}
+                      </select>
+                      <select value={profileFormData.printerId} onChange={e => setProfileFormData({ ...profileFormData, printerId: e.target.value })} className="border p-2 rounded bg-white dark:bg-gray-700">
+                        <option value="">Impressora...</option>{paramsPrinters.map((p) => <option key={p.id || p._id} value={p.id || p._id}>{p.brand || ''} {p.model || p.name}</option>)}
+                      </select>
+                      <Input placeholder="Marca" value={profileFormData.brand} onChange={e => setProfileFormData({ ...profileFormData, brand: e.target.value })} />
+                      <Input placeholder="Modelo" value={profileFormData.model} onChange={e => setProfileFormData({ ...profileFormData, model: e.target.value })} />
+                      <Input placeholder="Camada (mm)" value={profileFormData.layerHeightMm} onChange={e => setProfileFormData({ ...profileFormData, layerHeightMm: e.target.value.replace(/[^\d.]/g, '') })} />
+                      <Input placeholder="Expo (s)" value={profileFormData.exposureTimeS} onChange={e => setProfileFormData({ ...profileFormData, exposureTimeS: e.target.value.replace(/[^\d.]/g, '') })} />
+                      <Input placeholder="Base (s)" value={profileFormData.baseExposureTimeS} onChange={e => setProfileFormData({ ...profileFormData, baseExposureTimeS: e.target.value.replace(/[^\d.]/g, '') })} />
+                      <Input placeholder="Camadas Base" value={profileFormData.baseLayers} onChange={e => setProfileFormData({ ...profileFormData, baseLayers: e.target.value.replace(/[^\d.]/g, '') })} />
+                      <select value={profileFormData.status} onChange={e => setProfileFormData({ ...profileFormData, status: e.target.value })} className="border p-2 rounded bg-white dark:bg-gray-700">
+                        <option value="active">Ativo</option>
+                        <option value="draft">Rascunho</option>
+                        <option value="coming_soon">Coming Soon</option>
+                      </select>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <Button variant="outline" onClick={() => { setEditingProfile(null); setProfileFormData(emptyProfileForm) }}>Cancelar</Button>
+                      <Button onClick={saveProfile}>Salvar</Button>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'custom' && (
+            <div>
+              {customRequests.length === 0 ? <p className="text-center p-8 text-gray-500">Sem pedidos.</p> : customRequests.map((req, i) => {
+                const phoneDigits = resolveRequestPhone(req)
+                const featureText = resolveRequestFeature(req)
+                const requestDate = resolveRequestDate(req)
+                return (
+                  <Card key={req.id || i} className="p-4 mb-4">
+                    <div className="flex justify-between"><h4 className="font-bold">{req.name || 'Cliente'}</h4><span className="text-xs">{requestDate}</span></div>
+                    <p className="text-sm">Característica: {featureText}</p>
+                    {req.color && <p className="text-sm text-gray-600">Cor desejada: {req.color}</p>}
+                    {req.email && <p className="text-xs text-gray-500">Email: {req.email}</p>}
+                    {phoneDigits && <Button size="sm" className="mt-2 bg-green-600" onClick={() => window.open(`https://wa.me/55${phoneDigits}`)}><Phone className="h-4 w-4 mr-2" /> WhatsApp</Button>}
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
