@@ -471,7 +471,8 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
     const shouldSkipPrefix = finalPath.startsWith('/api') || finalPath.startsWith('/auth') || finalPath.startsWith('/admin') || finalPath.startsWith('/health')
     if (!shouldSkipPrefix) finalPath = `/api${finalPath}`
-    const resolvedBase = normalizeBaseUrl(baseOverride) || apiBaseUrl || defaultApiBase
+    const resolvedBaseRaw = normalizeBaseUrl(baseOverride) || apiBaseUrl || defaultApiBase
+    const resolvedBase = String(resolvedBaseRaw || '').replace(/\/api\/?$/, '')
     const url = new URL(finalPath, `${resolvedBase}/`)
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, value)
@@ -912,28 +913,52 @@ export function AdminPanel({ onClose }) {
   }
 
   if (!isAuthenticated) {
+    const hasAutoUser = Boolean((defaultAdminUsername || autoAdminUsername || '').trim())
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
         <Card className="p-8 max-w-md w-full space-y-4">
           <div>
             <h2 className="text-2xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
-            <p className="text-sm text-center text-gray-500">Digite a senha uma única vez para acessar.</p>
+            <p className="text-sm text-center text-gray-500">Digite a senha para acessar. {hasAutoUser ? '' : 'Usuário e conexão ficam nas opções.'}</p>
           </div>
+
           <div className="space-y-3">
-            <Input type="password" placeholder="Senha do painel" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} autoComplete="current-password" />
-            <button type="button" className="text-sm text-blue-600 text-left" onClick={() => setShowAdvancedLogin((prev) => !prev)}>
-              {showAdvancedLogin ? 'Ocultar opções avançadas' : 'Mostrar opções avançadas'}
-            </button>
-            {showAdvancedLogin && (
-              <div className="space-y-3 rounded-lg border p-3">
-                <Input type="text" placeholder="Usuário" value={username} onChange={(e) => setUsername(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} autoComplete="username" />
-                <Input type="text" placeholder="Secret (opcional)" value={adminSecret} onChange={(e) => setAdminSecret(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} autoComplete="off" />
-                <Input type="url" placeholder="URL do backend (opcional)" value={customApiBaseInput} onChange={(e) => setCustomApiBaseInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
-              </div>
+            {/* Se já temos o usuário no sistema (VITE_ADMIN_USERNAME / default), mostramos só a senha */}
+            {!hasAutoUser && (
+              <Input
+                type="text"
+                placeholder="Usuário"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                autoComplete="username"
+              />
             )}
+
+            <Input
+              type="password"
+              placeholder="Senha do painel"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              autoComplete="current-password"
+            />
+
             <Button onClick={handleLogin} disabled={loading || !password} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
+
+            <button type="button" className="text-xs text-gray-400 w-full text-center" onClick={() => setShowAdvancedLogin((prev) => !prev)}>
+              {showAdvancedLogin ? 'Ocultar configurações de conexão' : 'Configurações de Conexão'}
+            </button>
+
+            {showAdvancedLogin && (
+              <div className="p-3 border rounded text-xs space-y-2">
+                <Input placeholder="URL Backend (opcional)" value={customApiBaseInput} onChange={(e) => setCustomApiBaseInput(e.target.value)} className="h-8" />
+                <Input placeholder="Secret Key (opcional)" value={adminSecret} onChange={(e) => setAdminSecret(e.target.value)} className="h-8" />
+              </div>
+            )}
           </div>
         </Card>
       </div>
