@@ -1,15 +1,13 @@
 {
   "name": "quanton3d-site",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && echo 'Build completo'",
+    "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "node server.js",
-    "start": "node server.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -43,17 +41,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "cors": "^2.8.5",
     "date-fns": "^3.6.0",
-    "dotenv": "^16.4.7",
     "embla-carousel-react": "^8.6.0",
-    "express": "^4.21.3",
-    "express-rate-limit": "^7.5.0",
     "framer-motion": "^12.15.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.510.0",
-    "mongoose": "^8.9.5",
-    "multer": "^2.0.2",
     "next-themes": "^0.4.6",
     "openai": "^4.79.1",
     "react": "^19.1.0",
