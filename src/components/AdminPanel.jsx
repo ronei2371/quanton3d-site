@@ -34,7 +34,7 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   return (
     <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border mb-4">
       <div className="flex gap-4">
-        <img src={item.imageUrl} alt="Pendente" className="w-40 h-40 object-cover rounded-lg border" />
+        <img src={item?.imageUrl || ''} alt="Pendente" className="w-40 h-40 object-cover rounded-lg border bg-gray-100" />
         <div className="flex-1 space-y-3">
           <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600">
             <option value="">Selecione o defeito...</option>
@@ -47,8 +47,8 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
           <textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Diagnóstico técnico..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
           <textarea value={solution} onChange={(e) => setSolution(e.target.value)} placeholder="Solução recomendada..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleApproveClick} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700 text-white">Aprovar e Treinar ELIO</Button>
-            {canDelete && <Button size="sm" variant="outline" onClick={() => onDelete(item._id)} className="text-red-600">Descartar</Button>}
+            <Button size="sm" onClick={handleApproveClick} disabled={isSubmitting || !item?._id} className="bg-green-600 hover:bg-green-700 text-white">Aprovar e Treinar ELIO</Button>
+            {canDelete && <Button size="sm" variant="outline" onClick={() => item?._id && onDelete(item._id)} className="text-red-600">Descartar</Button>}
           </div>
         </div>
       </div>
@@ -77,6 +77,7 @@ export function AdminPanel({ onClose }) {
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
+  const [visualError, setVisualError] = useState('')
 
   // Estados de Gerenciamento de Parâmetros (O que estava faltando!)
   const [paramsResins, setParamsResins] = useState([])
@@ -139,20 +140,47 @@ export function AdminPanel({ onClose }) {
 
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
+    setVisualError('')
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge'))
+      if (!res.ok) throw new Error(`Falha ao carregar conhecimento visual (${res.status})`)
       const data = await res.json()
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+      const loadedVisual = Array.isArray(data.documents) ? data.documents : Array.isArray(data.items) ? data.items : []
+      setVisualKnowledge(loadedVisual)
+    } catch (err) {
+      console.error(err)
+      setVisualKnowledge([])
+      setVisualError('Não foi possível carregar o conhecimento visual.')
+    } finally { setVisualLoading(false) }
+
       setVisualKnowledge(data.documents || data.items || [])
     } catch (err) { console.error(err) } finally { setVisualLoading(false) }
+ main
   }
 
   const loadPendingVisualPhotos = async () => {
     setVisualLoading(true)
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+    setVisualError('')
+
+ main
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge/pending'))
+      if (!res.ok) throw new Error(`Falha ao carregar pendentes visuais (${res.status})`)
       const data = await res.json()
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+      const loadedPending = Array.isArray(data.pending) ? data.pending : Array.isArray(data.documents) ? data.documents : []
+      setPendingVisualPhotos(loadedPending)
+    } catch (err) {
+      console.error(err)
+      setPendingVisualPhotos([])
+      setVisualError('Não foi possível carregar as fotos pendentes.')
+    } finally { setVisualLoading(false) }
+
       setPendingVisualPhotos(data.pending || data.documents || [])
     } catch (err) { console.error(err) } finally { setVisualLoading(false) }
+ main
   }
 
   const loadParamsData = async () => {
@@ -296,10 +324,18 @@ export function AdminPanel({ onClose }) {
           <div className="space-y-6">
             <h3 className="font-bold text-xl flex items-center gap-2"><AlertCircle className="text-yellow-500" /> Fotos enviadas para o ELIO analisar</h3>
             {visualLoading && <Card className="p-4 text-sm opacity-70">Carregando dados visuais...</Card>}
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+            {visualError && <Card className="p-4 text-sm text-red-600 border-red-200">{visualError}</Card>}
+            {!visualLoading && pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
+            {pendingVisualPhotos.map((p, index) => (
+              <PendingVisualItemForm
+                key={p?._id || `pending-${index}`}
+
             {pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
             {pendingVisualPhotos.map(p => (
               <PendingVisualItemForm
                 key={p._id}
+ main
                 item={p}
                 onApprove={approvePendingVisual}
                 onDelete={deletePendingVisual}
