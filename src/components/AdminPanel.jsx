@@ -1,375 +1,566 @@
-import { useCallback, useState, useMemo, useEffect } from 'react'
-import { Card } from '@/components/ui/card.jsx'
-import { Button } from '@/components/ui/button.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { X, Check, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag } from 'lucide-react'
-import { toast } from 'sonner'
-import { PartnersManager } from './PartnersManager.jsx'
-import { MetricsTab } from './admin/MetricsTab.jsx'
-import { SuggestionsTab } from './admin/SuggestionsTab.jsx'
-import { OrdersTab } from './admin/OrdersTab.jsx'
-import { GalleryTab } from './admin/GalleryTab.jsx'
-import { DocumentsTab } from './admin/DocumentsTab.jsx'
-import { ContactsTab } from './admin/ContactsTab.jsx'
+import React, { useCallback, useState, useMemo } from 'react';
+import { Card } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { X, Check, User, Phone, MessageSquare, BarChart3, BookOpen, Plus, Beaker, Edit3, Mail, Camera, Loader2, Eye, Trash2, Upload, AlertCircle, Handshake, ShoppingBag } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Sub-componente para o Treinamento Visual (Visual RAG)
-function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
-  const [defectType, setDefectType] = useState('')
-  const [diagnosis, setDiagnosis] = useState('')
-  const [solution, setSolution] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+import { PartnersManager } from './PartnersManager.jsx';
+import { MetricsTab } from './admin/MetricsTab.jsx';
+import { SuggestionsTab } from './admin/SuggestionsTab.jsx';
+import { OrdersTab } from './admin/OrdersTab.jsx';
+import { GalleryTab } from './admin/GalleryTab.jsx';
+import { DocumentsTab } from './admin/DocumentsTab.jsx';
+import { ContactsTab } from './admin/ContactsTab.jsx';
 
-  const handleApproveClick = async () => {
-    setIsSubmitting(true)
-    try {
-      const success = await onApprove(item._id, defectType, diagnosis, solution)
-      if (success) {
-        setDefectType(''); setDiagnosis(''); setSolution('')
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
   }
 
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="p-8 text-center border-red-200 bg-red-50 dark:bg-red-950">
+          <p className="text-red-600 dark:text-red-400">Erro ao carregar este módulo. Tente atualizar a página.</p>
+        </Card>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
+  const [defectType, setDefectType] = useState('');
+  const [diagnosis, setDiagnosis] = useState('');
+  const [solution, setSolution] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleApproveClick = async () => {
+    setIsSubmitting(true);
+    try {
+      const success = await onApprove(item._id, defectType, diagnosis, solution);
+      if (success) {
+        setDefectType('');
+        setDiagnosis('');
+        setSolution('');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border mb-4">
+    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border">
       <div className="flex gap-4">
-        <img src={item?.imageUrl || ''} alt="Pendente" className="w-40 h-40 object-cover rounded-lg border bg-gray-100" />
+        <img
+          src={item.imageUrl}
+          alt="Foto pendente"
+          className="w-40 h-40 object-cover rounded-lg border flex-shrink-0"
+        />
         <div className="flex-1 space-y-3">
-          <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600">
-            <option value="">Selecione o defeito...</option>
+          <div className="text-xs text-gray-500">
+            Enviada em: {new Date(item.createdAt).toLocaleString('pt-BR')}
+            {item.userName && <span className="ml-2">| Cliente: {item.userName}</span>}
+          </div>
+          <select
+            value={defectType}
+            onChange={(e) => setDefectType(e.target.value)}
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600"
+          >
+            <option value="">Selecione o tipo de defeito...</option>
             <option value="descolamento da base">Descolamento da base</option>
             <option value="falha de suportes">Falha de suportes</option>
-            <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
-            <option value="delaminacao">Delaminação</option>
+            <option value="rachadura/quebra da peca">Rachadura/quebra da peça</option>
+            <option value="falha de adesao entre camadas / delaminacao">Delaminação</option>
+            <option value="deformacao/warping">Deformação/Warping</option>
+            <option value="problema de superficie/acabamento">Problema de superfície</option>
+            <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
+            <option value="problema de LCD">Problema de LCD</option>
             <option value="outro">Outro</option>
           </select>
-          <textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Diagnóstico técnico..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
-          <textarea value={solution} onChange={(e) => setSolution(e.target.value)} placeholder="Solução recomendada..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
+          <textarea
+            value={diagnosis}
+            onChange={(e) => setDiagnosis(e.target.value)}
+            placeholder="Diagnóstico técnico..."
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
+          />
+          <textarea
+            value={solution}
+            onChange={(e) => setSolution(e.target.value)}
+            placeholder="Solução recomendada..."
+            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
+          />
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleApproveClick} disabled={isSubmitting || !item?._id} className="bg-green-600 hover:bg-green-700 text-white">Aprovar e Treinar ELIO</Button>
-            {canDelete && <Button size="sm" variant="outline" onClick={() => item?._id && onDelete(item._id)} className="text-red-600">Descartar</Button>}
+            <Button
+              size="sm"
+              onClick={handleApproveClick}
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Check className="h-4 w-4 mr-1" />
+              {isSubmitting ? 'Aprovando...' : 'Aprovar e Treinar'}
+            </Button>
+            {canDelete && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onDelete(item._id)}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Descartar
+              </Button>
+            )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function AdminPanel({ onClose }) {
-  // Estados de Autenticação e Navegação
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [accessLevel, setAccessLevel] = useState(null)
-  const [password, setPassword] = useState('')
-  const [activeTab, setActiveTab] = useState('metrics')
-  const [loading, setLoading] = useState(false)
-  
-  // Estados de Refresh e Contagem
-  const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
-  const [suggestionsCount, setSuggestionsCount] = useState(0)
-  const [ordersPendingCount, setOrdersPendingCount] = useState(0)
-  const [customRequests, setCustomRequests] = useState([])
-  const [contactCount, setContactCount] = useState(0)
-  const [galleryPendingCount, setGalleryPendingCount] = useState(0)
-  const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [accessLevel, setAccessLevel] = useState(null);
+  const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('metrics');
+  const [loading, setLoading] = useState(false);
 
-  // Estados do Treinamento Visual (Visual RAG)
-  const [visualKnowledge, setVisualKnowledge] = useState([])
-  const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
-  const [visualLoading, setVisualLoading] = useState(false)
-  const [visualError, setVisualError] = useState('')
+  const [metricsRefreshKey, setMetricsRefreshKey] = useState(0);
+  const [suggestionsCount, setSuggestionsCount] = useState(0);
+  const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0);
+  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
+  const [ordersPendingCount, setOrdersPendingCount] = useState(0);
+  const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0);
+  const [customRequests, setCustomRequests] = useState([]);
+  const [galleryPendingCount, setGalleryPendingCount] = useState(0);
+  const [galleryRefreshKey, setGalleryRefreshKey] = useState(0);
+  const [contactCount, setContactCount] = useState(0);
+  const [contactRefreshKey, setContactRefreshKey] = useState(0);
+  const [contacts, setContacts] = useState([]); // Estado adicionado conforme solicitado
 
-  // Estados de Gerenciamento de Parâmetros (O que estava faltando!)
-  const [paramsResins, setParamsResins] = useState([])
-  const [paramsPrinters, setParamsPrinters] = useState([])
-  const [paramsProfiles, setParamsProfiles] = useState([])
-  const [paramsLoading, setParamsLoading] = useState(false)
-  const [newResinName, setNewResinName] = useState('')
-  const [newPrinterBrand, setNewPrinterBrand] = useState('')
-  const [newPrinterModel, setNewPrinterModel] = useState('')
+  const [visualKnowledge, setVisualKnowledge] = useState([]);
+  const [visualLoading, setVisualLoading] = useState(false);
+  const [pendingVisualPhotos, setPendingVisualPhotos] = useState([]);
+  const [pendingVisualLoading, setPendingVisualLoading] = useState(false);
 
-  // --- LOGICA DE URL (A Prova de Erros) ---
+  const [paramsResins, setParamsResins] = useState([]);
+  const [paramsPrinters, setParamsPrinters] = useState([]);
+  const [paramsProfiles, setParamsProfiles] = useState([]);
+  const [paramsStats, setParamsStats] = useState(null);
+  const [paramsLoading, setParamsLoading] = useState(false);
+  const [newResinName, setNewResinName] = useState('');
+  const [newPrinterBrand, setNewPrinterBrand] = useState('');
+  const [newPrinterModel, setNewPrinterModel] = useState('');
+
   const API_BASE_URL = useMemo(() => {
-    const raw = import.meta.env.VITE_API_URL || window.location.origin
-    return String(raw).replace(/\/api\/?$/, '').replace(/\/+$/, '')
-  }, [])
+    return (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com').replace(/\/$/, '');
+  }, []);
 
   const buildAdminUrl = useCallback((path) => {
-    const cleanPath = path.replace(/^\/+/, '').replace(/^api\//, '')
-    return `${API_BASE_URL}/api/${cleanPath}`
-  }, [API_BASE_URL])
+    const cleanPath = path.replace(/^\/+/, '').replace(/^api\//, '');
+    return `${API_BASE_URL}/api/${cleanPath}`;
+  }, [API_BASE_URL]);
 
-  // --- SEGURANÇA ---
-  const ADMIN_PASSWORD = 'Rmartins1201' 
-  const TEAM_SECRET = 'suporte_quanton_2025'
-  const isAdmin = accessLevel === 'admin'
+  const ADMIN_PASSWORD = 'Rmartins1201';
+  const TEAM_SECRET = 'suporte_quanton_2025';
+  const isAdmin = accessLevel === 'admin';
 
-  const handleLogin = async () => {
-    if (password === ADMIN_PASSWORD) {
-      setAccessLevel('admin'); setIsAuthenticated(true)
-    } else if (password === TEAM_SECRET) {
-      setAccessLevel('support'); setIsAuthenticated(true)
-    } else {
-      toast.error('Senha incorreta!'); return
-    }
-    await refreshAllData()
-  }
-
-  // --- CARREGAMENTO DE DADOS ---
   const refreshAllData = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
+      setMetricsRefreshKey((k) => k + 1);
+      setSuggestionsRefreshKey((k) => k + 1);
+      setOrdersRefreshKey((k) => k + 1);
+      setKnowledgeRefreshKey((k) => k + 1);
+      setContactRefreshKey((k) => k + 1);
+      setGalleryRefreshKey((k) => k + 1);
       await Promise.all([
         loadCustomRequests(),
         loadVisualKnowledge(),
         loadPendingVisualPhotos(),
         loadParamsData()
-      ])
-      setMetricsRefreshKey(k => k + 1)
-      setKnowledgeRefreshKey(k => k + 1)
-    } catch (err) { console.error(err) } finally { setLoading(false) }
-  }
+      ]);
+    } catch (error) {
+      console.error('Erro ao atualizar painel:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (password === ADMIN_PASSWORD) {
+      setAccessLevel('admin');
+    } else if (password === TEAM_SECRET) {
+      setAccessLevel('support');
+    } else {
+      toast.error('Senha incorreta!');
+      return;
+    }
+    setIsAuthenticated(true);
+    await refreshAllData();
+  };
 
   const loadCustomRequests = async () => {
     try {
-      const res = await fetch(buildAdminUrl('/custom-requests'))
-      const data = await res.json()
-      setCustomRequests(data.requests || [])
-    } catch (err) { console.error(err) }
-  }
+      const response = await fetch(buildAdminUrl('/custom-requests'));
+      const data = await response.json();
+      setCustomRequests(data.requests || []);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos customizados:', error);
+    }
+  };
 
   const loadVisualKnowledge = async () => {
-    setVisualLoading(true)
-    setVisualError('')
+    setVisualLoading(true);
     try {
-      const res = await fetch(buildAdminUrl('/visual-knowledge'))
-      if (!res.ok) throw new Error(`Falha ao carregar conhecimento visual (${res.status})`)
-      const data = await res.json()
- codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
-      const loadedVisual = Array.isArray(data.documents) ? data.documents : Array.isArray(data.items) ? data.items : []
-      setVisualKnowledge(loadedVisual)
-    } catch (err) {
-      console.error(err)
-      setVisualKnowledge([])
-      setVisualError('Não foi possível carregar o conhecimento visual.')
-    } finally { setVisualLoading(false) }
-
-      setVisualKnowledge(data.documents || data.items || [])
-    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
- main
-  }
+      const response = await fetch(buildAdminUrl('/visual-knowledge'));
+      const data = await response.json();
+      setVisualKnowledge(data.documents || data.items || []);
+    } catch (error) {
+      console.error('Erro ao carregar conhecimento visual:', error);
+    } finally {
+      setVisualLoading(false);
+    }
+  };
 
   const loadPendingVisualPhotos = async () => {
-    setVisualLoading(true)
- codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
-    setVisualError('')
-
- main
+    setPendingVisualLoading(true);
     try {
-      const res = await fetch(buildAdminUrl('/visual-knowledge/pending'))
-      if (!res.ok) throw new Error(`Falha ao carregar pendentes visuais (${res.status})`)
-      const data = await res.json()
- codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
-      const loadedPending = Array.isArray(data.pending) ? data.pending : Array.isArray(data.documents) ? data.documents : []
-      setPendingVisualPhotos(loadedPending)
-    } catch (err) {
-      console.error(err)
-      setPendingVisualPhotos([])
-      setVisualError('Não foi possível carregar as fotos pendentes.')
-    } finally { setVisualLoading(false) }
-
-      setPendingVisualPhotos(data.pending || data.documents || [])
-    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
- main
-  }
+      const response = await fetch(buildAdminUrl('/visual-knowledge/pending'));
+      const data = await response.json();
+      setPendingVisualPhotos(data.pending || data.documents || []);
+    } catch (error) {
+      console.error('Erro ao carregar fotos pendentes:', error);
+    } finally {
+      setPendingVisualLoading(false);
+    }
+  };
 
   const loadParamsData = async () => {
-    setParamsLoading(true)
+    setParamsLoading(true);
     try {
-      const [resRes, priRes, proRes] = await Promise.all([
+      const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
         fetch(buildAdminUrl('/params/resins')),
         fetch(buildAdminUrl('/params/printers')),
-        fetch(buildAdminUrl('/params/profiles'))
-      ])
-      const [resData, priData, proData] = await Promise.all([resRes.json(), priRes.json(), proRes.json()])
-      if (resData.success) setParamsResins(resData.resins || [])
-      if (priData.success) setParamsPrinters(priData.printers || [])
-      if (proData.success) setParamsProfiles(proData.profiles || [])
-    } finally { setParamsLoading(false) }
-  }
+        fetch(buildAdminUrl('/params/profiles')),
+        fetch(buildAdminUrl('/params/stats'))
+      ]);
+
+      const [resinsData, printersData, profilesData, statsData] = await Promise.all([
+        resinsRes.json(),
+        printersRes.json(),
+        profilesRes.json(),
+        statsRes.json()
+      ]);
+
+      if (resinsData.success) setParamsResins(resinsData.resins || []);
+      if (printersData.success) setParamsPrinters(printersData.printers || []);
+      if (profilesData.success) setParamsProfiles(profilesData.profiles || []);
+      if (statsData.success) setParamsStats(statsData.stats || null);
+    } catch (error) {
+      console.error('Erro ao carregar parâmetros:', error);
+    } finally {
+      setParamsLoading(false);
+    }
+  };
 
   const addResin = async () => {
-    if (!newResinName.trim()) return
-    await fetch(buildAdminUrl('/params/resins'), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newResinName.trim() })
-    })
-    setNewResinName(''); loadParamsData(); toast.success('Resina salva!')
-  }
-
-  const deleteResin = async (id) => {
-    if (!isAdmin) return
-    if (confirm('Deletar resina e perfis?')) {
-      await fetch(buildAdminUrl(`/params/resins/${id}`), { method: 'DELETE' })
-      loadParamsData()
+    if (!newResinName.trim()) {
+      toast.warning('Digite o nome da resina');
+      return;
     }
-  }
+    try {
+      const response = await fetch(buildAdminUrl('/params/resins'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newResinName.trim() })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setNewResinName('');
+        loadParamsData();
+        toast.success('Resina adicionada com sucesso!');
+      } else {
+        toast.error(data.error || 'Erro ao adicionar resina');
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar resina:', error);
+      toast.error('Erro ao adicionar resina');
+    }
+  };
+
+  const deleteResin = async (resinId) => {
+    if (!isAdmin) {
+      toast.warning('Seu nível de acesso não permite excluir dados.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return;
+    try {
+      const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        loadParamsData();
+        toast.success('Resina deletada com sucesso!');
+      } else {
+        toast.error(data.error || 'Erro ao deletar');
+      }
+    } catch (error) {
+      console.error('Erro ao deletar resina:', error);
+      toast.error('Erro ao deletar resina');
+    }
+  };
 
   const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
     if (!defectType || !diagnosis || !solution) {
-      toast.warning('Preencha todos os campos antes de aprovar.')
-      return false
+      toast.warning('Preencha todos os campos antes de aprovar');
+      return false;
     }
     try {
-      const res = await fetch(buildAdminUrl(`/visual-knowledge/${id}/approve`), {
+      const response = await fetch(buildAdminUrl(`/visual-knowledge/${id}/approve`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ defectType, diagnosis, solution })
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok && data.success !== false) {
-        toast.success('Entrada visual aprovada com sucesso.')
-        await Promise.all([loadPendingVisualPhotos(), loadVisualKnowledge()])
-        return true
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Conhecimento visual aprovado com sucesso!');
+        loadPendingVisualPhotos();
+        loadVisualKnowledge();
+        return true;
+      } else {
+        toast.error(data.error || 'Erro ao aprovar');
+        return false;
       }
-      toast.error(data.error || 'Não foi possível aprovar a entrada visual.')
-      return false
-    } catch (err) {
-      console.error(err)
-      toast.error('Erro ao aprovar entrada visual.')
-      return false
+    } catch (error) {
+      console.error('Erro ao aprovar conhecimento visual:', error);
+      toast.error('Erro ao aprovar conhecimento visual');
+      return false;
     }
-  }
+  };
 
   const deletePendingVisual = async (id) => {
-    if (!isAdmin) return
-    if (!confirm('Tem certeza que deseja descartar esta foto pendente?')) return
-    try {
-      const res = await fetch(buildAdminUrl(`/visual-knowledge/${id}`), { method: 'DELETE' })
-      if (res.ok) {
-        toast.success('Foto pendente descartada com sucesso.')
-        await loadPendingVisualPhotos()
-      } else {
-        toast.error('Não foi possível descartar a foto pendente.')
-      }
-    } catch (err) {
-      console.error(err)
-      toast.error('Erro ao descartar foto pendente.')
+    if (!isAdmin) {
+      toast.warning('Seu nível de acesso não permite excluir dados.');
+      return;
     }
-  }
+    if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return;
+    try {
+      const response = await fetch(buildAdminUrl(`/visual-knowledge/${id}`), { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        loadPendingVisualPhotos();
+        toast.success('Foto descartada com sucesso!');
+      } else {
+        toast.error(data.error || 'Erro ao deletar');
+      }
+    } catch (error) {
+      console.error('Erro ao deletar foto pendente:', error);
+      toast.error('Erro ao deletar foto pendente');
+    }
+  };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
-        <Card className="p-8 max-w-md w-full space-y-4">
-          <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Quanton3D Admin</h2>
-          <Input type="password" placeholder="Sua senha pessoal" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
-          <Button onClick={handleLogin} className="w-full bg-blue-600 hover:bg-blue-700">Entrar no Sistema</Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
+        <Card className="p-8 max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Painel Administrativo Quanton3D
+          </h2>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Senha do painel (admin ou equipe)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            />
+            <Button onClick={handleLogin} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
+              Entrar no Sistema
+            </Button>
+          </div>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
       <div className="max-w-7xl mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo Quanton3D</h1>
-          <div className="flex gap-2">
-            <Button onClick={refreshAllData} disabled={loading} size="sm">{loading ? '...' : 'Atualizar Dados'}</Button>
-            <Button onClick={onClose} variant="outline" size="sm"><X className="h-4 w-4" /></Button>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Painel Administrativo Quanton3D
+            </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isAdmin ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'}`}>
+              {isAdmin ? 'Admin' : 'Equipe'}
+            </span>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={refreshAllData} disabled={loading}>
+              {loading ? 'Atualizando...' : 'Atualizar Tudo'}
+            </Button>
+            {onClose && <Button variant="outline" onClick={onClose}><X className="h-4 w-4" /></Button>}
           </div>
         </div>
 
-        {/* --- MENU DE ABAS COMPLETO (10 ABAS) --- */}
+        {/* Menu de Abas */}
         <div className="flex flex-wrap gap-2 mb-8 bg-white dark:bg-gray-900 p-2 rounded-xl shadow-sm border">
-          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'ghost'} size="sm"><BarChart3 className="h-4 w-4 mr-2" /> Métricas</Button>
-          <Button onClick={() => setActiveTab('messages')} variant={activeTab === 'messages' ? 'default' : 'ghost'} size="sm"><Mail className="h-4 w-4 mr-2" /> Mensagens ({contactCount})</Button>
-          <Button onClick={() => setActiveTab('custom')} variant={activeTab === 'custom' ? 'default' : 'ghost'} size="sm"><Beaker className="h-4 w-4 mr-2" /> Fórmulas ({customRequests.length})</Button>
-          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'ghost'} size="sm"><MessageSquare className="h-4 w-4 mr-2" /> Sugestões</Button>
-          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'ghost'} size="sm"><ShoppingBag className="h-4 w-4 mr-2" /> Pedidos</Button>
-          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'ghost'} size="sm"><Eye className="h-4 w-4 mr-2" /> Treino Visual</Button>
-          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'ghost'} size="sm"><Camera className="h-4 w-4 mr-2" /> Galeria</Button>
-          <Button onClick={() => setActiveTab('knowledge')} variant={activeTab === 'knowledge' ? 'default' : 'ghost'} size="sm"><BookOpen className="h-4 w-4 mr-2" /> Conhecimento</Button>
-          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'ghost'} size="sm"><Handshake className="h-4 w-4 mr-2" /> Parceiros</Button>
-          <Button onClick={() => setActiveTab('params')} variant={activeTab === 'params' ? 'default' : 'ghost'} size="sm"><Edit3 className="h-4 w-4 mr-2" /> Parâmetros</Button>
+          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'ghost'}><BarChart3 className="h-4 w-4 mr-2" /> Métricas</Button>
+          <Button onClick={() => setActiveTab('messages')} variant={activeTab === 'messages' ? 'default' : 'ghost'}><Mail className="h-4 w-4 mr-2" /> Mensagens ({contactCount})</Button>
+          <Button onClick={() => setActiveTab('custom')} variant={activeTab === 'custom' ? 'default' : 'ghost'}><Beaker className="h-4 w-4 mr-2" /> Fórmulas ({customRequests.length})</Button>
+          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'ghost'}><MessageSquare className="h-4 w-4 mr-2" /> Sugestões</Button>
+          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'ghost'}><ShoppingBag className="h-4 w-4 mr-2" /> Pedidos</Button>
+          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'ghost'}><Eye className="h-4 w-4 mr-2" /> Treinamento Visual</Button>
+          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'ghost'}><Camera className="h-4 w-4 mr-2" /> Galeria</Button>
+          <Button onClick={() => setActiveTab('knowledge')} variant={activeTab === 'knowledge' ? 'default' : 'ghost'}><BookOpen className="h-4 w-4 mr-2" /> Conhecimento</Button>
+          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'ghost'}><Handshake className="h-4 w-4 mr-2" /> Parceiros</Button>
+          <Button onClick={() => setActiveTab('params')} variant={activeTab === 'params' ? 'default' : 'ghost'}><Edit3 className="h-4 w-4 mr-2" /> Parâmetros</Button>
         </div>
 
-        {/* --- CONTEÚDO DINÂMICO --- */}
+        {/* Abas com conteúdo real */}
         {activeTab === 'metrics' && <MetricsTab buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />}
-        {activeTab === 'messages' && <ContactsTab buildAdminUrl={buildAdminUrl} isVisible={true} onCountChange={setContactCount} />}
-        {activeTab === 'knowledge' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
-        {activeTab === 'suggestions' && <SuggestionsTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setSuggestionsCount} />}
-        {activeTab === 'orders' && <OrdersTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setOrdersPendingCount} />}
-        
+        {activeTab === 'messages' && <ContactsTab buildAdminUrl={buildAdminUrl} isVisible={true} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
+        {activeTab === 'suggestions' && <SuggestionsTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setSuggestionsCount} refreshKey={suggestionsRefreshKey} />}
+        {activeTab === 'orders' && <OrdersTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
+
         {activeTab === 'custom' && (
-          <div className="grid gap-4">
-            {customRequests.length === 0 && <p className="text-center py-10 opacity-50">Nenhuma fórmula customizada pedida ainda.</p>}
-            {customRequests.map((req, i) => (
-              <Card key={i} className="p-4 flex justify-between items-center hover:shadow-md transition-shadow">
-                <div className="flex gap-4 items-center">
-                   <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center"><User className="h-5 w-5" /></div>
-                   <div>
-                    <p className="font-bold">{req.name} - Resina {req.cor}</p>
-                    <p className="text-xs text-gray-500">Deseja: {req.caracteristica}</p>
-                   </div>
-                </div>
-                <Button size="sm" className="bg-green-600" onClick={() => window.open(`https://wa.me/55${req.phone.replace(/\D/g, '')}`)}>Chamar no WhatsApp</Button>
+          <div className="space-y-4">
+            {customRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Beaker className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600 dark:text-gray-400">Nenhum pedido de formulação customizada ainda.</p>
               </Card>
-            ))}
+            ) : (
+              customRequests.map((request, index) => (
+                <Card key={index} className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{request.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{request.phone}</span>
+                          <span className="truncate">{request.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">{new Date(request.timestamp || Date.now()).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">CARACTERÍSTICA DESEJADA</p>
+                      <p className="text-sm">{request.caracteristica || request.desiredFeature}</p>
+                    </div>
+                    {request.cor && (
+                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">COR</p>
+                        <p className="text-sm">{request.cor}</p>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    className="mt-4 bg-green-600 hover:bg-green-700"
+                    onClick={() => window.open(`https://wa.me/55${request.phone?.replace(/\D/g, '') || ''}?text=Olá ${request.name}, sobre sua solicitação...`, '_blank')}
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    Contatar via WhatsApp
+                  </Button>
+                </Card>
+              ))
+            )}
           </div>
         )}
 
         {activeTab === 'visual' && (
           <div className="space-y-6">
-            <h3 className="font-bold text-xl flex items-center gap-2"><AlertCircle className="text-yellow-500" /> Fotos enviadas para o ELIO analisar</h3>
-            {visualLoading && <Card className="p-4 text-sm opacity-70">Carregando dados visuais...</Card>}
- codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
-            {visualError && <Card className="p-4 text-sm text-red-600 border-red-200">{visualError}</Card>}
-            {!visualLoading && pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
-            {pendingVisualPhotos.map((p, index) => (
-              <PendingVisualItemForm
-                key={p?._id || `pending-${index}`}
-
-            {pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
-            {pendingVisualPhotos.map(p => (
-              <PendingVisualItemForm
-                key={p._id}
- main
-                item={p}
-                onApprove={approvePendingVisual}
-                onDelete={deletePendingVisual}
-                canDelete={isAdmin}
-              />
-            ))}
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Eye className="h-5 w-5" /> Treinamento Visual</h3>
+              {pendingVisualLoading ? (
+                <div className="flex items-center gap-2 text-yellow-600"><Loader2 className="animate-spin" /> Carregando fotos pendentes...</div>
+              ) : pendingVisualPhotos.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingVisualPhotos.map((item) => (
+                    <PendingVisualItemForm
+                      key={item._id}
+                      item={item}
+                      onApprove={approvePendingVisual}
+                      onDelete={deletePendingVisual}
+                      canDelete={isAdmin}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">Nenhuma foto pendente no momento.</p>
+              )}
+            </Card>
           </div>
         )}
 
-        {activeTab === 'params' && (
-           <div className="space-y-6">
-              <Card className="p-6 border-blue-200 dark:border-blue-800">
-                <h3 className="font-bold mb-4 flex items-center gap-2"><Beaker className="text-blue-500" /> Gerenciar Catálogo de Resinas</h3>
-                <div className="flex gap-2 mb-6">
-                  <Input placeholder="Nome da Resina (Ex: ABS-Like)" value={newResinName} onChange={e => setNewResinName(e.target.value)} />
-                  <Button onClick={addResin} className="bg-blue-600">Adicionar Resina</Button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {paramsResins.map(r => (
-                    <div key={r.id} className="p-3 border rounded-lg bg-white dark:bg-gray-800 flex justify-between items-center group">
-                      <span className="font-medium">{r.name}</span>
-                      <Trash2 className="h-4 w-4 cursor-pointer text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteResin(r.id)} />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-           </div>
+        {activeTab === 'gallery' && <GalleryTab isAdmin={isAdmin} isVisible={true} refreshKey={galleryRefreshKey} onPendingCountChange={setGalleryPendingCount} />}
+        {activeTab === 'knowledge' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
+        {activeTab === 'partners' && (
+          <ErrorBoundary>
+            <PartnersManager />
+          </ErrorBoundary>
         )}
 
-        {activeTab === 'gallery' && <GalleryTab isAdmin={isAdmin} isVisible={true} />}
-        {activeTab === 'partners' && <PartnersManager />}
+        {activeTab === 'params' && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-xl font-bold mb-4">Gerenciar Parâmetros de Impressão</h3>
+              <div className="flex gap-2 mb-6">
+                <Input
+                  placeholder="Nome da nova resina..."
+                  value={newResinName}
+                  onChange={(e) => setNewResinName(e.target.value)}
+                  className="max-w-xs"
+                />
+                <Button onClick={addResin} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar Resina
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                {paramsResins.map((resin) => (
+                  <div key={resin.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <span className="font-medium">{resin.name}</span>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => deleteResin(resin.id)}
+                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <h4 className="font-semibold mb-3">Impressoras Cadastradas</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {paramsPrinters.map((printer) => (
+                  <div key={printer.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+                    {printer.brand} {printer.model}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
-export default AdminPanel
+export default AdminPanel;
