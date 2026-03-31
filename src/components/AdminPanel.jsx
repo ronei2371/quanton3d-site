@@ -142,16 +142,17 @@ export function AdminPanel({ onClose }) {
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge'))
       const data = await res.json()
-      setVisualKnowledge(data.documents || [])
+      setVisualKnowledge(data.documents || data.items || [])
     } catch (err) { console.error(err) } finally { setVisualLoading(false) }
   }
 
   const loadPendingVisualPhotos = async () => {
+    setVisualLoading(true)
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge/pending'))
       const data = await res.json()
-      setPendingVisualPhotos(data.documents || [])
-    } catch (err) { console.error(err) }
+      setPendingVisualPhotos(data.pending || data.documents || [])
+    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
   }
 
   const loadParamsData = async () => {
@@ -183,6 +184,49 @@ export function AdminPanel({ onClose }) {
     if (confirm('Deletar resina e perfis?')) {
       await fetch(buildAdminUrl(`/params/resins/${id}`), { method: 'DELETE' })
       loadParamsData()
+    }
+  }
+
+  const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+    if (!defectType || !diagnosis || !solution) {
+      toast.warning('Preencha todos os campos antes de aprovar.')
+      return false
+    }
+    try {
+      const res = await fetch(buildAdminUrl(`/visual-knowledge/${id}/approve`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defectType, diagnosis, solution })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success !== false) {
+        toast.success('Entrada visual aprovada com sucesso.')
+        await Promise.all([loadPendingVisualPhotos(), loadVisualKnowledge()])
+        return true
+      }
+      toast.error(data.error || 'Não foi possível aprovar a entrada visual.')
+      return false
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao aprovar entrada visual.')
+      return false
+    }
+  }
+
+  const deletePendingVisual = async (id) => {
+    if (!isAdmin) return
+    if (!confirm('Tem certeza que deseja descartar esta foto pendente?')) return
+    try {
+      const res = await fetch(buildAdminUrl(`/visual-knowledge/${id}`), { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Foto pendente descartada com sucesso.')
+        await loadPendingVisualPhotos()
+      } else {
+        toast.error('Não foi possível descartar a foto pendente.')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao descartar foto pendente.')
     }
   }
 
@@ -251,9 +295,16 @@ export function AdminPanel({ onClose }) {
         {activeTab === 'visual' && (
           <div className="space-y-6">
             <h3 className="font-bold text-xl flex items-center gap-2"><AlertCircle className="text-yellow-500" /> Fotos enviadas para o ELIO analisar</h3>
+            {visualLoading && <Card className="p-4 text-sm opacity-70">Carregando dados visuais...</Card>}
             {pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
             {pendingVisualPhotos.map(p => (
-              <PendingVisualItemForm key={p._id} item={p} onApprove={() => {}} onDelete={() => {}} canDelete={isAdmin} />
+              <PendingVisualItemForm
+                key={p._id}
+                item={p}
+                onApprove={approvePendingVisual}
+                onDelete={deletePendingVisual}
+                canDelete={isAdmin}
+              />
             ))}
           </div>
         )}
