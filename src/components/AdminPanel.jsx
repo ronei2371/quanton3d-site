@@ -1,299 +1,299 @@
-// src/components/AdminPanel.jsx
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { Card, Button, Input } from './ui' // ajuste conforme sua lib de componentes
-// se você não usa esses componentes, substitua por tags HTML simples
+// quanton3d-site/src/components/AdminPanel.jsx
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Input, Button } from './ui'; // ajuste imports conforme seu projeto (ou substitua por HTML simples)
+import AuthWrapper from './AuthWrapper'; // se existir
+// NOTE: ajuste os imports UI conforme seu repo real
 
-/* AdminPanel.jsx - Correções:
-   - adiciona useMemo importado
-   - export function AdminPanel({ onClose }) { ... } (export nomeado)
-   - buildAdminUrl limpa /api duplicado
-   - login "inteligente": esconde input de usuário se VITE_ADMIN_USERNAME presente
-   - InternalGalleryTab: DELETE chama API corretamente e remove foto do estado imediatamente
-*/
+// Helper: monta URL base de API sem duplicar /api
+function buildAdminUrl(base, path) {
+  // prefer env var, fallback para window global
+  let resolvedBase = base || window.__API_BASE__ || import.meta.env.VITE_API_URL || '';
+  // remove sufixos / e /api
+  resolvedBase = String(resolvedBase).replace(/\/+$/, '').replace(/\/api$/i, '');
+  // garante que path começa com '/'
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${resolvedBase}/api${p}`;
+}
+
+// token helper (armazene token no state ou localStorage conforme seu fluxo)
+function getStoredToken() {
+  return localStorage.getItem('admin_token') || '';
+}
+function storeToken(t) {
+  if (t) localStorage.setItem('admin_token', t);
+  else localStorage.removeItem('admin_token');
+}
 
 export function AdminPanel({ onClose }) {
-  const envBase = import.meta.env?.VITE_API_URL || ''
-  const defaultAdminUsername = import.meta.env?.VITE_ADMIN_USERNAME || ''
-  const [customApiBase, setCustomApiBase] = useState('')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [adminToken, setAdminToken] = useState(localStorage.getItem('admin_token') || '')
-  const [loading, setLoading] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(adminToken))
-  const [photos, setPhotos] = useState([])
-  const [activeTab, setActiveTab] = useState('metrics')
-  const [messages, setMessages] = useState([])
-  const [formulations, setFormulations] = useState([])
+  const [isAuthenticated, setIsAuthenticated] = useState(!!getStoredToken());
+  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showAdvancedLogin, setShowAdvancedLogin] = useState(false);
+  const [customApiBaseInput, setCustomApiBaseInput] = useState('');
+  const [adminSecret, setAdminSecret] = useState('');
+  const [apiBase, setApiBase] = useState(import.meta.env.VITE_API_URL || '');
+  const [photos, setPhotos] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [formulations, setFormulations] = useState([]);
+  const [activeTab, setActiveTab] = useState('params'); // params | messages | gallery | formulations
 
-  // buildAdminUrl: limpa duplicação /api/api e aceita base customizada
-  const buildAdminUrl = useCallback((path = '') => {
-    // prefer customApiBase (campo de debug) -> envBase -> fallback empty
-    let base = (customApiBase || envBase || '').trim()
-    // remove trailing / e normalize
-    base = base.replace(/\/+$/, '')
-    // se já acabou com /api, remova para não duplicar
-    base = base.replace(/\/api$/i, '')
-    // agora montar URL final garantindo /api sozinho
-    const apiPrefix = base ? `${base}/api` : '/api'
-    // limpar path leading slashes
-    const cleanPath = path.replace(/^\/+/, '')
-    return `${apiPrefix}/${cleanPath}`
-  }, [customApiBase, envBase])
+  // se VITE_ADMIN_USERNAME definido, escondemos campo usuário
+  const defaultAdminUsername = import.meta.env.VITE_ADMIN_USERNAME || '';
+  const hasAutoUser = Boolean(defaultAdminUsername);
 
-  // wrapper fetch com auth
-  const apiFetch = useCallback(async (path, opts = {}) => {
-    const url = buildAdminUrl(path)
-    const headers = new Headers(opts.headers || {})
-    if (adminToken) headers.set('Authorization', `Bearer ${adminToken}`)
-    headers.set('Accept', 'application/json')
-    if (opts.body && !(opts.body instanceof FormData)) {
-      headers.set('Content-Type', 'application/json')
-    }
-    const res = await fetch(url, { ...opts, headers })
-    // se 401 -> logout automático
-    if (res.status === 401) {
-      setIsAuthenticated(false)
-      setAdminToken('')
-      localStorage.removeItem('admin_token')
-      throw new Error('Unauthorized')
-    }
-    const text = await res.text()
-    try { return JSON.parse(text) } catch { return text }
-  }, [adminToken, buildAdminUrl])
+  useEffect(() => {
+    if (customApiBaseInput) setApiBase(customApiBaseInput);
+  }, [customApiBaseInput]);
 
-  // login: usa /auth/login para obter JWT
-  const handleLogin = async () => {
-    setLoading(true)
-    try {
-      const body = { password }
-      // se usuario for exigido e não estiver pré-configurado
-      if (!defaultAdminUsername && !import.meta.env?.VITE_ADMIN_USERNAME) {
-        body.username = username
-      } else {
-        // se já existe VITE_ADMIN_USERNAME, backend normalmente só precisa da senha
-        body.username = defaultAdminUsername || username
-      }
-      const resp = await fetch(buildAdminUrl('auth/login'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-      if (!resp.ok) {
-        const t = await resp.text()
-        throw new Error(t || `Login failed: ${resp.status}`)
-      }
-      const data = await resp.json()
-      const token = data?.token || data?.accessToken || data?.jwt
-      if (!token) throw new Error('Token não recebido')
-      localStorage.setItem('admin_token', token)
-      setAdminToken(token)
-      setIsAuthenticated(true)
-    } catch (err) {
-      console.error('Login erro:', err)
-      alert('Falha no login: ' + (err.message || err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Logoff simples
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    setAdminToken('')
-    setIsAuthenticated(false)
-  }
-
-  // Carregamento de métricas / messages / formulations
-  const loadMetrics = useCallback(async () => {
-    try {
-      // Exemplo: /admin/metrics ou /contacts?range=...
-      const data = await apiFetch('contacts') // ajuste conforme endpoint real
-      // trate como precisar; aqui só um exemplo curto
-      setMessages(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('loadMetrics erro', err)
-    }
-  }, [apiFetch])
-
-  const loadMessages = useCallback(async () => {
-    try {
-      const data = await apiFetch('messages?limit=200')
-      setMessages(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('loadMessages erro', err)
-    }
-  }, [apiFetch])
-
-  const loadFormulations = useCallback(async () => {
-    try {
-      const data = await apiFetch('formulations?limit=200')
-      setFormulations(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('loadFormulations erro', err)
-    }
-  }, [apiFetch])
-
-  const loadGallery = useCallback(async () => {
-    try {
-      const data = await apiFetch('gallery?limit=200')
-      setPhotos(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('loadGallery erro', err)
-    }
-  }, [apiFetch])
-
-  // botão atualizar: atualiza conforme aba ativa
-  const handleRefresh = useCallback(() => {
-    if (activeTab === 'metrics') loadMetrics()
-    if (activeTab === 'messages') loadMessages()
-    if (activeTab === 'formulations') loadFormulations()
-    if (activeTab === 'gallery') loadGallery()
-  }, [activeTab, loadMetrics, loadMessages, loadFormulations, loadGallery])
-
-  // quando autentica, carregar dados iniciais
   useEffect(() => {
     if (isAuthenticated) {
-      handleRefresh()
+      // carrega dados da aba ativa
+      if (activeTab === 'params') loadParams();
+      if (activeTab === 'messages') loadMessages();
+      if (activeTab === 'gallery') loadGallery();
+      if (activeTab === 'formulations') loadFormulations();
     }
-  }, [isAuthenticated, handleRefresh])
+  }, [isAuthenticated, activeTab, apiBase]);
 
-  // InternalGalleryTab: aprovar/deletar
+  function debugLog(...args) {
+    // deixe logs controláveis
+    if (import.meta.env.DEV) console.debug('[AdminPanel]', ...args);
+  }
+
+  async function handleLogin() {
+    try {
+      setLoading(true);
+      const payload = {
+        username: hasAutoUser ? defaultAdminUsername : username,
+        password,
+        secret: adminSecret || undefined,
+      };
+      const url = buildAdminUrl(apiBase, '/auth/login');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Login falhou');
+      const token = json.token || json.accessToken || '';
+      storeToken(token);
+      setIsAuthenticated(true);
+      setLoading(false);
+      debugLog('login ok', json);
+    } catch (err) {
+      setLoading(false);
+      alert('Falha no login: ' + err.message);
+      debugLog('login erro', err);
+    }
+  }
+
+  async function callApi(path, opts = {}) {
+    const token = getStoredToken();
+    const url = buildAdminUrl(apiBase, path);
+    const headers = opts.headers || {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    debugLog('callApi', url, opts.method || 'GET');
+    const res = await fetch(url, { ...opts, headers });
+    if (res.status === 401) {
+      // token inválido ou expirado
+      storeToken('');
+      setIsAuthenticated(false);
+      throw new Error('Não autorizado (401) — faça login novamente.');
+    }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.error || `Erro ${res.status}`);
+    return json;
+  }
+
+  // refresh button handler que atualiza conforme aba ativa
+  async function handleRefresh() {
+    try {
+      if (!isAuthenticated) return;
+      if (activeTab === 'params') await loadParams();
+      if (activeTab === 'messages') await loadMessages();
+      if (activeTab === 'gallery') await loadGallery();
+      if (activeTab === 'formulations') await loadFormulations();
+    } catch (err) {
+      console.error('refresh erro', err);
+      alert('Erro ao atualizar: ' + err.message);
+    }
+  }
+
+  // loaders mínimos - ajustar endpoints conforme backend real
+  async function loadParams() {
+    try {
+      const res = await callApi('/params/resins');
+      // adapte a maneira de apresentar
+      debugLog('params', res);
+    } catch (err) {
+      console.error('loadParams', err);
+    }
+  }
+  async function loadMessages() {
+    try {
+      const res = await callApi('/contacts?limit=200');
+      setMessages(res.items || res || []);
+    } catch (err) {
+      console.error('loadMessages', err);
+    }
+  }
+  async function loadFormulations() {
+    try {
+      const res = await callApi('/orders?limit=200');
+      setFormulations(res.items || res || []);
+    } catch (err) {
+      console.error('loadFormulations', err);
+    }
+  }
+  async function loadGallery() {
+    try {
+      const res = await callApi('/gallery?limit=200');
+      // garanta que cada item tenha _id
+      const items = Array.isArray(res) ? res : res.items || [];
+      setPhotos(items);
+    } catch (err) {
+      console.error('loadGallery', err);
+    }
+  }
+
+  // InternalGalleryTab actions
+  async function handleDeletePhoto(id) {
+    if (!confirm('Tem certeza que deseja deletar esta foto permanentemente?')) return;
+    try {
+      const res = await callApi(`/gallery/${id}`, { method: 'DELETE' });
+      if (res && res.ok) {
+        // remove do estado imediatamente
+        setPhotos((prev) => prev.filter((p) => String(p._id || p.id) !== String(id)));
+        alert('Foto deletada com sucesso.');
+        debugLog('delete ok', id, res);
+      } else {
+        alert('Resposta inesperada: ' + JSON.stringify(res));
+      }
+    } catch (err) {
+      console.error('handleDeletePhoto', err);
+      alert('Erro ao deletar: ' + err.message);
+    }
+  }
+
+  async function handleApprovePhoto(id) {
+    try {
+      const res = await callApi(`/gallery/${id}/approve`, { method: 'POST' });
+      if (res && res.ok) {
+        // atualizar item no estado
+        setPhotos((prev) => prev.map((p) => (String(p._id || p.id) === String(id) ? { ...p, approved: true } : p)));
+        alert('Foto aprovada.');
+        debugLog('approve ok', id, res);
+      } else {
+        alert('Resposta inesperada: ' + JSON.stringify(res));
+      }
+    } catch (err) {
+      console.error('handleApprovePhoto', err);
+      alert('Erro ao aprovar: ' + err.message);
+    }
+  }
+
+  // InternalGalleryTab component (simples)
   function InternalGalleryTab() {
-    const [processingId, setProcessingId] = useState(null)
-
-    // handle delete (hard delete)
-    const handleDelete = async (id) => {
-      if (!confirm('Confirmar exclusão permanente desta foto?')) return
-      setProcessingId(id)
-      try {
-        // rota DELETE /gallery/:id
-        await apiFetch(`gallery/${id}`, { method: 'DELETE' })
-        // remover imediatamente do estado sem recarregar tudo
-        setPhotos(prev => prev.filter(p => (p?._id || p?.id) !== id))
-      } catch (err) {
-        console.error('Erro ao deletar foto', err)
-        alert('Erro ao deletar: ' + (err.message || err))
-      } finally {
-        setProcessingId(null)
-      }
-    }
-
-    // handle approve (exemplo: PUT /gallery/:id/approve)
-    const handleApprove = async (id) => {
-      setProcessingId(id)
-      try {
-        await apiFetch(`gallery/${id}/approve`, { method: 'PUT' })
-        // atualizar item localmente (marcar status)
-        setPhotos(prev => prev.map(p => {
-          if ((p?._id || p?.id) === id) return { ...p, approved: true }
-          return p
-        }))
-      } catch (err) {
-        console.error('Erro ao aprovar foto', err)
-        alert('Erro ao aprovar: ' + (err.message || err))
-      } finally {
-        setProcessingId(null)
-      }
-    }
-
     return (
       <div>
-        <div className="flex gap-2 mb-4">
-          <Button onClick={loadGallery}>Recarregar Galeria</Button>
-          <Button onClick={() => { setPhotos([]); loadGallery() }}>Forçar reload</Button>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold">Galeria</h3>
+          <Button onClick={handleRefresh}>Atualizar</Button>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          {photos?.length ? photos.map(photo => (
-            <Card key={photo._id || photo.id} className="p-2">
-              <img src={photo.url || photo.imageUrl} alt={photo.title || 'foto'} style={{ width: '100%', height: 160, objectFit: 'cover' }} />
-              <div className="mt-2 text-sm">
-                <strong>{photo.clientName || photo.name || '—'}</strong>
-                <div className="flex gap-2 mt-2">
-                  <Button disabled={processingId === (photo._id || photo.id)} onClick={() => handleApprove(photo._id || photo.id)}>
-                    Aprovar
-                  </Button>
-                  <Button variant="danger" disabled={processingId === (photo._id || photo.id)} onClick={() => handleDelete(photo._id || photo.id)}>
-                    Excluir
-                  </Button>
+          {photos.length === 0 && <p>Nenhuma foto</p>}
+          {photos.map((p) => {
+            const id = p._id || p.id;
+            return (
+              <div key={id} className="border p-2 rounded">
+                <img src={p.url || p.image || '/placeholder.png'} alt={p.title || 'foto'} className="w-full h-40 object-cover mb-2" />
+                <div className="flex gap-2">
+                  <Button onClick={() => handleApprovePhoto(id)} className="flex-1">Aprovar</Button>
+                  <Button onClick={() => handleDeletePhoto(id)} className="flex-1">Deletar</Button>
                 </div>
+                <div className="text-xs mt-1">{p.approved ? 'Aprovada' : 'Pendente'}</div>
               </div>
-            </Card>
-          )) : <p>Nenhuma foto encontrada</p>}
+            );
+          })}
         </div>
       </div>
-    )
+    );
   }
 
-  // render do painel
+  // UI principal
   if (!isAuthenticated) {
-    const hasAutoUser = Boolean(defaultAdminUsername)
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="p-8 max-w-md w-full space-y-4">
-          <h2 className="text-2xl font-bold text-center">Painel Administrativo</h2>
+        <div className="max-w-md w-full bg-white p-6 rounded shadow">
+          <h2 className="text-xl font-bold text-center mb-4">Painel Administrativo</h2>
+
           <div className="space-y-3">
             {!hasAutoUser && (
-              <Input placeholder="Usuário" value={username} onChange={e => setUsername(e.target.value)} />
+              <Input placeholder="Usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
             )}
-            <Input type="password" placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleLogin()} />
-            <Button onClick={handleLogin} disabled={loading || !password}>{loading ? 'Entrando...' : 'Entrar'}</Button>
-
-            <div className="mt-2 text-xs text-gray-500">
-              Backend URL (debug): <Input value={customApiBase || envBase} onChange={e => setCustomApiBase(e.target.value)} className="mt-1" />
+            <Input
+              type="password"
+              placeholder="Senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleLogin} disabled={loading || !password} className="flex-1">
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
+              <Button onClick={() => setShowAdvancedLogin((s) => !s)} className="text-sm">Opções</Button>
             </div>
+
+            {showAdvancedLogin && (
+              <div className="p-2 border rounded text-xs space-y-2">
+                <Input placeholder="URL Backend (opcional)" value={customApiBaseInput} onChange={(e) => setCustomApiBaseInput(e.target.value)} />
+                <Input placeholder="Secret (opcional)" value={adminSecret} onChange={(e) => setAdminSecret(e.target.value)} />
+              </div>
+            )}
           </div>
-        </Card>
+        </div>
       </div>
-    )
+    );
   }
 
   // painel autenticado
   return (
-    <div className="p-4 max-w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">Admin Panel</h1>
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Admin Panel</h1>
         <div className="flex gap-2">
+          <Button onClick={() => { storeToken(''); setIsAuthenticated(false); }}>Logout</Button>
           <Button onClick={handleRefresh}>Atualizar</Button>
-          <Button onClick={handleLogout} variant="ghost">Sair</Button>
         </div>
       </div>
 
       <div className="mb-4">
-        <nav className="flex gap-2">
-          <button onClick={() => setActiveTab('metrics')} className={activeTab === 'metrics' ? 'font-bold' : ''}>Métricas</button>
-          <button onClick={() => setActiveTab('messages')} className={activeTab === 'messages' ? 'font-bold' : ''}>Mensagens</button>
-          <button onClick={() => setActiveTab('formulations')} className={activeTab === 'formulations' ? 'font-bold' : ''}>Formulações</button>
-          <button onClick={() => setActiveTab('gallery')} className={activeTab === 'gallery' ? 'font-bold' : ''}>Galeria</button>
-        </nav>
+        <button onClick={() => setActiveTab('params')} className={`mr-2 ${activeTab==='params'?'font-bold':''}`}>Parâmetros</button>
+        <button onClick={() => setActiveTab('messages')} className={`mr-2 ${activeTab==='messages'?'font-bold':''}`}>Mensagens</button>
+        <button onClick={() => setActiveTab('gallery')} className={`mr-2 ${activeTab==='gallery'?'font-bold':''}`}>Galeria</button>
+        <button onClick={() => setActiveTab('formulations')} className={`mr-2 ${activeTab==='formulations'?'font-bold':''}`}>Formulações</button>
       </div>
 
       <div>
-        {activeTab === 'metrics' && (
-          <div>
-            <h2>Métricas / Contatos</h2>
-            <pre style={{ maxHeight: 400, overflow: 'auto' }}>{JSON.stringify(messages?.slice(0, 200), null, 2)}</pre>
-          </div>
-        )}
+        {activeTab === 'params' && <div>Parâmetros (implemente visualização conforme sua UI)</div>}
         {activeTab === 'messages' && (
           <div>
-            <h2>Mensagens</h2>
-            <pre style={{ maxHeight: 400, overflow: 'auto' }}>{JSON.stringify(messages?.slice(0, 200), null, 2)}</pre>
+            <h3>Mensagens</h3>
+            <div>{messages.length === 0 ? 'Nenhuma' : messages.map(m => <div key={m._id || m.id}>{m.name || m.email || m.message}</div>)}</div>
           </div>
         )}
+        {activeTab === 'gallery' && <InternalGalleryTab />}
         {activeTab === 'formulations' && (
           <div>
-            <h2>Formulações</h2>
-            <pre style={{ maxHeight: 400, overflow: 'auto' }}>{JSON.stringify(formulations?.slice(0, 200), null, 2)}</pre>
-          </div>
-        )}
-        {activeTab === 'gallery' && (
-          <div>
-            <h2>Galeria</h2>
-            <InternalGalleryTab />
+            <h3>Formulações</h3>
+            <div>{formulations.length === 0 ? 'Nenhuma' : formulations.map(f => <div key={f._id || f.id}>{f.title || JSON.stringify(f)}</div>)}</div>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
