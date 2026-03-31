@@ -67,11 +67,19 @@ const ensureMongoReady = async () => {
 
 // ====================== SEGURANÇA ======================
 const ADMIN_SECRET = process.env.ADMIN_SECRET || process.env.VITE_ADMIN_API_TOKEN || process.env.ADMIN_API_TOKEN || null;
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || null;
+
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "quanton-secret-2026";
+ main
 
 const isAdminRequest = (req) => {
   const authHeader = req.headers.authorization || "";
   if (authHeader.startsWith("Bearer ")) {
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+    if (!ADMIN_JWT_SECRET) return false;
+
+ main
     try {
       jwt.verify(authHeader.slice(7), ADMIN_JWT_SECRET);
       return true;
@@ -103,10 +111,14 @@ const sanitizeResinName = (value) => normalizeString(value, null);
 const normalizeStringArray = (...candidates) => {
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) return candidate.map((item) => normalizeString(item)).filter(Boolean);
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+    if (typeof candidate === "string" && candidate.trim()) return candidate.split(/[\r\n,]+/).map((item) => item.trim()).filter(Boolean);
+
  codex/fix-syntaxerror-in-apiroutes.js-x106im
     if (typeof candidate === "string" && candidate.trim()) return candidate.split(/[\r\n,]+/).map((item) => item.trim()).filter(Boolean);
 
     if (typeof candidate === "string" && candidate.trim()) return candidate.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
+ main
  main
   }
   return [];
@@ -286,8 +298,14 @@ router.put("/visual-knowledge/:id/approve", adminGuard(async (req, res) => {
     const collection = getCollection("gallery");
     const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { id };
     const result = await collection.findOneAndUpdate(filter, { $set: { ...req.body, status: "approved", approved: true, approvedAt: new Date(), updatedAt: new Date() } }, { returnDocument: "after" });
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+    const updatedDoc = result?.value ?? result ?? null;
+    if (!updatedDoc) return res.status(404).json({ success: false, error: "Item não encontrado" });
+    return res.json({ success: true, item: buildVisualKnowledgeResponse(updatedDoc) });
+
     if (!result.value) return res.status(404).json({ success: false, error: "Item não encontrado" });
     return res.json({ success: true, item: buildVisualKnowledgeResponse(result.value) });
+ main
   } catch {
     return res.status(500).json({ success: false, error: "Erro ao aprovar item" });
   }
@@ -352,10 +370,26 @@ router.get("/params/profiles", async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, MAX_PARAMS_PAGE_SIZE);
     const skip = (page - 1) * limit;
 
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+    const conditions = [];
+    if (req.query.resinId) {
+      const resinFilter = buildResinFilter(req.query.resinId);
+      if (resinFilter) conditions.push(resinFilter);
+    }
+    if (req.query.printerId) {
+      const printerFilter = buildPrinterFilter(req.query.printerId);
+      if (printerFilter) conditions.push(printerFilter);
+    }
+    if (req.query.status) {
+      conditions.push({ status: req.query.status });
+    }
+    const filter = conditions.length > 1 ? { $and: conditions } : (conditions[0] || {});
+
     const filter = {};
     if (req.query.resinId) Object.assign(filter, buildResinFilter(req.query.resinId) || {});
     if (req.query.printerId) Object.assign(filter, buildPrinterFilter(req.query.printerId) || {});
     if (req.query.status) filter.status = req.query.status;
+ main
 
     const collection = getCollection("parametros");
     const total = await collection.countDocuments(filter);
@@ -386,7 +420,13 @@ router.get("/params/stats", async (_req, res) => {
 // ====================== PARCEIROS ======================
 router.get("/partners", async (_req, res) => {
   try {
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+    const collection = getPartnersCollection();
+    if (!collection) return res.status(503).json({ success: false, error: "Coleção de parceiros indisponível" });
+    const partners = await collection.find({ active: true }).sort({ order: 1, createdAt: -1 }).toArray();
+
     const partners = await getPartnersCollection().find({ active: true }).sort({ order: 1, createdAt: -1 }).toArray();
+ main
     return res.json({ success: true, partners: partners.map(normalizePartnerResponse) });
   } catch {
     return res.status(500).json({ success: false, error: "Erro ao listar parceiros" });
@@ -398,9 +438,17 @@ router.post("/partners", adminGuard(async (req, res) => {
     const payload = req.body || {};
     const name = normalizeString(payload.name || payload.title);
     if (!name) return res.status(400).json({ success: false, error: "Nome é obrigatório" });
+ codex/fix-syntaxerror-in-apiroutes.js-scpaoa
+    const collection = getPartnersCollection();
+    if (!collection) return res.status(503).json({ success: false, error: "Coleção de parceiros indisponível" });
+
+    const doc = { ...buildPartnerPayload(payload), createdAt: new Date(), updatedAt: new Date() };
+    const result = await collection.insertOne(doc);
+
 
     const doc = { ...buildPartnerPayload(payload), createdAt: new Date(), updatedAt: new Date() };
     const result = await getPartnersCollection().insertOne(doc);
+ main
     return res.status(201).json({ success: true, partner: normalizePartnerResponse({ ...doc, _id: result.insertedId }) });
   } catch {
     return res.status(500).json({ success: false, error: "Erro ao criar parceiro" });
