@@ -103,7 +103,11 @@ const sanitizeResinName = (value) => normalizeString(value, null);
 const normalizeStringArray = (...candidates) => {
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) return candidate.map((item) => normalizeString(item)).filter(Boolean);
+ codex/fix-syntaxerror-in-apiroutes.js-x106im
+    if (typeof candidate === "string" && candidate.trim()) return candidate.split(/[\r\n,]+/).map((item) => item.trim()).filter(Boolean);
+
     if (typeof candidate === "string" && candidate.trim()) return candidate.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
+ main
   }
   return [];
 };
