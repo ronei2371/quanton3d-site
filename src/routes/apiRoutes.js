@@ -28,6 +28,7 @@ const getCollection = (name) => {
   if (name === "parametros" && typeof db.getParametrosCollection === "function") return db.getParametrosCollection();
   if (name === "contacts" && typeof db.getContactsCollection === "function") return db.getContactsCollection();
   if (name === "custom_requests" && typeof db.getCustomRequestsCollection === "function") return db.getCustomRequestsCollection();
+  if (name === "partners" && typeof db.getPartnersCollection === "function") return db.getPartnersCollection();
   return null;
 };
 
@@ -267,7 +268,11 @@ router.post("/gallery", upload.any(), async (req, res) => {
 router.get("/visual-knowledge", async (_req, res) => {
   try {
     const collection = getVisualKnowledgeCollection() || getCollection("gallery");
-    const docs = await collection.find({}).sort({ updatedAt: -1 }).limit(100).toArray();
+    const docs = await collection
+      .find({ $or: [{ approved: true }, { status: "approved" }] })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .toArray();
     return res.json({ success: true, items: docs.map(buildVisualKnowledgeResponse) });
   } catch {
     return res.status(500).json({ success: false, error: "Erro ao listar conhecimento visual" });
