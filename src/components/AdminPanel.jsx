@@ -34,7 +34,7 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   return (
     <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border mb-4">
       <div className="flex gap-4">
-        <img src={item.imageUrl} alt="Pendente" className="w-40 h-40 object-cover rounded-lg border" />
+        <img src={item?.imageUrl || ''} alt="Pendente" className="w-40 h-40 object-cover rounded-lg border bg-gray-100" />
         <div className="flex-1 space-y-3">
           <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600">
             <option value="">Selecione o defeito...</option>
@@ -47,8 +47,8 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
           <textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Diagnóstico técnico..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
           <textarea value={solution} onChange={(e) => setSolution(e.target.value)} placeholder="Solução recomendada..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
           <div className="flex gap-2">
-            <Button size="sm" onClick={handleApproveClick} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700 text-white">Aprovar e Treinar ELIO</Button>
-            {canDelete && <Button size="sm" variant="outline" onClick={() => onDelete(item._id)} className="text-red-600">Descartar</Button>}
+            <Button size="sm" onClick={handleApproveClick} disabled={isSubmitting || !item?._id} className="bg-green-600 hover:bg-green-700 text-white">Aprovar e Treinar ELIO</Button>
+            {canDelete && <Button size="sm" variant="outline" onClick={() => item?._id && onDelete(item._id)} className="text-red-600">Descartar</Button>}
           </div>
         </div>
       </div>
@@ -77,6 +77,7 @@ export function AdminPanel({ onClose }) {
   const [visualKnowledge, setVisualKnowledge] = useState([])
   const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
   const [visualLoading, setVisualLoading] = useState(false)
+  const [visualError, setVisualError] = useState('')
 
   // Estados de Gerenciamento de Parâmetros (O que estava faltando!)
   const [paramsResins, setParamsResins] = useState([])
@@ -139,19 +140,34 @@ export function AdminPanel({ onClose }) {
 
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
+    setVisualError('')
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge'))
+      if (!res.ok) throw new Error(`Falha ao carregar conhecimento visual (${res.status})`)
       const data = await res.json()
-      setVisualKnowledge(data.documents || [])
-    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
+      const loadedVisual = Array.isArray(data.documents) ? data.documents : Array.isArray(data.items) ? data.items : []
+      setVisualKnowledge(loadedVisual)
+    } catch (err) {
+      console.error(err)
+      setVisualKnowledge([])
+      setVisualError('Não foi possível carregar o conhecimento visual.')
+    } finally { setVisualLoading(false) }
   }
 
   const loadPendingVisualPhotos = async () => {
+    setVisualLoading(true)
+    setVisualError('')
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge/pending'))
+      if (!res.ok) throw new Error(`Falha ao carregar pendentes visuais (${res.status})`)
       const data = await res.json()
-      setPendingVisualPhotos(data.documents || [])
-    } catch (err) { console.error(err) }
+      const loadedPending = Array.isArray(data.pending) ? data.pending : Array.isArray(data.documents) ? data.documents : []
+      setPendingVisualPhotos(loadedPending)
+    } catch (err) {
+      console.error(err)
+      setPendingVisualPhotos([])
+      setVisualError('Não foi possível carregar as fotos pendentes.')
+    } finally { setVisualLoading(false) }
   }
 
   const loadParamsData = async () => {
@@ -183,6 +199,49 @@ export function AdminPanel({ onClose }) {
     if (confirm('Deletar resina e perfis?')) {
       await fetch(buildAdminUrl(`/params/resins/${id}`), { method: 'DELETE' })
       loadParamsData()
+    }
+  }
+
+  const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
+    if (!defectType || !diagnosis || !solution) {
+      toast.warning('Preencha todos os campos antes de aprovar.')
+      return false
+    }
+    try {
+      const res = await fetch(buildAdminUrl(`/visual-knowledge/${id}/approve`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defectType, diagnosis, solution })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.success !== false) {
+        toast.success('Entrada visual aprovada com sucesso.')
+        await Promise.all([loadPendingVisualPhotos(), loadVisualKnowledge()])
+        return true
+      }
+      toast.error(data.error || 'Não foi possível aprovar a entrada visual.')
+      return false
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao aprovar entrada visual.')
+      return false
+    }
+  }
+
+  const deletePendingVisual = async (id) => {
+    if (!isAdmin) return
+    if (!confirm('Tem certeza que deseja descartar esta foto pendente?')) return
+    try {
+      const res = await fetch(buildAdminUrl(`/visual-knowledge/${id}`), { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Foto pendente descartada com sucesso.')
+        await loadPendingVisualPhotos()
+      } else {
+        toast.error('Não foi possível descartar a foto pendente.')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Erro ao descartar foto pendente.')
     }
   }
 
@@ -251,9 +310,17 @@ export function AdminPanel({ onClose }) {
         {activeTab === 'visual' && (
           <div className="space-y-6">
             <h3 className="font-bold text-xl flex items-center gap-2"><AlertCircle className="text-yellow-500" /> Fotos enviadas para o ELIO analisar</h3>
-            {pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
-            {pendingVisualPhotos.map(p => (
-              <PendingVisualItemForm key={p._id} item={p} onApprove={() => {}} onDelete={() => {}} canDelete={isAdmin} />
+            {visualLoading && <Card className="p-4 text-sm opacity-70">Carregando dados visuais...</Card>}
+            {visualError && <Card className="p-4 text-sm text-red-600 border-red-200">{visualError}</Card>}
+            {!visualLoading && pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
+            {pendingVisualPhotos.map((p, index) => (
+              <PendingVisualItemForm
+                key={p?._id || `pending-${index}`}
+                item={p}
+                onApprove={approvePendingVisual}
+                onDelete={deletePendingVisual}
+                canDelete={isAdmin}
+              />
             ))}
           </div>
         )}
