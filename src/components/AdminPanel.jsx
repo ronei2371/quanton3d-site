@@ -208,9 +208,10 @@ export function AdminPanel({ onClose }) {
 
   const loadCustomRequests = async () => {
     try {
-      const response = await fetch(buildAdminUrl('/custom-requests'));
+      const response = await fetch(buildAdminUrl('/orders'));
       const data = await response.json();
-      setCustomRequests(data.requests || []);
+      const orders = Array.isArray(data.orders) ? data.orders : [];
+      setCustomRequests(orders.filter((item) => item?.type === 'custom_request'));
     } catch (error) {
       console.error('Erro ao carregar pedidos customizados:', error);
     }
@@ -271,49 +272,13 @@ export function AdminPanel({ onClose }) {
   };
 
   const addResin = async () => {
-    if (!newResinName.trim()) {
-      toast.warning('Digite o nome da resina');
-      return;
-    }
-    try {
-      const response = await fetch(buildAdminUrl('/params/resins'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newResinName.trim() })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setNewResinName('');
-        loadParamsData();
-        toast.success('Resina adicionada com sucesso!');
-      } else {
-        toast.error(data.error || 'Erro ao adicionar resina');
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar resina:', error);
-      toast.error('Erro ao adicionar resina');
-    }
+    toast.warning('Cadastro de resina pelo painel está indisponível nesta versão da API.');
   };
 
   const deleteResin = async (resinId) => {
-    if (!isAdmin) {
-      toast.warning('Seu nível de acesso não permite excluir dados.');
-      return;
-    }
-    if (!confirm('Tem certeza que deseja deletar esta resina e todos os perfis associados?')) return;
-    try {
-      const response = await fetch(buildAdminUrl(`/params/resins/${resinId}`), { method: 'DELETE' });
-      const data = await response.json();
-      if (data.success) {
-        loadParamsData();
-        toast.success('Resina deletada com sucesso!');
-      } else {
-        toast.error(data.error || 'Erro ao deletar');
-      }
-    } catch (error) {
-      console.error('Erro ao deletar resina:', error);
-      toast.error('Erro ao deletar resina');
-    }
+    void resinId;
+    if (!isAdmin) return toast.warning('Seu nível de acesso não permite excluir dados.');
+    toast.warning('Exclusão de resina pelo painel está indisponível nesta versão da API.');
   };
 
   const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
@@ -345,24 +310,9 @@ export function AdminPanel({ onClose }) {
   };
 
   const deletePendingVisual = async (id) => {
-    if (!isAdmin) {
-      toast.warning('Seu nível de acesso não permite excluir dados.');
-      return;
-    }
-    if (!confirm('Tem certeza que deseja deletar esta foto pendente?')) return;
-    try {
-      const response = await fetch(buildAdminUrl(`/visual-knowledge/${id}`), { method: 'DELETE' });
-      const data = await response.json();
-      if (data.success) {
-        loadPendingVisualPhotos();
-        toast.success('Foto descartada com sucesso!');
-      } else {
-        toast.error(data.error || 'Erro ao deletar');
-      }
-    } catch (error) {
-      console.error('Erro ao deletar foto pendente:', error);
-      toast.error('Erro ao deletar foto pendente');
-    }
+    void id;
+    if (!isAdmin) return toast.warning('Seu nível de acesso não permite excluir dados.');
+    toast.warning('Descartar foto pendente pelo painel está indisponível nesta versão da API.');
   };
 
   if (!isAuthenticated) {
