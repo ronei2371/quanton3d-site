@@ -145,33 +145,63 @@ export function AdminPanel({ onClose }) {
       const res = await fetch(buildAdminUrl('/visual-knowledge'))
       if (!res.ok) throw new Error(`Falha ao carregar conhecimento visual (${res.status})`)
       const data = await res.json()
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
+
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+ main
       const loadedVisual = Array.isArray(data.documents) ? data.documents : Array.isArray(data.items) ? data.items : []
       setVisualKnowledge(loadedVisual)
     } catch (err) {
       console.error(err)
       setVisualKnowledge([])
       setVisualError('Não foi possível carregar o conhecimento visual.')
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
     } finally {
       setVisualLoading(false)
     }
+
+    } finally { setVisualLoading(false) }
+
+      setVisualKnowledge(data.documents || data.items || [])
+    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
+ main
+ main
   }
 
   const loadPendingVisualPhotos = async () => {
     setVisualLoading(true)
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
     setVisualError('')
+
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+    setVisualError('')
+
+ main
+ main
     try {
       const res = await fetch(buildAdminUrl('/visual-knowledge/pending'))
       if (!res.ok) throw new Error(`Falha ao carregar pendentes visuais (${res.status})`)
       const data = await res.json()
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
+
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+ main
       const loadedPending = Array.isArray(data.pending) ? data.pending : Array.isArray(data.documents) ? data.documents : []
       setPendingVisualPhotos(loadedPending)
     } catch (err) {
       console.error(err)
       setPendingVisualPhotos([])
       setVisualError('Não foi possível carregar as fotos pendentes.')
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
     } finally {
       setVisualLoading(false)
     }
+
+    } finally { setVisualLoading(false) }
+
+      setPendingVisualPhotos(data.pending || data.documents || [])
+    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
+ main
   }
 
   const loadParamsData = async () => {
@@ -315,12 +345,24 @@ export function AdminPanel({ onClose }) {
           <div className="space-y-6">
             <h3 className="font-bold text-xl flex items-center gap-2"><AlertCircle className="text-yellow-500" /> Fotos enviadas para o ELIO analisar</h3>
             {visualLoading && <Card className="p-4 text-sm opacity-70">Carregando dados visuais...</Card>}
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
+
+ codex/corrigir-conflito-react-19-x-react-day-picker-cxf1gl
+ main
             {visualError && <Card className="p-4 text-sm text-red-600 border-red-200">{visualError}</Card>}
             {!visualLoading && pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
             {pendingVisualPhotos.map((p, index) => (
               <PendingVisualItemForm
                 key={p?._id || `pending-${index}`}
-                item={p}
+ codex/corrigir-conflito-react-19-x-react-day-picker-bdgi80
+
+
+            {pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
+            {pendingVisualPhotos.map(p => (
+              <PendingVisualItemForm
+                key={p._id}
+ main
+                 item={p}
                 onApprove={approvePendingVisual}
                 onDelete={deletePendingVisual}
                 canDelete={isAdmin}
