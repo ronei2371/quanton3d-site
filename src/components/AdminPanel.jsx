@@ -159,13 +159,29 @@ export function AdminPanel({ onClose }) {
   const [newPrinterModel, setNewPrinterModel] = useState('');
 
   const API_BASE_URL = useMemo(() => {
-    return (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com').replace(/\/$/, '');
+    const configuredBaseUrl = (import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com').replace(/\/$/, '');
+    return configuredBaseUrl.replace(/\/api$/, '');
   }, []);
 
   const buildAdminUrl = useCallback((path) => {
     const cleanPath = path.replace(/^\/+/, '').replace(/^api\//, '');
     return `${API_BASE_URL}/api/${cleanPath}`;
   }, [API_BASE_URL]);
+
+  const fetchJsonIfAvailable = useCallback(async (path, options) => {
+    const response = await fetch(buildAdminUrl(path), options);
+    if (response.status === 404 || response.status === 405) return null;
+    if (!response.ok) {
+      let errorText = '';
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = '';
+      }
+      throw new Error(`HTTP ${response.status}${errorText ? ` - ${errorText}` : ''}`);
+    }
+    return response.json();
+  }, [buildAdminUrl]);
 
   const ADMIN_PASSWORD = 'Rmartins1201';
   const TEAM_SECRET = 'suporte_quanton_2025';
@@ -208,22 +224,39 @@ export function AdminPanel({ onClose }) {
 
   const loadCustomRequests = async () => {
     try {
-      const response = await fetch(buildAdminUrl('/custom-requests'));
-      const data = await response.json();
-      setCustomRequests(data.requests || []);
+      const formulationsData = await fetchJsonIfAvailable('/formulations');
+      if (formulationsData) {
+        const normalizedRequests = (formulationsData.formulations || []).map((item) => ({
+          ...item,
+          name: item.name || item.nome || 'Cliente',
+          phone: item.phone || item.telefone || '',
+          email: item.email || '',
+          caracteristica: item.caracteristica || item.description || item.message || item.desiredFeature || ''
+        }));
+        setCustomRequests(normalizedRequests);
+        return;
+      }
+
+      const legacyData = await fetchJsonIfAvailable('/custom-requests');
+      setCustomRequests(legacyData?.requests || []);
     } catch (error) {
       console.error('Erro ao carregar pedidos customizados:', error);
+      setCustomRequests([]);
     }
   };
 
   const loadVisualKnowledge = async () => {
     setVisualLoading(true);
     try {
-      const response = await fetch(buildAdminUrl('/visual-knowledge'));
-      const data = await response.json();
+      const data = await fetchJsonIfAvailable('/visual-knowledge');
+      if (!data) {
+        setVisualKnowledge([]);
+        return;
+      }
       setVisualKnowledge(data.documents || data.items || []);
     } catch (error) {
       console.error('Erro ao carregar conhecimento visual:', error);
+      setVisualKnowledge([]);
     } finally {
       setVisualLoading(false);
     }
@@ -232,11 +265,15 @@ export function AdminPanel({ onClose }) {
   const loadPendingVisualPhotos = async () => {
     setPendingVisualLoading(true);
     try {
-      const response = await fetch(buildAdminUrl('/visual-knowledge/pending'));
-      const data = await response.json();
+      const data = await fetchJsonIfAvailable('/visual-knowledge/pending');
+      if (!data) {
+        setPendingVisualPhotos([]);
+        return;
+      }
       setPendingVisualPhotos(data.pending || data.documents || []);
     } catch (error) {
       console.error('Erro ao carregar fotos pendentes:', error);
+      setPendingVisualPhotos([]);
     } finally {
       setPendingVisualLoading(false);
     }
@@ -245,26 +282,23 @@ export function AdminPanel({ onClose }) {
   const loadParamsData = async () => {
     setParamsLoading(true);
     try {
-      const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
-        fetch(buildAdminUrl('/params/resins')),
-        fetch(buildAdminUrl('/params/printers')),
-        fetch(buildAdminUrl('/params/profiles')),
-        fetch(buildAdminUrl('/params/stats'))
-      ]);
-
       const [resinsData, printersData, profilesData, statsData] = await Promise.all([
-        resinsRes.json(),
-        printersRes.json(),
-        profilesRes.json(),
-        statsRes.json()
+        fetchJsonIfAvailable('/params/resins'),
+        fetchJsonIfAvailable('/params/printers'),
+        fetchJsonIfAvailable('/params/profiles'),
+        fetchJsonIfAvailable('/params/stats')
       ]);
 
-      if (resinsData.success) setParamsResins(resinsData.resins || []);
-      if (printersData.success) setParamsPrinters(printersData.printers || []);
-      if (profilesData.success) setParamsProfiles(profilesData.profiles || []);
-      if (statsData.success) setParamsStats(statsData.stats || null);
+      setParamsResins(resinsData?.success ? (resinsData.resins || []) : []);
+      setParamsPrinters(printersData?.success ? (printersData.printers || []) : []);
+      setParamsProfiles(profilesData?.success ? (profilesData.profiles || []) : []);
+      setParamsStats(statsData?.success ? (statsData.stats || null) : null);
     } catch (error) {
       console.error('Erro ao carregar parâmetros:', error);
+      setParamsResins([]);
+      setParamsPrinters([]);
+      setParamsProfiles([]);
+      setParamsStats(null);
     } finally {
       setParamsLoading(false);
     }
