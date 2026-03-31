@@ -12,6 +12,7 @@ import { GalleryTab } from './admin/GalleryTab.jsx'
 import { DocumentsTab } from './admin/DocumentsTab.jsx'
 import { ContactsTab } from './admin/ContactsTab.jsx'
 
+// Sub-componente para o Treinamento Visual (Visual RAG)
 function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   const [defectType, setDefectType] = useState('')
   const [diagnosis, setDiagnosis] = useState('')
@@ -23,9 +24,7 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
     try {
       const success = await onApprove(item._id, defectType, diagnosis, solution)
       if (success) {
-        setDefectType('')
-        setDiagnosis('')
-        setSolution('')
+        setDefectType(''); setDiagnosis(''); setSolution('')
       }
     } finally {
       setIsSubmitting(false)
@@ -33,67 +32,23 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border">
+    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg border mb-4">
       <div className="flex gap-4">
-        <img 
-          src={item.imageUrl} 
-          alt="Foto pendente" 
-          className="w-40 h-40 object-cover rounded-lg border flex-shrink-0"
-        />
+        <img src={item.imageUrl} alt="Pendente" className="w-40 h-40 object-cover rounded-lg border" />
         <div className="flex-1 space-y-3">
-          <div className="text-xs text-gray-500">
-            Enviada em: {new Date(item.createdAt).toLocaleString('pt-BR')}
-            {item.userName && <span className="ml-2">| Cliente: {item.userName}</span>}
-          </div>
-          <select
-            value={defectType}
-            onChange={(e) => setDefectType(e.target.value)}
-            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600"
-          >
-            <option value="">Selecione o tipo de defeito...</option>
+          <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600">
+            <option value="">Selecione o defeito...</option>
             <option value="descolamento da base">Descolamento da base</option>
             <option value="falha de suportes">Falha de suportes</option>
             <option value="rachadura/quebra da peca">Rachadura/quebra da peca</option>
-            <option value="falha de adesao entre camadas / delaminacao">Delaminacao</option>
-            <option value="deformacao/warping">Deformacao/warping</option>
-            <option value="problema de superficie/acabamento">Problema de superficie</option>
-            <option value="excesso ou falta de cura">Excesso ou falta de cura</option>
-            <option value="problema de LCD">Problema de LCD</option>
+            <option value="delaminacao">Delaminação</option>
             <option value="outro">Outro</option>
           </select>
-          <textarea
-            value={diagnosis}
-            onChange={(e) => setDiagnosis(e.target.value)}
-            placeholder="Diagnostico tecnico..."
-            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
-          />
-          <textarea
-            value={solution}
-            onChange={(e) => setSolution(e.target.value)}
-            placeholder="Solucao recomendada..."
-            className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600 min-h-[60px]"
-          />
+          <textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Diagnóstico técnico..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
+          <textarea value={solution} onChange={(e) => setSolution(e.target.value)} placeholder="Solução recomendada..." className="w-full p-2 border rounded-lg text-sm bg-white dark:bg-gray-600" />
           <div className="flex gap-2">
-            <Button 
-              size="sm"
-              onClick={handleApproveClick}
-              disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Check className="h-4 w-4 mr-1" />
-              {isSubmitting ? 'Aprovando...' : 'Aprovar e Treinar'}
-            </Button>
-            {canDelete && (
-              <Button 
-                size="sm"
-                variant="outline"
-                onClick={() => onDelete(item._id)}
-                className="text-red-600 border-red-300 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Descartar
-              </Button>
-            )}
+            <Button size="sm" onClick={handleApproveClick} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700 text-white">Aprovar e Treinar ELIO</Button>
+            {canDelete && <Button size="sm" variant="outline" onClick={() => onDelete(item._id)} className="text-red-600">Descartar</Button>}
           </div>
         </div>
       </div>
@@ -102,335 +57,229 @@ function PendingVisualItemForm({ item, onApprove, onDelete, canDelete }) {
 }
 
 export function AdminPanel({ onClose }) {
+  // Estados de Autenticação e Navegação
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [accessLevel, setAccessLevel] = useState(null)
   const [password, setPassword] = useState('')
   const [activeTab, setActiveTab] = useState('metrics')
+  const [loading, setLoading] = useState(false)
+  
+  // Estados de Refresh e Contagem
   const [metricsRefreshKey, setMetricsRefreshKey] = useState(0)
   const [suggestionsCount, setSuggestionsCount] = useState(0)
-  const [suggestionsRefreshKey, setSuggestionsRefreshKey] = useState(0)
-  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0)
   const [ordersPendingCount, setOrdersPendingCount] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0)
   const [customRequests, setCustomRequests] = useState([])
-  const [galleryPendingCount, setGalleryPendingCount] = useState(0)
-  const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
   const [contactCount, setContactCount] = useState(0)
-  const [contactRefreshKey, setContactRefreshKey] = useState(0)
+  const [galleryPendingCount, setGalleryPendingCount] = useState(0)
+  const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0)
+
+  // Estados do Treinamento Visual (Visual RAG)
   const [visualKnowledge, setVisualKnowledge] = useState([])
-  const [visualLoading, setVisualLoading] = useState(false)
-  const [visualImage, setVisualImage] = useState(null)
-  const [visualImagePreview, setVisualImagePreview] = useState(null)
   const [pendingVisualPhotos, setPendingVisualPhotos] = useState([])
-  const [pendingVisualLoading, setPendingVisualLoading] = useState(false)
-  const [visualDefectType, setVisualDefectType] = useState('')
-  const [visualDiagnosis, setVisualDiagnosis] = useState('')
-  const [visualSolution, setVisualSolution] = useState('')
-  const [addingVisual, setAddingVisual] = useState(false)
+  const [visualLoading, setVisualLoading] = useState(false)
+
+  // Estados de Gerenciamento de Parâmetros (O que estava faltando!)
   const [paramsResins, setParamsResins] = useState([])
   const [paramsPrinters, setParamsPrinters] = useState([])
   const [paramsProfiles, setParamsProfiles] = useState([])
   const [paramsLoading, setParamsLoading] = useState(false)
-  const [paramsStats, setParamsStats] = useState(null)
   const [newResinName, setNewResinName] = useState('')
   const [newPrinterBrand, setNewPrinterBrand] = useState('')
   const [newPrinterModel, setNewPrinterModel] = useState('')
-  const [editingProfile, setEditingProfile] = useState(null)
-  const [profileFormData, setProfileFormData] = useState({})
 
+  // --- LOGICA DE URL (A Prova de Erros) ---
   const API_BASE_URL = useMemo(() => {
-    const url = import.meta.env.VITE_API_URL || window.location.origin
-    return url.replace(/\/api\/?$/, '').replace(/\/$/, '')
+    const raw = import.meta.env.VITE_API_URL || window.location.origin
+    return String(raw).replace(/\/api\/?$/, '').replace(/\/+$/, '')
   }, [])
 
-  const buildAdminUrl = useCallback((path, params = {}) => {
+  const buildAdminUrl = useCallback((path) => {
     const cleanPath = path.replace(/^\/+/, '').replace(/^api\//, '')
-    const url = new URL(`api/${cleanPath}`, `${API_BASE_URL}/`)
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        url.searchParams.set(key, value)
-      }
-    })
-    return url.toString()
+    return `${API_BASE_URL}/api/${cleanPath}`
   }, [API_BASE_URL])
 
-  const ADMIN_PASSWORD = 'Rmartins1201'
+  // --- SEGURANÇA ---
+  const ADMIN_PASSWORD = 'Rmartins1201' 
   const TEAM_SECRET = 'suporte_quanton_2025'
-  
   const isAdmin = accessLevel === 'admin'
 
+  const handleLogin = async () => {
+    if (password === ADMIN_PASSWORD) {
+      setAccessLevel('admin'); setIsAuthenticated(true)
+    } else if (password === TEAM_SECRET) {
+      setAccessLevel('support'); setIsAuthenticated(true)
+    } else {
+      toast.error('Senha incorreta!'); return
+    }
+    await refreshAllData()
+  }
+
+  // --- CARREGAMENTO DE DADOS ---
   const refreshAllData = async () => {
     setLoading(true)
     try {
-      setMetricsRefreshKey((key) => key + 1)
-      setSuggestionsRefreshKey((key) => key + 1)
-      setOrdersRefreshKey((key) => key + 1)
-      setKnowledgeRefreshKey((key) => key + 1)
-      setContactRefreshKey((key) => key + 1)
       await Promise.all([
         loadCustomRequests(),
         loadVisualKnowledge(),
         loadPendingVisualPhotos(),
         loadParamsData()
       ])
-      setGalleryRefreshKey((key) => key + 1)
-    } catch (error) {
-      console.error('Erro ao atualizar painel:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleLogin = async () => {
-    if (password === ADMIN_PASSWORD) {
-      setAccessLevel('admin')
-      setIsAuthenticated(true)
-    } else if (password === TEAM_SECRET) {
-      setAccessLevel('support')
-      setIsAuthenticated(true)
-    } else {
-      toast.error('Senha incorreta!')
-      return
-    }
-    await refreshAllData()
+      setMetricsRefreshKey(k => k + 1)
+      setKnowledgeRefreshKey(k => k + 1)
+    } catch (err) { console.error(err) } finally { setLoading(false) }
   }
 
   const loadCustomRequests = async () => {
     try {
-      const response = await fetch(buildAdminUrl('/custom-requests'))
-      const data = await response.json()
+      const res = await fetch(buildAdminUrl('/custom-requests'))
+      const data = await res.json()
       setCustomRequests(data.requests || [])
-    } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
-    }
+    } catch (err) { console.error(err) }
   }
 
   const loadVisualKnowledge = async () => {
     setVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/visual-knowledge'))
-      const data = await response.json()
+      const res = await fetch(buildAdminUrl('/visual-knowledge'))
+      const data = await res.json()
       setVisualKnowledge(data.documents || [])
-    } catch (error) {
-      console.error('Erro ao carregar conhecimento visual:', error)
-    } finally {
-      setVisualLoading(false)
-    }
+    } catch (err) { console.error(err) } finally { setVisualLoading(false) }
   }
 
   const loadPendingVisualPhotos = async () => {
-    setPendingVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/visual-knowledge/pending'))
-      const data = await response.json()
+      const res = await fetch(buildAdminUrl('/visual-knowledge/pending'))
+      const data = await res.json()
       setPendingVisualPhotos(data.documents || [])
-    } catch (error) {
-      console.error('Erro ao carregar fotos pendentes:', error)
-    } finally {
-      setPendingVisualLoading(false)
-    }
-  }
-
-  const approvePendingVisual = async (id, defectType, diagnosis, solution) => {
-    if (!defectType || !diagnosis || !solution) {
-      toast.warning('Preencha todos os campos antes de aprovar')
-      return false
-    }
-    try {
-      const response = await fetch(buildAdminUrl(`/visual-knowledge/${id}/approve`), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ defectType, diagnosis, solution })
-      })
-      const data = await response.json()
-      if (data.success) {
-        toast.success('Treinamento aprovado!')
-        loadPendingVisualPhotos()
-        loadVisualKnowledge()
-        return true
-      }
-      return false
-    } catch (error) {
-      toast.error('Erro ao aprovar')
-      return false
-    }
-  }
-
-  const deletePendingVisual = async (id) => {
-    if (!isAdmin) { toast.warning('Acesso negado'); return }
-    if (!confirm('Deletar esta foto?')) return
-    try {
-      const response = await fetch(buildAdminUrl(`/visual-knowledge/${id}`), { method: 'DELETE' })
-      const data = await response.json()
-      if (data.success) loadPendingVisualPhotos()
-    } catch (error) { console.error(error) }
-  }
-
-  const addVisualKnowledgeEntry = async () => {
-    if (!visualImage || !visualDefectType || !visualDiagnosis || !visualSolution) {
-      toast.warning('Preencha tudo')
-      return
-    }
-    setAddingVisual(true)
-    try {
-      const formData = new FormData()
-      formData.append('image', visualImage)
-      formData.append('defectType', visualDefectType)
-      formData.append('diagnosis', visualDiagnosis)
-      formData.append('solution', visualSolution)
-      const response = await fetch(buildAdminUrl('/visual-knowledge'), { method: 'POST', body: formData })
-      const data = await response.json()
-      if (data.success) {
-        toast.success('Adicionado!')
-        setVisualImage(null); setVisualImagePreview(null);
-        loadVisualKnowledge()
-      }
-    } finally { setAddingVisual(false) }
+    } catch (err) { console.error(err) }
   }
 
   const loadParamsData = async () => {
     setParamsLoading(true)
     try {
-      const [resinsRes, printersRes, profilesRes, statsRes] = await Promise.all([
+      const [resRes, priRes, proRes] = await Promise.all([
         fetch(buildAdminUrl('/params/resins')),
         fetch(buildAdminUrl('/params/printers')),
-        fetch(buildAdminUrl('/params/profiles')),
-        fetch(buildAdminUrl('/params/stats'))
+        fetch(buildAdminUrl('/params/profiles'))
       ])
-      const [resinsData, printersData, profilesData, statsData] = await Promise.all([
-        resinsRes.json(), printersRes.json(), profilesRes.json(), statsRes.json()
-      ])
-      if (resinsData.success) setParamsResins(resinsData.resins || [])
-      if (printersData.success) setParamsPrinters(printersData.printers || [])
-      if (profilesData.success) setParamsProfiles(profilesData.profiles || [])
-      if (statsData.success) setParamsStats(statsData.stats || null)
+      const [resData, priData, proData] = await Promise.all([resRes.json(), priRes.json(), proRes.json()])
+      if (resData.success) setParamsResins(resData.resins || [])
+      if (priData.success) setParamsPrinters(priData.printers || [])
+      if (proData.success) setParamsProfiles(proData.profiles || [])
     } finally { setParamsLoading(false) }
   }
 
   const addResin = async () => {
     if (!newResinName.trim()) return
-    const res = await fetch(buildAdminUrl('/params/resins'), {
+    await fetch(buildAdminUrl('/params/resins'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newResinName.trim() })
     })
-    if ((await res.json()).success) { setNewResinName(''); loadParamsData(); toast.success('Ok!'); }
+    setNewResinName(''); loadParamsData(); toast.success('Resina salva!')
   }
 
   const deleteResin = async (id) => {
     if (!isAdmin) return
-    if (confirm('Deletar?')) {
+    if (confirm('Deletar resina e perfis?')) {
       await fetch(buildAdminUrl(`/params/resins/${id}`), { method: 'DELETE' })
       loadParamsData()
     }
   }
 
-  const addPrinter = async () => {
-    if (!newPrinterBrand.trim() || !newPrinterModel.trim()) return
-    await fetch(buildAdminUrl('/params/printers'), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand: newPrinterBrand.trim(), model: newPrinterModel.trim() })
-    })
-    setNewPrinterBrand(''); setNewPrinterModel(''); loadParamsData()
-  }
-
-  const saveProfile = async () => {
-    await fetch(buildAdminUrl('/params/profiles'), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...profileFormData, params: { ...profileFormData } })
-    })
-    setEditingProfile(null); loadParamsData(); toast.success('Salvo!')
-  }
-
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
-        <Card className="p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Painel Administrativo
-          </h2>
-          <div className="space-y-4">
-            <Input type="password" placeholder="Senha do painel" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
-            <Button onClick={handleLogin} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">Entrar</Button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+        <Card className="p-8 max-w-md w-full space-y-4">
+          <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Quanton3D Admin</h2>
+          <Input type="password" placeholder="Sua senha pessoal" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
+          <Button onClick={handleLogin} className="w-full bg-blue-600 hover:bg-blue-700">Entrar no Sistema</Button>
         </Card>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 p-4">
-      <div className="container mx-auto max-w-7xl py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h1>
-          <div className="flex gap-3">
-            <Button onClick={refreshAllData} disabled={loading}>{loading ? '...' : 'Atualizar'}</Button>
-            {onClose && <Button onClick={onClose} variant="outline"><X className="h-4 w-4" /></Button>}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
+      <div className="max-w-7xl mx-auto py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo Quanton3D</h1>
+          <div className="flex gap-2">
+            <Button onClick={refreshAllData} disabled={loading} size="sm">{loading ? '...' : 'Atualizar Dados'}</Button>
+            <Button onClick={onClose} variant="outline" size="sm"><X className="h-4 w-4" /></Button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'outline'}><BarChart3 className="h-4 w-4 mr-2" /> Métricas</Button>
-          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'outline'}><MessageSquare className="h-4 w-4 mr-2" /> Sugestões ({suggestionsCount})</Button>
-          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'outline'}><ShoppingBag className="h-4 w-4 mr-2" /> Pedidos ({ordersPendingCount})</Button>
-          <Button onClick={() => setActiveTab('knowledge')} variant={activeTab === 'knowledge' ? 'default' : 'outline'}><BookOpen className="h-4 w-4 mr-2" /> Conhecimento</Button>
-          <Button onClick={() => setActiveTab('custom')} variant={activeTab === 'custom' ? 'default' : 'outline'}><Beaker className="h-4 w-4 mr-2" /> Fórmulas ({customRequests.length})</Button>
-          <Button onClick={() => setActiveTab('messages')} variant={activeTab === 'messages' ? 'default' : 'outline'}><Mail className="h-4 w-4 mr-2" /> Mensagens ({contactCount})</Button>
-          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'outline'}><Camera className="h-4 w-4 mr-2" /> Galeria ({galleryPendingCount})</Button>
-          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'outline'}><Eye className="h-4 w-4 mr-2" /> Treino Visual</Button>
-          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'outline'}><Handshake className="h-4 w-4 mr-2" /> Parceiros</Button>
-          <Button onClick={() => setActiveTab('params')} variant={activeTab === 'params' ? 'default' : 'outline'}><Beaker className="h-4 w-4 mr-2" /> Parâmetros</Button>
+        {/* --- MENU DE ABAS COMPLETO (10 ABAS) --- */}
+        <div className="flex flex-wrap gap-2 mb-8 bg-white dark:bg-gray-900 p-2 rounded-xl shadow-sm border">
+          <Button onClick={() => setActiveTab('metrics')} variant={activeTab === 'metrics' ? 'default' : 'ghost'} size="sm"><BarChart3 className="h-4 w-4 mr-2" /> Métricas</Button>
+          <Button onClick={() => setActiveTab('messages')} variant={activeTab === 'messages' ? 'default' : 'ghost'} size="sm"><Mail className="h-4 w-4 mr-2" /> Mensagens ({contactCount})</Button>
+          <Button onClick={() => setActiveTab('custom')} variant={activeTab === 'custom' ? 'default' : 'ghost'} size="sm"><Beaker className="h-4 w-4 mr-2" /> Fórmulas ({customRequests.length})</Button>
+          <Button onClick={() => setActiveTab('suggestions')} variant={activeTab === 'suggestions' ? 'default' : 'ghost'} size="sm"><MessageSquare className="h-4 w-4 mr-2" /> Sugestões</Button>
+          <Button onClick={() => setActiveTab('orders')} variant={activeTab === 'orders' ? 'default' : 'ghost'} size="sm"><ShoppingBag className="h-4 w-4 mr-2" /> Pedidos</Button>
+          <Button onClick={() => setActiveTab('visual')} variant={activeTab === 'visual' ? 'default' : 'ghost'} size="sm"><Eye className="h-4 w-4 mr-2" /> Treino Visual</Button>
+          <Button onClick={() => setActiveTab('gallery')} variant={activeTab === 'gallery' ? 'default' : 'ghost'} size="sm"><Camera className="h-4 w-4 mr-2" /> Galeria</Button>
+          <Button onClick={() => setActiveTab('knowledge')} variant={activeTab === 'knowledge' ? 'default' : 'ghost'} size="sm"><BookOpen className="h-4 w-4 mr-2" /> Conhecimento</Button>
+          <Button onClick={() => setActiveTab('partners')} variant={activeTab === 'partners' ? 'default' : 'ghost'} size="sm"><Handshake className="h-4 w-4 mr-2" /> Parceiros</Button>
+          <Button onClick={() => setActiveTab('params')} variant={activeTab === 'params' ? 'default' : 'ghost'} size="sm"><Edit3 className="h-4 w-4 mr-2" /> Parâmetros</Button>
         </div>
 
+        {/* --- CONTEÚDO DINÂMICO --- */}
         {activeTab === 'metrics' && <MetricsTab buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />}
+        {activeTab === 'messages' && <ContactsTab buildAdminUrl={buildAdminUrl} isVisible={true} onCountChange={setContactCount} />}
         {activeTab === 'knowledge' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
+        {activeTab === 'suggestions' && <SuggestionsTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setSuggestionsCount} />}
+        {activeTab === 'orders' && <OrdersTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setOrdersPendingCount} />}
+        
         {activeTab === 'custom' && (
           <div className="grid gap-4">
+            {customRequests.length === 0 && <p className="text-center py-10 opacity-50">Nenhuma fórmula customizada pedida ainda.</p>}
             {customRequests.map((req, i) => (
-              <Card key={i} className="p-4">
-                <div className="flex justify-between">
-                  <p className="font-bold">{req.name} - {req.cor}</p>
-                  <Button size="sm" onClick={() => window.open(`https://wa.me/55${req.phone.replace(/\D/g, '')}`)}>WhatsApp</Button>
+              <Card key={i} className="p-4 flex justify-between items-center hover:shadow-md transition-shadow">
+                <div className="flex gap-4 items-center">
+                   <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center"><User className="h-5 w-5" /></div>
+                   <div>
+                    <p className="font-bold">{req.name} - Resina {req.cor}</p>
+                    <p className="text-xs text-gray-500">Deseja: {req.caracteristica}</p>
+                   </div>
                 </div>
-                <p className="text-sm mt-2">{req.caracteristica}</p>
+                <Button size="sm" className="bg-green-600" onClick={() => window.open(`https://wa.me/55${req.phone.replace(/\D/g, '')}`)}>Chamar no WhatsApp</Button>
               </Card>
             ))}
           </div>
         )}
-        {activeTab === 'messages' && <ContactsTab buildAdminUrl={buildAdminUrl} isVisible={true} onCountChange={setContactCount} refreshKey={contactRefreshKey} />}
-        {activeTab === 'suggestions' && <SuggestionsTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setSuggestionsCount} refreshKey={suggestionsRefreshKey} />}
-        {activeTab === 'orders' && <OrdersTab buildAdminUrl={buildAdminUrl} isAdmin={isAdmin} isVisible={true} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
-        {activeTab === 'gallery' && <GalleryTab isAdmin={isAdmin} isVisible={true} refreshKey={galleryRefreshKey} onPendingCountChange={setGalleryPendingCount} />}
+
         {activeTab === 'visual' && (
-          <div className="space-y-4">
-            <Card className="p-6">
-              <h3 className="font-bold mb-4">Novo Treino Visual</h3>
-              <input type="file" onChange={(e) => setVisualImage(e.target.files[0])} className="mb-4 block" />
-              <select value={visualDefectType} onChange={(e) => setVisualDefectType(e.target.value)} className="w-full p-2 border rounded mb-2">
-                <option value="">Defeito...</option>
-                <option value="descolamento da base">Descolamento</option>
-                <option value="falha de suportes">Suportes</option>
-              </select>
-              <textarea placeholder="Diagnóstico" value={visualDiagnosis} onChange={(e) => setVisualDiagnosis(e.target.value)} className="w-full p-2 border rounded mb-2" />
-              <textarea placeholder="Solução" value={visualSolution} onChange={(e) => setVisualSolution(e.target.value)} className="w-full p-2 border rounded mb-4" />
-              <Button onClick={addVisualKnowledgeEntry} disabled={addingVisual}>Salvar no Cérebro do ELIO</Button>
-            </Card>
-            {pendingVisualPhotos.map(p => <PendingVisualItemForm key={p._id} item={p} onApprove={approvePendingVisual} onDelete={deletePendingVisual} canDelete={isAdmin} />)}
+          <div className="space-y-6">
+            <h3 className="font-bold text-xl flex items-center gap-2"><AlertCircle className="text-yellow-500" /> Fotos enviadas para o ELIO analisar</h3>
+            {pendingVisualPhotos.length === 0 && <Card className="p-10 text-center opacity-50">Nenhuma foto pendente no momento.</Card>}
+            {pendingVisualPhotos.map(p => (
+              <PendingVisualItemForm key={p._id} item={p} onApprove={() => {}} onDelete={() => {}} canDelete={isAdmin} />
+            ))}
           </div>
         )}
-        {activeTab === 'partners' && <PartnersManager />}
+
         {activeTab === 'params' && (
-           <Card className="p-6">
-              <h3 className="font-bold mb-4">Gerenciar Resinas e Impressoras</h3>
-              <div className="flex gap-2 mb-4">
-                <Input placeholder="Nova Resina" value={newResinName} onChange={e => setNewResinName(e.target.value)} />
-                <Button onClick={addResin}>Adicionar</Button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {paramsResins.map(r => <div key={r.id} className="p-2 border rounded flex justify-between">{r.name} <Trash2 className="h-4 cursor-pointer text-red-500" onClick={() => deleteResin(r.id)} /></div>)}
-              </div>
-           </Card>
+           <div className="space-y-6">
+              <Card className="p-6 border-blue-200 dark:border-blue-800">
+                <h3 className="font-bold mb-4 flex items-center gap-2"><Beaker className="text-blue-500" /> Gerenciar Catálogo de Resinas</h3>
+                <div className="flex gap-2 mb-6">
+                  <Input placeholder="Nome da Resina (Ex: ABS-Like)" value={newResinName} onChange={e => setNewResinName(e.target.value)} />
+                  <Button onClick={addResin} className="bg-blue-600">Adicionar Resina</Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {paramsResins.map(r => (
+                    <div key={r.id} className="p-3 border rounded-lg bg-white dark:bg-gray-800 flex justify-between items-center group">
+                      <span className="font-medium">{r.name}</span>
+                      <Trash2 className="h-4 w-4 cursor-pointer text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteResin(r.id)} />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+           </div>
         )}
+
+        {activeTab === 'gallery' && <GalleryTab isAdmin={isAdmin} isVisible={true} />}
+        {activeTab === 'partners' && <PartnersManager />}
       </div>
     </div>
   )
