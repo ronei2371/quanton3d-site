@@ -3,7 +3,11 @@ import { Card } from '@/components/ui/card.jsx';
 import { motion } from 'framer-motion';
 import { parameters } from '@/data/parametersData';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com';
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api';
+const API_URL = RAW_API_URL.replace(/\/$/, '').endsWith('/api')
+  ? RAW_API_URL.replace(/\/$/, '')
+  : `${RAW_API_URL.replace(/\/$/, '')}/api`;
+const PUBLIC_API_URL = API_URL.replace(/\/api\/?$/, '');
 
 const normalizeValue = (value) => (
   value
@@ -96,10 +100,11 @@ export default function ParametersSelector() {
   const fetchResins = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/params/resins`);
+      const response = await fetch(`${PUBLIC_API_URL}/resins`);
       const data = await response.json();
-      if (data.success) {
-        const normalizedResins = normalizeResins(data.resins);
+      const resinItems = data?.resins ?? data?.data ?? (Array.isArray(data) ? data : []);
+      if (response.ok) {
+        const normalizedResins = normalizeResins(resinItems);
         if (normalizedResins.length > 0) {
           setResins(normalizedResins);
           setDataSource('api');
@@ -126,10 +131,14 @@ export default function ParametersSelector() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/params/printers?resinId=${resinId}`);
+      let response = await fetch(`${API_URL}/params/printers?resinId=${encodeURIComponent(resinId)}`);
+      if (response.status === 404) {
+        response = await fetch(`${PUBLIC_API_URL}/printers?resinId=${encodeURIComponent(resinId)}`);
+      }
       const data = await response.json();
-      if (data.success) {
-        setPrinters(normalizePrinters(data.printers));
+      const printerItems = data?.printers ?? data?.data ?? (Array.isArray(data) ? data : []);
+      if (response.ok) {
+        setPrinters(normalizePrinters(printerItems));
       }
     } catch (err) {
       console.error('Erro ao carregar impressoras:', err);
@@ -160,10 +169,14 @@ export default function ParametersSelector() {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/params/profiles?resinId=${resinId}&printerId=${printerId}`);
+      let response = await fetch(`${API_URL}/params/profiles?resinId=${encodeURIComponent(resinId)}&printerId=${encodeURIComponent(printerId)}`);
+      if (response.status === 404) {
+        response = await fetch(`${PUBLIC_API_URL}/profiles?resinId=${encodeURIComponent(resinId)}&printerId=${encodeURIComponent(printerId)}`);
+      }
       const data = await response.json();
-      if (data.success && data.profiles.length > 0) {
-        const profile = data.profiles[0];
+      const profiles = data?.profiles ?? data?.data ?? (Array.isArray(data) ? data : []);
+      if (response.ok && profiles.length > 0) {
+        const profile = profiles[0];
         if (profile.status === 'coming_soon') {
           setResult('coming_soon');
         } else {

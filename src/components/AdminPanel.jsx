@@ -116,11 +116,18 @@ function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChan
     try {
         const endpoint = action === 'delete' ? '' : '/approve'
         const method = action === 'delete' ? 'DELETE' : 'PUT'
-        const response = await fetch(`${baseUrl}/api/visual-knowledge/${id}${endpoint}`, {
+        let response = await fetch(`${baseUrl}/api/visual-knowledge/${id}${endpoint}`, {
             method,
             headers: { 'Content-Type': 'application/json', ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}) },
             body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
         })
+        if (response.status === 404) {
+          response = await fetch(`${baseUrl}/visual-knowledge/${id}${endpoint}`, {
+            method,
+            headers: { 'Content-Type': 'application/json', ...(adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}) },
+            body: action === 'approve' ? JSON.stringify({ defectType: 'Ok', diagnosis: 'Ok', solution: 'Ok' }) : undefined
+          })
+        }
         if (response.status === 401) {
           onUnauthorized?.()
           return
@@ -392,6 +399,14 @@ export function AdminPanel({ onClose }) {
     return url.toString()
   }, [apiBaseUrl, defaultApiBase])
 
+  const fetchAdminWithFallback = useCallback(async (path, options = {}) => {
+    const primary = await fetch(buildAdminUrl(path), options)
+    if (primary.status !== 404) return primary
+    const cleanPath = path.replace(/^\/api/, '')
+    if (cleanPath === path) return primary
+    return fetch(buildAdminUrl(cleanPath), options)
+  }, [buildAdminUrl])
+
   const formatDateTime = (value) => {
     if (!value) return '-'
     const parsed = new Date(value)
@@ -536,12 +551,13 @@ export function AdminPanel({ onClose }) {
     try {
       const token = tokenToUse || safeAdminToken
       if (!token) return
-      const response = await fetch(buildAdminUrl('/api/formulations'), {
+      const response = await fetchAdminWithFallback('/api/formulations', {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
-      setCustomRequests(data.formulations || data.requests || [])
+      const requestList = data?.formulations || data?.requests || data?.data || []
+      setCustomRequests(Array.isArray(requestList) ? requestList : [])
     } catch (error) {
       console.error('Erro ao carregar pedidos customizados:', error)
     }
@@ -552,12 +568,13 @@ export function AdminPanel({ onClose }) {
     if (!token) return
     setVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge'), {
+      const response = await fetchAdminWithFallback('/api/visual-knowledge', {
         headers: buildAuthHeaders({}, token)
       })
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
-      setVisualKnowledge(data.documents || [])
+      const visualList = data?.documents || data?.photos || data?.data || []
+      setVisualKnowledge(Array.isArray(visualList) ? visualList : [])
     } catch (error) {
       console.error('Erro ao carregar conhecimento visual:', error)
     } finally {
@@ -570,13 +587,13 @@ export function AdminPanel({ onClose }) {
     if (!token) return
     setPendingVisualLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/visual-knowledge/pending'), {
+      const response = await fetchAdminWithFallback('/api/visual-knowledge/pending', {
         headers: buildAuthHeaders({}, token)
       })
       if (handleUnauthorizedResponse(response.status)) return
       const data = await response.json()
-      const pendingList = data.pending || data.documents || []
-      setPendingVisualPhotos(pendingList)
+      const pendingList = data?.pending || data?.documents || data?.photos || data?.data || []
+      setPendingVisualPhotos(Array.isArray(pendingList) ? pendingList : [])
     } catch (error) {
       console.error('Erro ao carregar fotos pendentes:', error)
     } finally {
