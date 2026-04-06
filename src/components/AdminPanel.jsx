@@ -404,8 +404,11 @@ export function AdminPanel({ onClose }) {
     if (primary.status !== 404) return primary
     const cleanPath = path.replace(/^\/api/, '')
     if (cleanPath === path) return primary
-    return fetch(buildAdminUrl(cleanPath), options)
-  }, [buildAdminUrl])
+    const resolvedBase = normalizeBaseUrl(apiBaseUrl) || defaultApiBase
+    const fallbackPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`
+    const fallbackUrl = new URL(fallbackPath, `${resolvedBase}/`).toString()
+    return fetch(fallbackUrl, options)
+  }, [buildAdminUrl, apiBaseUrl, defaultApiBase])
 
   const formatDateTime = (value) => {
     if (!value) return '-'
