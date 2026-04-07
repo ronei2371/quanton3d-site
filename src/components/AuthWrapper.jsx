@@ -42,7 +42,7 @@ export function AuthWrapper({ children }) {
   }
 
   const handleLogin = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     setError('')
     if (!password) {
       setError('Informe a senha administrativa')
@@ -58,7 +58,6 @@ export function AuthWrapper({ children }) {
       const data = await response.json()
       if (data.success && data.token) {
         localStorage.setItem('quanton3d_jwt_token', data.token)
-        try { window.dispatchEvent(new Event('quanton3d:admin-login')) } catch {}
         setIsAuthenticated(true)
         setPassword('')
       } else {
@@ -73,89 +72,44 @@ export function AuthWrapper({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('quanton3d_jwt_token')
-    try { window.dispatchEvent(new Event('quanton3d:admin-logout')) } catch {}
     setIsAuthenticated(false)
-    setPassword('')
-    setError('')
   }
 
   if (isLoading) {
     return (
-      
-
-        
-
-          
-          
-{/* Verificando autenticação... */}
-
-
-        
-
-      
-
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-gray-500">Verificando autenticação...</p>
+        </div>
+      </div>
     )
   }
 
   if (!isAuthenticated) {
     return (
-      
-
-        
-
-          
-
-            
-
-              
-            
-
-            
-Painel Administrativo
-
-            
-Digite sua senha para acessar
-
-
-          
-
-          
-
-            
-••••••••••
- setPassword(e.target.value)}
-              className="w-full"
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-xl border">
+          <div className="flex flex-col items-center mb-8">
+            <Lock className="h-8 w-8 text-blue-600 mb-2" />
+            <h2 className="text-2xl font-bold">Painel Administrativo</h2>
+            <p className="text-gray-500 text-sm">Acesso Restrito</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Senha de Administrador"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               disabled={isLoggingIn}
-              autoComplete="current-password"
-              autoFocus
             />
-            {error && (
-              
-
-                
-{error}
-
-
-              
-
-            )}
-            
-              {isLoggingIn ? (
-                <>Entrando...
-              ) : 'Entrar'}
-            
-          
-
-          
-
-            Sistema protegido por autenticação JWT
-          
-
-
-        
-
-      
-
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+              {isLoggingIn ? 'Entrando...' : 'Entrar'}
+            </Button>
+          </form>
+        </div>
+      </div>
     )
   }
 
