@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -191,7 +190,7 @@
     0 0 20px rgba(0, 242, 255, 0.5);
 }
 
-/* Estado ativo do botao neon (selecionado) - brilho fixo */
+/* Estado ativo do botão neon (selecionado) */
 .neon-button-active,
 .neon-button.neon-button-active {
   background: rgba(0, 50, 100, 0.95) !important;
