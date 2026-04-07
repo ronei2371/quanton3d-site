@@ -87,7 +87,7 @@ export function AuthWrapper({ children }) {
 
           
           
-Verificando autenticação...
+{/* Verificando autenticação... */}
 
 
         
