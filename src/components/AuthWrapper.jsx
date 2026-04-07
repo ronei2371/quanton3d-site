@@ -93,7 +93,7 @@ export function AuthWrapper({ children }) {
           <div className="flex flex-col items-center mb-8">
             <Lock className="h-8 w-8 text-blue-600 mb-2" />
             <h2 className="text-2xl font-bold">Painel Administrativo</h2>
-            <p className="text-gray-500 text-sm">Acesso Restrito</p>
+            <p className="text-gray-500 text-sm">Digite sua senha para acessar</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
@@ -101,13 +101,20 @@ export function AuthWrapper({ children }) {
               placeholder="Senha de Administrador"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="w-full"
               disabled={isLoggingIn}
+              autoFocus
             />
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full" disabled={isLoggingIn}>
               {isLoggingIn ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
+          <div className="mt-8 text-center">
+            <p className="text-[10px] text-gray-400 uppercase font-bold">
+              Sistema protegido por autenticação JWT
+            </p>
+          </div>
         </div>
       </div>
     )
