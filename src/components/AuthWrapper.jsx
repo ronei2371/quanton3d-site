@@ -80,7 +80,7 @@ export function AuthWrapper({ children }) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-          <p className="text-gray-500">Verificando autenticação...</p>
+          <p className="text-gray-500 font-medium">Verificando autenticação...</p>
         </div>
       </div>
     )
@@ -92,7 +92,7 @@ export function AuthWrapper({ children }) {
         <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-xl border">
           <div className="flex flex-col items-center mb-8">
             <Lock className="h-8 w-8 text-blue-600 mb-2" />
-            <h2 className="text-2xl font-bold">Painel Administrativo</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Painel Administrativo</h2>
             <p className="text-gray-500 text-sm">Digite sua senha para acessar</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -105,14 +105,14 @@ export function AuthWrapper({ children }) {
               disabled={isLoggingIn}
               autoFocus
             />
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+            <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold" disabled={isLoggingIn}>
               {isLoggingIn ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
           <div className="mt-8 text-center">
-            <p className="text-[10px] text-gray-400 uppercase font-bold">
-              Sistema protegido por autenticação JWT
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+              Sistema seguro - Quanton3D
             </p>
           </div>
         </div>
