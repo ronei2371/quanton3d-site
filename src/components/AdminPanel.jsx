@@ -271,6 +271,10 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
+ codex/perform-frontend-build-integrity-audit-xrpvj8
+
+      finalPath.startsWith('/auth') ||
+ main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
