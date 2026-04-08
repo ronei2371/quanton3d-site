@@ -5,7 +5,7 @@ import { Lock, Loader2 } from 'lucide-react'
 
 const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
-export function GallerySubmitModal({ children }) {   // ← Nome corrigido para combinar com o import no App.jsx
+export function GallerySubmitModal({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [password, setPassword] = useState('')
