@@ -271,7 +271,10 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
+ codex/perform-frontend-build-integrity-audit-xrpvj8
+
       finalPath.startsWith('/auth') ||
+ main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -636,7 +639,7 @@ export function AdminPanel({ onClose }) {
       if (trimmedSecret) {
         headers['x-admin-secret'] = trimmedSecret
       }
-      const res = await fetch(`${targetBase}/auth/login`, {
+      const res = await fetch(`${targetBase}/api/auth/login`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -689,7 +692,7 @@ export function AdminPanel({ onClose }) {
     if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
       const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
       setAutoLoginAttempted(true)
-      fetch(`${targetBase}/auth/login`, {
+      fetch(`${targetBase}/api/auth/login`, {
         method: 'POST',
         headers: autoAdminSecret
           ? { 'Content-Type': 'application/json', 'x-admin-secret': autoAdminSecret }
