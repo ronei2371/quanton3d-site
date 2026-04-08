@@ -58,31 +58,6 @@ const deriveDefaultApiBase = () => {
   return 'https://quanton3d-bot-v2.onrender.com'
 }
 
-// ==================== CORREÇÃO 2: buildAdminUrl ROBUSTA ====================
-const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
-  let finalPath = path.startsWith('/') ? path : `/${path}`;
-  
-  const shouldSkipPrefix = finalPath.startsWith('/api') || 
-                           finalPath.startsWith('/auth') || 
-                           finalPath.startsWith('/admin') || 
-                           finalPath.startsWith('/health');
-  
-  if (!shouldSkipPrefix) {
-    finalPath = `/api${finalPath}`;
-  }
-
-  const resolvedBase = normalizeBaseUrl(baseOverride) || apiBaseUrl || deriveDefaultApiBase();
-  const url = new URL(finalPath, `${resolvedBase}/`);
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, value);
-    }
-  });
-
-  return url.toString();
-}, [apiBaseUrl]);
-
 // --- GALERIA INTERNA BLINDADA (mantida do seu original) ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange, apiBaseUrl, onUnauthorized }) {
   const baseUrl = apiBaseUrl || deriveDefaultApiBase()
@@ -291,6 +266,36 @@ export function AdminPanel({ onClose }) {
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
 
   const safeAdminToken = adminToken
+
+  const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
+    let finalPath = path.startsWith('/') ? path : `/${path}`
+
+    const shouldSkipPrefix = finalPath.startsWith('/api') ||
+      finalPath.startsWith('/admin') ||
+      finalPath.startsWith('/health')
+
+    if (!shouldSkipPrefix) {
+      finalPath = `/api${finalPath}`
+    }
+
+    const resolvedBase = normalizeBaseUrl(baseOverride) || apiBaseUrl || deriveDefaultApiBase()
+    const url = new URL(finalPath, `${resolvedBase}/`)
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value)
+      }
+    })
+
+    return url.toString()
+  }, [apiBaseUrl])
+
+  const formatDateTime = useCallback((value) => {
+    if (!value) return '-'
+    const parsedDate = new Date(value)
+    if (Number.isNaN(parsedDate.getTime())) return '-'
+    return parsedDate.toLocaleString('pt-BR')
+  }, [])
 
   useEffect(() => {
     if (apiBaseUrl) {
@@ -630,7 +635,7 @@ export function AdminPanel({ onClose }) {
       if (trimmedSecret) {
         headers['x-admin-secret'] = trimmedSecret
       }
-      const res = await fetch(`${targetBase}/auth/login`, {
+      const res = await fetch(`${targetBase}/api/auth/login`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -683,7 +688,7 @@ export function AdminPanel({ onClose }) {
     if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
       const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
       setAutoLoginAttempted(true)
-      fetch(`${targetBase}/auth/login`, {
+      fetch(`${targetBase}/api/auth/login`, {
         method: 'POST',
         headers: autoAdminSecret
           ? { 'Content-Type': 'application/json', 'x-admin-secret': autoAdminSecret }

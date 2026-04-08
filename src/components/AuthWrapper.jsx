@@ -23,7 +23,7 @@ export function AuthWrapper({ children }) {
         setIsLoading(false)
         return
       }
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
@@ -50,7 +50,7 @@ export function AuthWrapper({ children }) {
     }
     setIsLoggingIn(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
@@ -58,7 +58,11 @@ export function AuthWrapper({ children }) {
       const data = await response.json()
       if (data.success && data.token) {
         localStorage.setItem('quanton3d_jwt_token', data.token)
-        try { window.dispatchEvent(new Event('quanton3d:admin-login')) } catch {}
+        try {
+          window.dispatchEvent(new Event('quanton3d:admin-login'))
+        } catch (dispatchError) {
+          console.debug('Falha ao disparar evento de login:', dispatchError)
+        }
         setIsAuthenticated(true)
         setPassword('')
       } else {
@@ -73,7 +77,11 @@ export function AuthWrapper({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('quanton3d_jwt_token')
-    try { window.dispatchEvent(new Event('quanton3d:admin-logout')) } catch {}
+    try {
+      window.dispatchEvent(new Event('quanton3d:admin-logout'))
+    } catch (dispatchError) {
+      console.debug('Falha ao disparar evento de logout:', dispatchError)
+    }
     setIsAuthenticated(false)
     setPassword('')
     setError('')
