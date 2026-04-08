@@ -5,7 +5,7 @@ import { Lock, Loader2 } from 'lucide-react'
 
 const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
 
-export function AuthWrapper({ children }) {   // mantive o nome da função como estava no seu arquivo
+export function GallerySubmitModal({ children }) {   // ← Nome corrigido para combinar com o import no App.jsx
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [password, setPassword] = useState('')
