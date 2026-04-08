@@ -58,7 +58,11 @@ export function AuthWrapper({ children }) {
       const data = await response.json()
       if (data.success && data.token) {
         localStorage.setItem('quanton3d_jwt_token', data.token)
-        try { window.dispatchEvent(new Event('quanton3d:admin-login')) } catch {}
+        try {
+          window.dispatchEvent(new Event('quanton3d:admin-login'))
+        } catch (dispatchError) {
+          console.debug('Falha ao disparar evento de login:', dispatchError)
+        }
         setIsAuthenticated(true)
         setPassword('')
       } else {
@@ -73,7 +77,11 @@ export function AuthWrapper({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('quanton3d_jwt_token')
-    try { window.dispatchEvent(new Event('quanton3d:admin-logout')) } catch {}
+    try {
+      window.dispatchEvent(new Event('quanton3d:admin-logout'))
+    } catch (dispatchError) {
+      console.debug('Falha ao disparar evento de logout:', dispatchError)
+    }
     setIsAuthenticated(false)
     setPassword('')
     setError('')
