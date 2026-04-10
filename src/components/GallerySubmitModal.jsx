@@ -1,150 +1,235 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { Lock, Loader2 } from 'lucide-react'
+import { Card } from '@/components/ui/card.jsx'
+import { X, Camera, Loader2, Upload, CheckCircle2 } from 'lucide-react'
 
-const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+function normalizeApiBase(apiBaseUrl) {
+  const raw = (apiBaseUrl || 'https://quanton3d-bot-v2.onrender.com/api').trim().replace(/\/$/, '')
+  return /\/api$/i.test(raw) ? raw : `${raw}/api`
+}
 
-export function GallerySubmitModal({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [password, setPassword] = useState('')
+export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    contact: '',
+    resin: '',
+    printer: '',
+    layerHeight: '',
+    exposureNormal: '',
+    exposureBase: '',
+    baseLayers: '',
+    notes: ''
+  })
+  const [imageFile, setImageFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
-  useEffect(() => {
-    checkExistingToken()
-  }, [])
+  const endpoint = useMemo(() => `${normalizeApiBase(apiBaseUrl)}/gallery`, [apiBaseUrl])
 
-  const checkExistingToken = async () => {
-    try {
-      const token = localStorage.getItem('quanton3d_jwt_token')
-      if (!token) {
-        setIsLoading(false)
-        return
-      }
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      })
-      const data = await response.json()
-      if (data.success && data.valid) {
-        setIsAuthenticated(true)
-      } else {
-        localStorage.removeItem('quanton3d_jwt_token')
-      }
-    } catch (err) {
-      localStorage.removeItem('quanton3d_jwt_token')
-    } finally {
-      setIsLoading(false)
-    }
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      contact: '',
+      resin: '',
+      printer: '',
+      layerHeight: '',
+      exposureNormal: '',
+      exposureBase: '',
+      baseLayers: '',
+      notes: ''
+    })
+    setImageFile(null)
+    setPreviewUrl('')
     setError('')
-    if (!password) {
-      setError('Informe a senha administrativa')
+  }
+
+  const handleClose = () => {
+    setError('')
+    setSuccessMessage('')
+    onClose?.()
+  }
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      setImageFile(null)
+      setPreviewUrl('')
       return
     }
-    setIsLoggingIn(true)
+
+    setImageFile(file)
+    const fileReader = new FileReader()
+    fileReader.onload = () => setPreviewUrl(String(fileReader.result || ''))
+    fileReader.readAsDataURL(file)
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setSuccessMessage('')
+
+    if (!formData.resin.trim() || !formData.printer.trim()) {
+      setError('Informe pelo menos a resina e a impressora.')
+      return
+    }
+
+    setIsSubmitting(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      })
-      const data = await response.json()
-      if (data.success && data.token) {
-        localStorage.setItem('quanton3d_jwt_token', data.token)
-        try { window.dispatchEvent(new Event('quanton3d:admin-login')) } catch {}
-        setIsAuthenticated(true)
-        setPassword('')
-      } else {
-        setError(data.error || 'Senha incorreta')
+      const payload = new FormData()
+      payload.append('name', formData.name)
+      payload.append('contact', formData.contact)
+      payload.append('resin', formData.resin)
+      payload.append('printer', formData.printer)
+      payload.append('layerHeight', formData.layerHeight)
+      payload.append('exposureNormal', formData.exposureNormal)
+      payload.append('exposureBase', formData.exposureBase)
+      payload.append('baseLayers', formData.baseLayers)
+      payload.append('notes', formData.notes)
+      if (imageFile) {
+        payload.append('image', imageFile)
       }
-    } catch (err) {
-      setError('Erro ao conectar com o servidor')
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: payload
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || 'Não foi possível enviar sua configuração.')
+      }
+
+      setSuccessMessage('Recebemos sua peça! Ela entrou na fila de revisão da Quanton3D.')
+      onSuccess?.()
+      resetForm()
+    } catch (submitError) {
+      setError(submitError.message || 'Erro ao enviar sua configuração.')
     } finally {
-      setIsLoggingIn(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('quanton3d_jwt_token')
-    try { window.dispatchEvent(new Event('quanton3d:admin-logout')) } catch {}
-    setIsAuthenticated(false)
-    setPassword('')
-    setError('')
-  }
+  if (!isOpen) return null
 
-  // ==================== TELA DE CARREGAMENTO ====================
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin mx-auto text-blue-600 mb-4" />
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-            Verificando autenticação...
-          </p>
-        </div>
-      </div>
-    )
-  }
+  return (
+    <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="absolute inset-0" onClick={handleClose} />
 
-  // ==================== TELA DE LOGIN ====================
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-            <div className="text-center mb-8">
-              <Lock className="h-12 w-12 mx-auto text-blue-600 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Painel Administrativo</h2>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">Digite sua senha para acessar</p>
+      <Card className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 shadow-2xl border border-white/10">
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950">
+              <Camera className="h-5 w-5 text-blue-600" />
             </div>
-
-            <form onSubmit={handleLogin} className="space-y-5">
-              <Input
-                type="password"
-                placeholder="Senha administrativa"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full"
-                disabled={isLoggingIn}
-                autoComplete="current-password"
-                autoFocus
-              />
-
-              {error && (
-                <div className="text-red-600 text-sm text-center bg-red-50 dark:bg-red-950/50 p-3 rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoggingIn || !password}
-              >
-                {isLoggingIn ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Entrando...
-                  </>
-                ) : 'Entrar'}
-              </Button>
-            </form>
-
-            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
-              Sistema protegido por autenticação JWT
-            </p>
+            <div>
+              <h2 className="text-xl font-bold">Compartilhar minhas configurações</h2>
+              <p className="text-sm text-gray-500">Envie uma foto da peça e os parâmetros usados no Chitubox.</p>
+            </div>
           </div>
+          <Button type="button" variant="outline" size="icon" onClick={handleClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      </div>
-    )
-  }
 
-  return children({ onLogout: handleLogout })
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-5">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Nome</label>
+              <Input value={formData.name} onChange={(e) => handleChange('name', e.target.value)} placeholder="Seu nome" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Contato</label>
+              <Input value={formData.contact} onChange={(e) => handleChange('contact', e.target.value)} placeholder="WhatsApp ou e-mail" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Resina *</label>
+              <Input value={formData.resin} onChange={(e) => handleChange('resin', e.target.value)} placeholder="Ex: Iron, Athom Dental, Poseidon" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Impressora *</label>
+              <Input value={formData.printer} onChange={(e) => handleChange('printer', e.target.value)} placeholder="Ex: Elegoo Saturn 4 Ultra" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Altura de camada</label>
+              <Input value={formData.layerHeight} onChange={(e) => handleChange('layerHeight', e.target.value)} placeholder="Ex: 0.05 mm" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Exposição normal</label>
+              <Input value={formData.exposureNormal} onChange={(e) => handleChange('exposureNormal', e.target.value)} placeholder="Ex: 2.3 s" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Exposição base</label>
+              <Input value={formData.exposureBase} onChange={(e) => handleChange('exposureBase', e.target.value)} placeholder="Ex: 28 s" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Camadas base</label>
+              <Input value={formData.baseLayers} onChange={(e) => handleChange('baseLayers', e.target.value)} placeholder="Ex: 5" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Foto da peça</label>
+            <div className="mt-2 rounded-xl border border-dashed p-4 bg-gray-50 dark:bg-gray-800">
+              <input type="file" accept="image/*" onChange={handleImageChange} />
+              <p className="text-xs text-gray-500 mt-2">Pode enviar uma foto da peça ou print da configuração.</p>
+              {previewUrl && (
+                <img src={previewUrl} alt="Prévia" className="mt-4 max-h-64 rounded-lg border" />
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Observações</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => handleChange('notes', e.target.value)}
+              placeholder="Descreva qualquer detalhe importante da impressão."
+              className="mt-1 w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 p-3 text-sm">
+              {error}
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 p-3 text-sm flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              {successMessage}
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse md:flex-row justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Fechar
+            </Button>
+            <Button type="submit" disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Enviar configuração
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  )
 }
+
+export default GallerySubmitModal
