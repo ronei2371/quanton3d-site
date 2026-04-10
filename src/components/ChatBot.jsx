@@ -15,14 +15,16 @@ const normalizeApiUrl = (rawUrl) => {
 
 const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || 'https://quanton3d-bot-v2.onrender.com/api');
 const PUBLIC_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
-const ASK_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/ask`, `${PUBLIC_BASE_URL}/ask`]));
-const ASK_IMAGE_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/ask-with-image`, `${PUBLIC_BASE_URL}/ask-with-image`]));
+
+// ✅ CORREÇÃO: Trocando /ask por /chat em ambas as listas
+const ASK_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/chat`, `${PUBLIC_BASE_URL}/chat`]));
+const ASK_IMAGE_ENDPOINTS = Array.from(new Set([`${API_BASE_URL}/chat`, `${PUBLIC_BASE_URL}/chat`]));
+
 const REGISTER_ENDPOINT = `${API_BASE_URL}/register-user`;
 const SUGGESTION_ENDPOINT = `${API_BASE_URL}/suggest-knowledge`;
 const CHAT_MODEL = (import.meta.env.VITE_CHAT_MODEL || '').trim() || null;
 const STORAGE_KEY = 'quanton3d-chat-state';
 const initialUserData = { name: '', phone: '', email: '', resin: '', problemType: '' };
-
 const fileToDataUrl = (file) => new Promise((resolve, reject) => {
   if (!file) return resolve(null);
   const reader = new FileReader();
