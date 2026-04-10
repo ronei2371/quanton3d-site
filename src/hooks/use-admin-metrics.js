@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-
-export function useAdminMetrics(adminToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
-=======
 export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
-main
   const [metrics, setMetrics] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -13,13 +9,12 @@ main
   const fetchMetrics = useCallback(async () => {
     if (!enabled) return
 
-    const resolvedToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
+    const resolvedToken = apiToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
 
     if (!resolvedToken) {
       const message = 'Token de autenticação do admin não foi informado.'
       setError(new Error(message))
       setMetrics(null)
-      toast.error(message)
       return
     }
 
@@ -36,8 +31,7 @@ main
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null)
-        const message =
-          errorBody?.error || errorBody?.message || 'Não foi possível carregar as métricas do admin.'
+        const message = errorBody?.error || errorBody?.message || 'Não foi possível carregar as métricas do admin.'
         throw new Error(message)
       }
 
@@ -51,11 +45,7 @@ main
     } finally {
       setIsLoading(false)
     }
-
-  }, [adminToken, buildAdminUrl, enabled])
-=======
   }, [apiToken, buildAdminUrl, enabled])
- main
 
   useEffect(() => {
     fetchMetrics()

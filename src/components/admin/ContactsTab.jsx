@@ -4,29 +4,58 @@ import { Button } from '@/components/ui/button.jsx'
 import { Check, Mail, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKey, adminToken }) {
+const getMessageId = (message) => message?._id || message?.id
+const getMessageDate = (message) => message?.createdAt || message?.date || message?.updatedAt || null
+const getMessageOrigin = (message) => message?.origin || message?.howDidYouHear || message?.source || ''
+
+export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContactsChange, refreshKey, adminToken }) {
   const [contactMessages, setContactMessages] = useState([])
   const [loading, setLoading] = useState(false)
 
+  const normalizeMessages = useCallback((messages = []) => {
+    return messages.map((message) => ({
+      ...message,
+      _id: getMessageId(message),
+      id: getMessageId(message),
+      createdAt: getMessageDate(message),
+      origin: getMessageOrigin(message),
+      resolved: Boolean(message?.resolved),
+      status: message?.status || 'pending'
+    }))
+  }, [])
+
   const loadContactMessages = useCallback(async () => {
+    if (!isVisible) return
+
     setLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/api/messages'), {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
-      const data = await response.json()
-      const messages = data.messages || []
+
+      const data = await response.json().catch(() => ({}))
+      const messages = normalizeMessages(data.messages || [])
+
       setContactMessages(messages)
       onCountChange?.(messages.length)
+      onContactsChange?.(messages)
     } catch (error) {
       console.error('Erro ao carregar mensagens de contato:', error)
       toast.error('Erro ao carregar mensagens de contato')
+      setContactMessages([])
+      onCountChange?.(0)
+      onContactsChange?.([])
     } finally {
       setLoading(false)
     }
-  }, [adminToken, buildAdminUrl, onCountChange])
+  }, [adminToken, buildAdminUrl, isVisible, normalizeMessages, onContactsChange, onCountChange])
 
   const toggleMessageResolved = async (messageId, currentResolved) => {
+    if (!messageId) {
+      toast.error('Mensagem inválida')
+      return
+    }
+
     try {
       const response = await fetch(buildAdminUrl(`/api/contact/${messageId}`), {
         method: 'PUT',
@@ -36,7 +65,7 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
         },
         body: JSON.stringify({ resolved: !currentResolved })
       })
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
       if (data.success) {
         toast.success('Status atualizado com sucesso')
         loadContactMessages()
@@ -65,15 +94,15 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
           </Card>
         ) : (
           contactMessages.map((message, index) => (
-            <Card 
-              key={index} 
+            <Card
+              key={getMessageId(message) || index}
               className={`p-6 transition-all ${message.resolved ? 'opacity-60 bg-gray-100 dark:bg-gray-900' : ''}`}
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    message.resolved 
-                      ? 'bg-green-500' 
+                    message.resolved
+                      ? 'bg-green-500'
                       : 'bg-gradient-to-br from-green-500 to-blue-500'
                   }`}>
                     {message.resolved ? (
@@ -84,7 +113,7 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
                   </div>
                   <div>
                     <p className="font-semibold">{message.name}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
                       {message.phone && (
                         <span className="flex items-center gap-1">
                           <Phone className="h-3 w-3" />
@@ -94,21 +123,24 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
                       {message.email && (
                         <span className="truncate">{message.email}</span>
                       )}
+                      {message.origin && (
+                        <span>Origem: {message.origin}</span>
+                      )}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    message.resolved 
+                    message.resolved
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : message.status === 'new' 
+                      : message.status === 'new' || message.status === 'pending'
                         ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                         : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
                   }`}>
-                    {message.resolved ? 'Resolvido' : message.status === 'new' ? 'Pendente' : message.status}
+                    {message.resolved ? 'Resolvido' : message.status === 'new' || message.status === 'pending' ? 'Pendente' : message.status}
                   </span>
                   <p className="text-xs text-gray-500 mt-1">
-                    {new Date(message.createdAt).toLocaleString('pt-BR')}
+                    {message.createdAt ? new Date(message.createdAt).toLocaleString('pt-BR') : '-'}
                   </p>
                 </div>
               </div>
@@ -117,20 +149,20 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
                 <p className="text-sm whitespace-pre-wrap">{message.message}</p>
               </div>
 
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center flex-wrap">
                 {message.phone && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="flex-1 bg-green-600 hover:bg-green-700"
-                    onClick={() => window.open(`https://wa.me/55${message.phone.replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
+                    onClick={() => window.open(`https://wa.me/55${String(message.phone).replace(/\D/g, '')}?text=Olá ${message.name}, recebemos sua mensagem...`, '_blank')}
                   >
                     <Phone className="h-4 w-4 mr-2" />
                     WhatsApp
                   </Button>
                 )}
                 {message.email && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     className="flex-1"
                     onClick={() => window.open(`mailto:${message.email}?subject=Re: Contato Quanton3D&body=Olá ${message.name},%0A%0ARecebemos sua mensagem...`, '_blank')}
@@ -143,7 +175,7 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, refreshKe
                   size="sm"
                   variant={message.resolved ? 'outline' : 'default'}
                   className={message.resolved ? 'border-green-500 text-green-600' : 'bg-blue-600 hover:bg-blue-700'}
-                  onClick={() => toggleMessageResolved(message._id, message.resolved)}
+                  onClick={() => toggleMessageResolved(getMessageId(message), message.resolved)}
                   disabled={loading}
                 >
                   <Check className="h-4 w-4 mr-1" />
