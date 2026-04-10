@@ -18,12 +18,15 @@ export function AuthWrapper({ children }) {
     try {
       const token = localStorage.getItem('quanton3d_jwt_token')
       if (!token) { setIsLoading(false); return }
+      
       const response = await fetch(`${API_BASE_URL}/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
       })
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+      
+      const data = await response.json() // ✅ Agora está certo!
+      
       if (data.success && data.valid) {
         setIsAuthenticated(true)
       } else {
@@ -105,15 +108,17 @@ export function AuthWrapper({ children }) {
               autoFocus
             />
             {error && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
+              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg font-medium">
                 {error}
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={isLoggingIn || !password}>
+            <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold" disabled={isLoggingIn || !password}>
               {isLoggingIn ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</> : 'Entrar'}
             </Button>
           </form>
-          <p className="text-center text-xs text-gray-500 mt-6">Sistema protegido por autenticação JWT</p>
+          <p className="text-center text-xs text-gray-500 mt-6 uppercase tracking-widest">
+            Acesso Restrito - Quanton3D
+          </p>
         </div>
       </div>
     )
