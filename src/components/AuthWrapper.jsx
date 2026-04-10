@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Lock, Loader2 } from 'lucide-react'
 
-const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com'
+// ✅ Adicionando o /api no final para bater com o novo padrão do Bot
+const API_BASE_URL = 'https://quanton3d-bot-v2.onrender.com/api'
 
 export function AuthWrapper({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -25,7 +26,8 @@ export function AuthWrapper({ children }) {
         body: JSON.stringify({ token })
       })
       
-      const data = await response.json() // ✅ Agora está certo!
+      if (!response.ok) throw new Error()
+      const data = await response.json()
       
       if (data.success && data.valid) {
         setIsAuthenticated(true)
@@ -40,20 +42,21 @@ export function AuthWrapper({ children }) {
   }
 
   const handleLogin = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     setError('')
     if (!password) { setError('Informe a senha administrativa'); return }
     setIsLoggingIn(true)
     try {
+      // ✅ Agora chamando /api/auth/login corretamente
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
       })
+      
       const data = await response.json()
       if (data.success && data.token) {
         localStorage.setItem('quanton3d_jwt_token', data.token)
-        try { window.dispatchEvent(new Event('quanton3d:admin-login')) } catch {}
         setIsAuthenticated(true)
         setPassword('')
       } else {
@@ -68,61 +71,57 @@ export function AuthWrapper({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('quanton3d_jwt_token')
-    try { window.dispatchEvent(new Event('quanton3d:admin-logout')) } catch {}
     setIsAuthenticated(false)
-    setPassword('')
-    setError('')
   }
 
-  // ✅ LOADING — overlay transparente, não toma tela toda
+  // ✅ TELA DE CARREGAMENTO (Print 3 pode estar travado aqui se o fetch falhar)
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-          <p className="mt-4 text-gray-600 dark:text-gray-300">Verificando autenticação...</p>
+      <div className="fixed inset-0 z-50 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl text-center border">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto text-blue-600 mb-4" />
+          <p className="text-gray-600 dark:text-gray-300 font-medium">Autenticando na Quanton3D...</p>
         </div>
       </div>
     )
   }
 
-  // ✅ LOGIN — overlay modal, site continua visível atrás
+  // ✅ TELA DE LOGIN (Print 2)
   if (!isAuthenticated) {
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 w-full max-w-md">
-          <div className="text-center mb-6">
-            <Lock className="h-12 w-12 mx-auto text-blue-600 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Painel Administrativo</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Digite sua senha para acessar</p>
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20">
+          <div className="text-center mb-8">
+            <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="h-10 w-10 text-blue-600" />
+            </div>
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Acesso Restrito</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Painel Administrativo Quanton3D</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
               type="password"
-              placeholder="Senha administrativa"
+              placeholder="Digite a senha mestra"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full"
+              className="w-full h-12 text-lg text-center"
               disabled={isLoggingIn}
-              autoComplete="current-password"
               autoFocus
             />
             {error && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg font-medium">
+              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-xl border border-red-100 font-bold">
                 {error}
               </div>
             )}
-            <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold" disabled={isLoggingIn || !password}>
-              {isLoggingIn ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</> : 'Entrar'}
+            <Button type="submit" className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-lg font-bold shadow-lg" disabled={isLoggingIn}>
+              {isLoggingIn ? 'Verificando...' : 'Acessar Painel'}
             </Button>
           </form>
-          <p className="text-center text-xs text-gray-500 mt-6 uppercase tracking-widest">
-            Acesso Restrito - Quanton3D
-          </p>
         </div>
       </div>
     )
   }
 
-  return children({ onLogout: handleLogout })
+  // ✅ RETORNO SEGURO — Evita o erro de "not a function"
+  return typeof children === 'function' ? children({ onLogout: handleLogout }) : children
 }
