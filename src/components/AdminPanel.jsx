@@ -271,7 +271,10 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
+ codex/perform-frontend-build-integrity-audit-xrpvj8
+
       finalPath.startsWith('/auth') ||
+ main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -636,7 +639,7 @@ export function AdminPanel({ onClose }) {
       if (trimmedSecret) {
         headers['x-admin-secret'] = trimmedSecret
       }
-      const res = await fetch(`${targetBase}/auth/login`, {
+      const res = await fetch(`${targetBase}/api/auth/login`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -689,7 +692,7 @@ export function AdminPanel({ onClose }) {
     if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
       const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
       setAutoLoginAttempted(true)
-      fetch(`${targetBase}/auth/login`, {
+      fetch(`${targetBase}/api/auth/login`, {
         method: 'POST',
         headers: autoAdminSecret
           ? { 'Content-Type': 'application/json', 'x-admin-secret': autoAdminSecret }
@@ -868,11 +871,22 @@ export function AdminPanel({ onClose }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
-        <Card className="p-8 max-w-md w-full space-y-4">
+      <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
+        <Card className="relative w-full max-w-md space-y-4 rounded-2xl border border-white/20 bg-white/95 p-8 shadow-2xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+          {onClose && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="absolute right-3 top-3 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
           <div>
-            <h2 className="text-2xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
-            <p className="text-sm text-center text-gray-500">Informe a URL do backend oficial e sua senha de administrador.</p>
+            <h2 className="mb-2 text-center text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
+            <p className="text-center text-sm text-gray-500">Informe a URL do backend oficial e sua senha de administrador.</p>
           </div>
           <div className="space-y-3">
             <Input
@@ -978,13 +992,13 @@ export function AdminPanel({ onClose }) {
                 </h3>
                 {(() => {
                   const marketingStats = {
-                    Instagram: contacts.filter(c => (c.origin || c.howDidYouHear || c.source || '').toLowerCase() === 'instagram').length,
-                    YouTube: contacts.filter(c => (c.origin || c.howDidYouHear || c.source || '').toLowerCase() === 'youtube').length,
-                    Google: contacts.filter(c => (c.origin || c.howDidYouHear || c.source || '').toLowerCase() === 'google').length,
-                    Outros: contacts.filter(c => {
-                      const origin = (c.origin || c.howDidYouHear || c.source || '').toLowerCase();
-                      return origin && origin !== 'instagram' && origin !== 'youtube' && origin !== 'google';
-                    }).length
+                    Instagram: contacts.filter(c => c.origin?.toLowerCase() === 'instagram').length,
+                    YouTube: contacts.filter(c => c.origin?.toLowerCase() === 'youtube').length,
+                    Google: contacts.filter(c => c.origin?.toLowerCase() === 'google').length,
+                    Outros: contacts.filter(c => c.origin && 
+                      c.origin.toLowerCase() !== 'instagram' && 
+                      c.origin.toLowerCase() !== 'youtube' && 
+                      c.origin.toLowerCase() !== 'google').length
                   };
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1031,14 +1045,14 @@ export function AdminPanel({ onClose }) {
             />
           )}
           
-          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />}
+          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           
           {activeTab === 'partners' && (
             <div className="p-4">
               <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar.</p></div>}>
-                <PartnersManager isAdmin={isAdmin} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />
+                <PartnersManager isAdmin={isAdmin} />
               </ErrorBoundary>
             </div>
           )}
