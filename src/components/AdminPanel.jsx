@@ -271,10 +271,7 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
- codex/perform-frontend-build-integrity-audit-xrpvj8
-
       finalPath.startsWith('/auth') ||
- main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -639,7 +636,7 @@ export function AdminPanel({ onClose }) {
       if (trimmedSecret) {
         headers['x-admin-secret'] = trimmedSecret
       }
-      const res = await fetch(`${targetBase}/api/auth/login`, {
+      const res = await fetch(`${targetBase}/auth/login`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -692,7 +689,7 @@ export function AdminPanel({ onClose }) {
     if (!adminToken && !autoLoginAttempted && autoAdminPassword && autoAdminUsername) {
       const targetBase = normalizeBaseUrl(customApiBaseInput) || apiBaseUrl || defaultApiBase
       setAutoLoginAttempted(true)
-      fetch(`${targetBase}/api/auth/login`, {
+      fetch(`${targetBase}/auth/login`, {
         method: 'POST',
         headers: autoAdminSecret
           ? { 'Content-Type': 'application/json', 'x-admin-secret': autoAdminSecret }
@@ -981,13 +978,13 @@ export function AdminPanel({ onClose }) {
                 </h3>
                 {(() => {
                   const marketingStats = {
-                    Instagram: contacts.filter(c => c.origin?.toLowerCase() === 'instagram').length,
-                    YouTube: contacts.filter(c => c.origin?.toLowerCase() === 'youtube').length,
-                    Google: contacts.filter(c => c.origin?.toLowerCase() === 'google').length,
-                    Outros: contacts.filter(c => c.origin && 
-                      c.origin.toLowerCase() !== 'instagram' && 
-                      c.origin.toLowerCase() !== 'youtube' && 
-                      c.origin.toLowerCase() !== 'google').length
+                    Instagram: contacts.filter(c => (c.origin || c.howDidYouHear || c.source || '').toLowerCase() === 'instagram').length,
+                    YouTube: contacts.filter(c => (c.origin || c.howDidYouHear || c.source || '').toLowerCase() === 'youtube').length,
+                    Google: contacts.filter(c => (c.origin || c.howDidYouHear || c.source || '').toLowerCase() === 'google').length,
+                    Outros: contacts.filter(c => {
+                      const origin = (c.origin || c.howDidYouHear || c.source || '').toLowerCase();
+                      return origin && origin !== 'instagram' && origin !== 'youtube' && origin !== 'google';
+                    }).length
                   };
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1034,14 +1031,14 @@ export function AdminPanel({ onClose }) {
             />
           )}
           
-          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
+          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />}
           
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           
           {activeTab === 'partners' && (
             <div className="p-4">
               <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar.</p></div>}>
-                <PartnersManager isAdmin={isAdmin} />
+                <PartnersManager isAdmin={isAdmin} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />
               </ErrorBoundary>
             </div>
           )}
