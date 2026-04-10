@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
+export function useAdminMetrics(adminToken, { refreshKey = 0, enabled = true, buildAdminUrl } = {}) {
   const [metrics, setMetrics] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -9,7 +9,7 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buil
   const fetchMetrics = useCallback(async () => {
     if (!enabled) return
 
-    const resolvedToken = apiToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
+    const resolvedToken = adminToken || import.meta.env.VITE_ADMIN_API_TOKEN || ''
 
     if (!resolvedToken) {
       const message = 'Token de autenticação do admin não foi informado.'
@@ -22,7 +22,7 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buil
     setError(null)
 
     try {
-      const metricsUrl = buildAdminUrl ? buildAdminUrl('/admin/metrics') : '/admin/metrics'
+      const metricsUrl = buildAdminUrl ? buildAdminUrl('/health/metrics') : '/health/metrics'
       const response = await fetch(metricsUrl, {
         headers: {
           Authorization: `Bearer ${resolvedToken}`,
@@ -31,7 +31,8 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buil
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null)
-        const message = errorBody?.error || errorBody?.message || 'Não foi possível carregar as métricas do admin.'
+        const message =
+          errorBody?.error || errorBody?.message || 'Não foi possível carregar as métricas do admin.'
         throw new Error(message)
       }
 
@@ -40,12 +41,12 @@ export function useAdminMetrics(apiToken, { refreshKey = 0, enabled = true, buil
     } catch (err) {
       console.error('Erro ao buscar métricas do admin:', err)
       setError(err)
-      toast.error(err.message || 'Erro ao buscar métricas do admin')
       setMetrics(null)
+      toast.error(err.message || 'Erro ao buscar métricas do admin')
     } finally {
       setIsLoading(false)
     }
-  }, [apiToken, buildAdminUrl, enabled])
+  }, [adminToken, buildAdminUrl, enabled])
 
   useEffect(() => {
     fetchMetrics()
