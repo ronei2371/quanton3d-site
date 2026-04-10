@@ -1,6 +1,7 @@
 // Arquivo: quanton3d-site/src/App.jsx
 // (Código FINAL que conserta o cabeçalho, robô, lógica e a leitura de dados)
 // REDESIGN COMPLETO - Build: 2025-12-15 00:48 UTC
+// CORREÇÃO: Isolamento completo da autenticação administrativa (não interfere mais no cadastro de clientes)
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
@@ -50,20 +51,21 @@ function App() {
   const [modalService, setModalService] = useState(null)
   const [isQualityModalOpen, setIsQualityModalOpen] = useState(false)
   const [isTechSupportModalOpen, setIsTechSupportModalOpen] = useState(false)
-    const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
-    const [isContactModalOpen, setIsContactModalOpen] = useState(false)
-    const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false)
-    const [isGallerySubmitOpen, setIsGallerySubmitOpen] = useState(false)
-    const [galleryImages, setGalleryImages] = useState([])
-    const [galleryLoading, setGalleryLoading] = useState(false)
-    const [galleryError, setGalleryError] = useState(null)
-    const [gallerySuccessMessage, setGallerySuccessMessage] = useState('')
-    const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false)
-    const [userProfile, setUserProfile] = useState(null)
-    const [isImproveModalOpen, setIsImproveModalOpen] = useState(false)
-    const [lastBotContext, setLastBotContext] = useState({ user: '', bot: '' })
-    const [isAdminSession, setIsAdminSession] = useState(false)
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false)
+  const [isGallerySubmitOpen, setIsGallerySubmitOpen] = useState(false)
+  const [galleryImages, setGalleryImages] = useState([])
+  const [galleryLoading, setGalleryLoading] = useState(false)
+  const [galleryError, setGalleryError] = useState(null)
+  const [gallerySuccessMessage, setGallerySuccessMessage] = useState('')
+  const [isPrivacyAccepted, setIsPrivacyAccepted] = useState(false)
+  const [userProfile, setUserProfile] = useState(null)
+  const [isImproveModalOpen, setIsImproveModalOpen] = useState(false)
+  const [lastBotContext, setLastBotContext] = useState({ user: '', bot: '' })
+  const [isAdminSession, setIsAdminSession] = useState(false)
 
+  // ==================== USEEFFECT PÚBLICO (CORRIGIDO) ====================
   useEffect(() => {
     if (typeof window === 'undefined') return
     const accepted = localStorage.getItem('quanton3d_privacy_accepted') === 'true'
@@ -76,7 +78,7 @@ function App() {
         console.warn('Não foi possível ler o cadastro salvo:', err)
       }
     }
-    setIsAdminSession(Boolean(localStorage.getItem('quanton3d_jwt_token')))
+    // REMOVIDO: setIsAdminSession automático para não interferir no cadastro público
   }, [])
 
   useEffect(() => {
@@ -174,6 +176,11 @@ function App() {
     setIsGalleryModalOpen(true)
   }
 
+  // ==================== FUNÇÃO CORRIGIDA PARA ABRIR PAINEL ADM ====================
+  const openAdminPanel = () => {
+    setIsAdminPanelOpen(true)
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundImage: 'url(/images/hero-background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       
@@ -210,7 +217,7 @@ function App() {
             <a href="#servicos" className="text-sm font-medium hover:text-blue-600 transition-colors">Serviços</a>
             <a href="#informacoes-tecnicas" className="text-sm font-medium hover:text-blue-600 transition-colors">Informações Técnicas</a>
             <button
-              onClick={() => setIsAdminPanelOpen(true)} 
+              onClick={openAdminPanel} 
               className="flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-blue-600 transition-colors"
               title="Painel Administrativo"
             >
@@ -259,54 +266,53 @@ function App() {
 
       {/* Seção de Botões */}
       <section className="container mx-auto px-4 py-8">
-
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
           className="w-full max-w-6xl mx-auto"
         >
-            <div className="flex flex-wrap justify-center gap-4">
-              {/* Botões do Hero */}
-              <Button 
-                className="neon-button text-base px-6 py-3"
-                onClick={handleOpenContact} 
-              >
-                Fale Conosco
-              </Button>
-              <Button 
-                className="neon-button text-base px-6 py-3"
-                onClick={() => setIsAboutModalOpen(true)}
-              >
-                Saiba Mais
-              </Button>
-              <Button 
-                className="neon-button text-base px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                onClick={handleOpenCustomForm}
-              >
-                <Beaker className="h-5 w-5 mr-2" />
-                Formulação Customizada
-              </Button>
-              <Button 
-                className="neon-button text-base px-6 py-3 bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600"
-                onClick={() => setIsQualityModalOpen(true)}
-              >
-                <Sparkles className="h-5 w-5 mr-2" />
-                Alta Qualidade
-              </Button>
-              
-              {/* Botões de Suporte Técnico (integrados aqui) */}
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-nivelamento.html', '_blank')}>Nivelamento de Plataforma</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-configuracao-fatiadores.html', '_blank')}>Configuração de Fatiadores</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-diagnostico-problemas.html', '_blank')}>Diagnóstico de Problemas</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Atendimento Prioritário</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-calibracao-quanton3d.html', '_blank')}>Calibração de Resina</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-posicionamento-suportes.html', '_blank')}>Posicionamento de Suportes</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-manutencao-impressora.html', '_blank')}>Manutenção de Máquina</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-otimizacao-parametros.html', '_blank')}>Otimização de Parâmetros</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/parceiros-quanton3d.html', '_blank')}>Parceiros</Button>
-              <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Chamadas de Vídeo</Button>
-            </div>
+          <div className="flex flex-wrap justify-center gap-4">
+            {/* Botões do Hero */}
+            <Button 
+              className="neon-button text-base px-6 py-3"
+              onClick={handleOpenContact} 
+            >
+              Fale Conosco
+            </Button>
+            <Button 
+              className="neon-button text-base px-6 py-3"
+              onClick={() => setIsAboutModalOpen(true)}
+            >
+              Saiba Mais
+            </Button>
+            <Button 
+              className="neon-button text-base px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+              onClick={handleOpenCustomForm}
+            >
+              <Beaker className="h-5 w-5 mr-2" />
+              Formulação Customizada
+            </Button>
+            <Button 
+              className="neon-button text-base px-6 py-3 bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600"
+              onClick={() => setIsQualityModalOpen(true)}
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              Alta Qualidade
+            </Button>
+            
+            {/* Botões de Suporte Técnico (integrados aqui) */}
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-nivelamento.html', '_blank')}>Nivelamento de Plataforma</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-configuracao-fatiadores.html', '_blank')}>Configuração de Fatiadores</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-diagnostico-problemas.html', '_blank')}>Diagnóstico de Problemas</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Atendimento Prioritário</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-calibracao-quanton3d.html', '_blank')}>Calibração de Resina</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-posicionamento-suportes.html', '_blank')}>Posicionamento de Suportes</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-manutencao-impressora.html', '_blank')}>Manutenção de Máquina</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/guia-otimizacao-parametros.html', '_blank')}>Otimização de Parâmetros</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('/guias/parceiros-quanton3d.html', '_blank')}>Parceiros</Button>
+            <Button className="neon-button text-base px-6 py-3" onClick={() => window.open('https://wa.me/553132716935', '_blank')}>Chamadas de Vídeo</Button>
+          </div>
         </motion.div>
       </section>
 
@@ -396,23 +402,23 @@ function App() {
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
       />
-            <ContactModal 
-              isOpen={isContactModalOpen}
-              onClose={() => setIsContactModalOpen(false)}
-            />
-            <GalleryModal 
-              isOpen={isGalleryModalOpen}
-              onClose={() => setIsGalleryModalOpen(false)}
-              images={galleryImages}
-            />
-            <GallerySubmitModal 
-              isOpen={isGallerySubmitOpen}
-              onClose={() => setIsGallerySubmitOpen(false)}
-              apiBaseUrl={API_BASE_URL}
-              onSuccess={handleGallerySubmissionSuccess}
-            />
+      <ContactModal 
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+      />
+      <GalleryModal 
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        images={galleryImages}
+      />
+      <GallerySubmitModal 
+        isOpen={isGallerySubmitOpen}
+        onClose={() => setIsGallerySubmitOpen(false)}
+        apiBaseUrl={API_BASE_URL}
+        onSuccess={handleGallerySubmissionSuccess}
+      />
 
-            {/* Admin Panel Modal */}
+      {/* Admin Panel Modal - ISOLADO */}
       {isAdminPanelOpen && (
         <AuthWrapper>
           {({ onLogout }) => (
@@ -424,6 +430,7 @@ function App() {
                   onLogout={() => {
                     onLogout();
                     setIsAdminPanelOpen(false);
+                    setIsAdminSession(false);   // Garantia de limpeza do estado admin
                   }}
                 />
               </div>
