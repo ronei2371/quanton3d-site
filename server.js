@@ -1,3 +1,4 @@
+// server.js
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +19,19 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const MONGODB_URI = process.env.MONGODB_URI || '';
+
+// ====================== VALIDAÇÃO RIGOROSA DE VARIÁVEIS DE AMBIENTE ======================
+const requiredEnv = ['MONGODB_URI', 'OPENAI_API_KEY', 'ADMIN_USER', 'ADMIN_PASSWORD', 'ADMIN_JWT_SECRET'];
+
+for (const key of requiredEnv) {
+    if (!process.env[key]) {
+        console.error(`❌ ERRO CRÍTICO: A variável ${key} não está definida no .env`);
+        console.error('🚫 Servidor NÃO será iniciado por motivos de segurança.');
+        process.exit(1);
+    }
+}
+
+console.log("✅ Todas as variáveis de ambiente obrigatórias foram carregadas.");
 
 // ====================== CORS ======================
 const allowedOrigins = [
@@ -35,13 +48,13 @@ app.use(cors({
       callback(null, true);
     } else {
       console.log(`⚠️ Origem bloqueada: ${origin}`);
-      callback(null, true); // compatibilidade
+      callback(null, true);
     }
   },
   credentials: true,
 }));
 
-app.use(express.json({ limit: '50mb' }));           // Aumentado para upload de imagens
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ====================== HEALTH CHECK ======================
@@ -87,9 +100,10 @@ app.use((req, res, next) => {
     '/params/printers': '/printers',
     '/api/params/profiles': '/api/profiles',
     '/params/profiles': '/profiles',
-    '/api/params/stats': '/api/stats',
-    '/params/stats': '/stats'
+    '/params/stats': '/stats',
+    '/api/params/stats': '/api/stats'
   };
+
   if (rewrites[req.url]) req.url = rewrites[req.url];
   next();
 });
@@ -120,34 +134,21 @@ const startServer = async () => {
   try {
     console.log('\n🚀 INICIANDO QUANTON3D BOT...\n');
 
-    if (MONGODB_URI) {
-      await connectToMongo(MONGODB_URI);
-      console.log('[MongoDB] ✅ Conectado');
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    } else {
-      console.warn('[MongoDB] ⚠️ MONGODB_URI não configurada');
-    }
+    await connectToMongo(process.env.MONGODB_URI);
+    console.log('[MongoDB] ✅ Conectado');
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.log('[INIT] ⚠️ OPENAI_API_KEY não configurada');
-    } else {
-      console.log('[INIT] ✅ OpenAI API configurada');
-    }
+    console.log('[INIT] ✅ OpenAI API configurada');
 
-    try {
-      if (isConnected()) {
-        await initializeRAG();
-        console.log('[INIT] ✅ RAG inicializado');
+    if (isConnected()) {
+      await initializeRAG();
+      console.log('[INIT] ✅ RAG inicializado');
 
-        const ragStatus = await checkRAGIntegrity();
-        if (!ragStatus?.isValid || ragStatus.totalDocuments === 0) {
-          console.log('[INIT] ⚠️ Base de conhecimento vazia. Fazendo bootstrap...');
-          const bootstrapResult = await bootstrapKnowledgeFromFile();
-          console.log(`[INIT] Bootstrap: ${bootstrapResult.inserted || 0} inseridos`);
-        }
+      const ragStatus = await checkRAGIntegrity();
+      if (!ragStatus?.isValid || ragStatus.totalDocuments === 0) {
+        console.log('[INIT] ⚠️ Base de conhecimento vazia. Fazendo bootstrap...');
+        const bootstrapResult = await bootstrapKnowledgeFromFile();
+        console.log(`[INIT] Bootstrap: ${bootstrapResult.inserted || 0} inseridos`);
       }
-    } catch (error) {
-      console.error('[INIT] ⚠️ RAG falhou:', error.message);
     }
 
     console.log('\n✨ Serviços prontos!\n');
