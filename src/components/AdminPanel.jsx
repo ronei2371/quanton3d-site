@@ -271,10 +271,7 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
- codex/perform-frontend-build-integrity-audit-xrpvj8
-
       finalPath.startsWith('/auth') ||
- main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -1140,7 +1137,7 @@ export function AdminPanel({ onClose }) {
           {activeTab === 'partners' && (
             <div className="p-4">
               <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar.</p></div>}>
-                <PartnersManager isAdmin={isAdmin} />
+                <PartnersManager isAdmin={isAdmin} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />
               </ErrorBoundary>
             </div>
           )}

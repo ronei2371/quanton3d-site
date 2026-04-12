@@ -1,624 +1,366 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { Plus, Edit3, Trash2, Save, X, Upload, Image as ImageIcon, Phone, Mail, Link as LinkIcon, User, AlertCircle, Check } from 'lucide-react'
+import { Plus, Edit3, Trash2, Save, X, Upload, Image as ImageIcon, Mail, Link as LinkIcon, User, Check } from 'lucide-react'
+import { toast } from 'sonner'
 
-const API_BASE = 'https://quanton3d-bot-v2.onrender.com/api'
-const AUTH_PARAM = '?auth=quanton3d_admin_secret'
+const emptyPartner = {
+  name: '',
+  description: '',
+  phone: '',
+  email: '',
+  website_url: '',
+  course_url: '',
+  instructor_1_name: '',
+  instructor_1_description: '',
+  instructor_1_phone: '',
+  instructor_2_name: '',
+  instructor_2_description: '',
+  instructor_2_phone: '',
+  highlights: [],
+  images: [],
+  active: true,
+  order: 0,
+}
 
-export function PartnersManager() {
+const normalizePartner = (partner = {}) => ({
+  ...emptyPartner,
+  ...partner,
+  id: partner.id || partner._id || '',
+  active: partner.active !== false && partner.is_active !== false,
+  order: Number(partner.order ?? partner.display_order ?? 0) || 0,
+  website_url: partner.website_url || partner.websiteUrl || '',
+  course_url: partner.course_url || partner.courseUrl || '',
+  images: Array.isArray(partner.images) ? partner.images : [],
+  highlights: Array.isArray(partner.highlights) ? partner.highlights : [],
+})
+
+export function PartnersManager({ isAdmin, buildAdminUrl, adminToken }) {
   const [partners, setPartners] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [editingPartner, setEditingPartner] = useState(null)
-  const [isCreating, setIsCreating] = useState(false)
-  const [uploadingImages, setUploadingImages] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-
-  // Formulário de parceiro
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    phone: '',
-    email: '',
-    website_url: '',
-    course_url: '',
-    instructor_1_name: '',
-    instructor_1_description: '',
-    instructor_1_phone: '',
-    instructor_2_name: '',
-    instructor_2_description: '',
-    instructor_2_phone: '',
-    highlights: [],
-    images: [],
-    is_active: true,
-    display_order: 0
-  })
-
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState('')
+  const [formData, setFormData] = useState(emptyPartner)
   const [newHighlight, setNewHighlight] = useState('')
   const [imageFiles, setImageFiles] = useState([])
-  const [imagePreviewUrls, setImagePreviewUrls] = useState([])
+  const [previewImages, setPreviewImages] = useState([])
 
-  // Carregar parceiros
-  useEffect(() => {
-    loadPartners()
-  }, [])
+  const authHeaders = useMemo(() => (
+    adminToken ? { Authorization: `Bearer ${adminToken}` } : {}
+  ), [adminToken])
+
+  const resetForm = () => {
+    setEditingId('')
+    setFormData(emptyPartner)
+    setNewHighlight('')
+    setImageFiles([])
+    setPreviewImages([])
+  }
+
+  const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 
   const loadPartners = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE}/partners${AUTH_PARAM}`)
-      if (!response.ok) throw new Error('Erro ao carregar parceiros')
-      const data = await response.json()
-      setPartners(data.partners || [])
-    } catch (err) {
-      setError('Erro ao carregar parceiros: ' + err.message)
+      const response = await fetch(buildAdminUrl('/partners'), {
+        headers: authHeaders,
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || data.success === false) {
+        throw new Error(data?.error || 'Erro ao carregar parceiros')
+      }
+      const list = Array.isArray(data.partners) ? data.partners.map(normalizePartner) : []
+      setPartners(list)
+    } catch (error) {
+      console.error(error)
+      toast.error(error.message || 'Erro ao carregar parceiros')
+      setPartners([])
     } finally {
       setLoading(false)
     }
   }
 
-  // Resetar formulário
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      phone: '',
-      email: '',
-      website_url: '',
-      course_url: '',
-      instructor_1_name: '',
-      instructor_1_description: '',
-      instructor_1_phone: '',
-      instructor_2_name: '',
-      instructor_2_description: '',
-      instructor_2_phone: '',
-      highlights: [],
-      images: [],
-      is_active: true,
-      display_order: 0
-    })
+  useEffect(() => {
+    loadPartners()
+  }, [])
+
+  const startCreate = () => {
+    resetForm()
+  }
+
+  const startEdit = (partner) => {
+    const normalized = normalizePartner(partner)
+    setEditingId(normalized.id)
+    setFormData(normalized)
+    setPreviewImages(normalized.images)
     setImageFiles([])
-    setImagePreviewUrls([])
-    setEditingPartner(null)
-    setIsCreating(false)
   }
 
-  // Iniciar criação
-  const startCreating = () => {
-    resetForm()
-    setIsCreating(true)
-  }
-
-  // Iniciar edição
-  const startEditing = (partner) => {
-    setFormData({ ...partner })
-    setImagePreviewUrls(partner.images || [])
-    setEditingPartner(partner._id)
-    setIsCreating(false)
-  }
-
-  // Cancelar
-  const handleCancel = () => {
-    resetForm()
-    setError(null)
-    setSuccess(null)
-  }
-
-  // Adicionar destaque
   const addHighlight = () => {
-    if (newHighlight.trim()) {
-      setFormData({
-        ...formData,
-        highlights: [...formData.highlights, newHighlight.trim()]
-      })
-      setNewHighlight('')
-    }
+    const value = newHighlight.trim()
+    if (!value) return
+    setFormData((prev) => ({ ...prev, highlights: [...prev.highlights, value] }))
+    setNewHighlight('')
   }
 
-  // Remover destaque
   const removeHighlight = (index) => {
-    setFormData({
-      ...formData,
-      highlights: formData.highlights.filter((_, i) => i !== index)
-    })
+    setFormData((prev) => ({
+      ...prev,
+      highlights: prev.highlights.filter((_, i) => i !== index),
+    }))
   }
 
-  // Handle image selection
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files)
-    setImageFiles([...imageFiles, ...files])
-    
-    // Create preview URLs
-    const newPreviewUrls = files.map(file => URL.createObjectURL(file))
-    setImagePreviewUrls([...imagePreviewUrls, ...newPreviewUrls])
+  const handleImageSelect = async (event) => {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
+    const dataUrls = await Promise.all(files.map(fileToDataUrl))
+    setImageFiles((prev) => [...prev, ...dataUrls])
+    setPreviewImages((prev) => [...prev, ...dataUrls])
   }
 
-  // Remove image
   const removeImage = (index) => {
-    const newFiles = imageFiles.filter((_, i) => i !== index)
-    const newPreviews = imagePreviewUrls.filter((_, i) => i !== index)
-    setImageFiles(newFiles)
-    setImagePreviewUrls(newPreviews)
+    setPreviewImages((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // Upload images usando o mesmo sistema da galeria
-  const uploadImages = async () => {
-    if (imageFiles.length === 0) return formData.images
-
-    setUploadingImages(true)
-    const uploadedUrls = []
-
-    try {
-      for (const file of imageFiles) {
-        const formDataUpload = new FormData()
-        formDataUpload.append('image', file)
-
-        const response = await fetch(`${API_BASE}/partners/upload-image${AUTH_PARAM}`, {
-          method: 'POST',
-          body: formDataUpload
-        })
-
-        if (!response.ok) throw new Error('Erro ao fazer upload da imagem')
-        
-        const data = await response.json()
-        if (data.imageUrl) {
-          uploadedUrls.push(data.imageUrl)
-        }
-      }
-
-      return [...formData.images, ...uploadedUrls]
-    } catch (err) {
-      throw new Error('Erro no upload de imagens: ' + err.message)
-    } finally {
-      setUploadingImages(false)
+  const savePartner = async () => {
+    if (!isAdmin) {
+      toast.error('Somente administradores podem editar parceiros')
+      return
     }
-  }
-
-  // Salvar parceiro
-  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.description.trim()) {
+      toast.error('Nome e descrição são obrigatórios')
+      return
+    }
+    setSaving(true)
     try {
-      setError(null)
-      setSuccess(null)
-
-      // Validação
-      if (!formData.name || !formData.description) {
-        setError('Nome e descrição são obrigatórios')
-        return
-      }
-
-      // Upload images if any
-      let imageUrls = formData.images
-      if (imageFiles.length > 0) {
-        imageUrls = await uploadImages()
-      }
-
-      const dataToSave = {
+      const payload = {
         ...formData,
-        images: imageUrls
+        images: previewImages,
+        active: formData.active !== false,
+        order: Number(formData.order || 0),
       }
+      delete payload.id
+      delete payload._id
 
-      let response
-      if (editingPartner) {
-        // Atualizar
-        response = await fetch(`${API_BASE}/partners/${editingPartner}${AUTH_PARAM}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dataToSave)
-        })
-      } else {
-        // Criar
-        response = await fetch(`${API_BASE}/partners${AUTH_PARAM}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dataToSave)
-        })
-      }
+      const isEditing = Boolean(editingId)
+      const url = isEditing ? buildAdminUrl(`/partners/${editingId}`) : buildAdminUrl('/partners')
+      const method = isEditing ? 'PUT' : 'POST'
 
-      if (!response.ok) throw new Error('Erro ao salvar parceiro')
-
-      setSuccess(editingPartner ? 'Parceiro atualizado com sucesso!' : 'Parceiro criado com sucesso!')
-      resetForm()
-      loadPartners()
-      
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  // Excluir parceiro
-  const handleDelete = async (partnerId) => {
-    if (!confirm('Tem certeza que deseja excluir este parceiro?')) return
-
-    try {
-      const response = await fetch(`${API_BASE}/partners/${partnerId}${AUTH_PARAM}`, {
-        method: 'DELETE'
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders,
+        },
+        body: JSON.stringify(payload),
       })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || data.success === false) {
+        throw new Error(data?.error || 'Erro ao salvar parceiro')
+      }
 
-      if (!response.ok) throw new Error('Erro ao excluir parceiro')
-
-      setSuccess('Parceiro excluído com sucesso!')
-      loadPartners()
-      
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (err) {
-      setError('Erro ao excluir: ' + err.message)
+      toast.success(isEditing ? 'Parceiro atualizado com sucesso' : 'Parceiro criado com sucesso')
+      resetForm()
+      await loadPartners()
+    } catch (error) {
+      console.error(error)
+      toast.error(error.message || 'Erro ao salvar parceiro')
+    } finally {
+      setSaving(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando parceiros...</p>
-        </div>
-      </div>
-    )
+  const deletePartner = async (partner) => {
+    if (!isAdmin) return
+    if (!window.confirm(`Excluir parceiro ${partner.name}?`)) return
+    try {
+      const response = await fetch(buildAdminUrl(`/partners/${partner.id}`), {
+        method: 'DELETE',
+        headers: authHeaders,
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || data.success === false) {
+        throw new Error(data?.error || 'Erro ao excluir parceiro')
+      }
+      toast.success('Parceiro excluído com sucesso')
+      await loadPartners()
+    } catch (error) {
+      console.error(error)
+      toast.error(error.message || 'Erro ao excluir parceiro')
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Gerenciar Parceiros</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Adicione, edite ou remova parceiros da página pública
-          </p>
+          <h3 className="text-xl font-bold">Parceiros cadastrados</h3>
+          <p className="text-sm text-gray-500">Gerencie os parceiros exibidos na página pública.</p>
         </div>
-        {!isCreating && !editingPartner && (
-          <Button onClick={startCreating} className="bg-gradient-to-r from-blue-600 to-purple-600">
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Parceiro
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadPartners} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</Button>
+          <Button onClick={startCreate}><Plus className="h-4 w-4 mr-2" /> Novo parceiro</Button>
+        </div>
       </div>
 
-      {/* Mensagens */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-800">{error}</p>
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-lg">{editingId ? 'Editar parceiro' : 'Cadastrar parceiro'}</h4>
+          {(editingId || formData.name || formData.description) && (
+            <Button variant="outline" onClick={resetForm}><X className="h-4 w-4 mr-2" /> Cancelar</Button>
+          )}
         </div>
-      )}
 
-      {success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-          <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-green-800">{success}</p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium">Nome do parceiro *</label>
+            <Input value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Ordem de exibição</label>
+            <Input type="number" value={formData.order} onChange={(e) => setFormData((prev) => ({ ...prev, order: e.target.value }))} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium">Descrição *</label>
+            <textarea className="w-full min-h-[100px] rounded-md border p-3" value={formData.description} onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Telefone</label>
+            <Input value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">E-mail</label>
+            <Input value={formData.email} onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Site</label>
+            <Input value={formData.website_url} onChange={(e) => setFormData((prev) => ({ ...prev, website_url: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Link do curso</label>
+            <Input value={formData.course_url} onChange={(e) => setFormData((prev) => ({ ...prev, course_url: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Instrutor 1</label>
+            <Input value={formData.instructor_1_name} onChange={(e) => setFormData((prev) => ({ ...prev, instructor_1_name: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Telefone instrutor 1</label>
+            <Input value={formData.instructor_1_phone} onChange={(e) => setFormData((prev) => ({ ...prev, instructor_1_phone: e.target.value }))} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium">Descrição instrutor 1</label>
+            <textarea className="w-full min-h-[70px] rounded-md border p-3" value={formData.instructor_1_description} onChange={(e) => setFormData((prev) => ({ ...prev, instructor_1_description: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Instrutor 2</label>
+            <Input value={formData.instructor_2_name} onChange={(e) => setFormData((prev) => ({ ...prev, instructor_2_name: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Telefone instrutor 2</label>
+            <Input value={formData.instructor_2_phone} onChange={(e) => setFormData((prev) => ({ ...prev, instructor_2_phone: e.target.value }))} />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium">Descrição instrutor 2</label>
+            <textarea className="w-full min-h-[70px] rounded-md border p-3" value={formData.instructor_2_description} onChange={(e) => setFormData((prev) => ({ ...prev, instructor_2_description: e.target.value }))} />
+          </div>
         </div>
-      )}
 
-      {/* Formulário de Criação/Edição */}
-      {(isCreating || editingPartner) && (
-        <Card className="p-6">
-          <h3 className="text-lg font-bold mb-4">
-            {editingPartner ? 'Editar Parceiro' : 'Novo Parceiro'}
-          </h3>
+        <div className="space-y-3">
+          <label className="text-sm font-medium">Destaques</label>
+          <div className="flex gap-2">
+            <Input value={newHighlight} onChange={(e) => setNewHighlight(e.target.value)} placeholder="Ex.: Especialista em joalheria" />
+            <Button type="button" onClick={addHighlight}>Adicionar</Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {formData.highlights.map((highlight, index) => (
+              <span key={`${highlight}-${index}`} className="inline-flex items-center gap-2 rounded-full bg-blue-100 text-blue-700 px-3 py-1 text-sm">
+                {highlight}
+                <button type="button" onClick={() => removeHighlight(index)}><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+          </div>
+        </div>
 
-          <div className="space-y-4">
-            {/* Informações Básicas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Nome do Parceiro *</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Sagga Studios"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Telefone</label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(21) 99999-9999"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Descrição *</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Descrição completa do parceiro..."
-                className="w-full p-3 border rounded-lg min-h-[100px]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="contato@parceiro.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Website</label>
-                <Input
-                  value={formData.website_url}
-                  onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Link do Curso/Serviço</label>
-              <Input
-                value={formData.course_url}
-                onChange={(e) => setFormData({ ...formData, course_url: e.target.value })}
-                placeholder="https://..."
-              />
-            </div>
-
-            {/* Instrutor 1 */}
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-3">Instrutor/Responsável 1</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nome</label>
-                  <Input
-                    value={formData.instructor_1_name}
-                    onChange={(e) => setFormData({ ...formData, instructor_1_name: e.target.value })}
-                    placeholder="Nome do instrutor"
-                  />
+        <div className="space-y-3">
+          <label className="text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Imagens</label>
+          <Input type="file" accept="image/*" multiple onChange={handleImageSelect} />
+          {previewImages.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {previewImages.map((image, index) => (
+                <div key={`${image}-${index}`} className="relative rounded-lg overflow-hidden border bg-gray-50">
+                  <img src={image} alt={`Preview ${index + 1}`} className="w-full h-28 object-cover" />
+                  <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1">
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Telefone</label>
-                  <Input
-                    value={formData.instructor_1_phone}
-                    onChange={(e) => setFormData({ ...formData, instructor_1_phone: e.target.value })}
-                    placeholder="(21) 99999-9999"
-                  />
-                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input id="partner-active" type="checkbox" checked={formData.active} onChange={(e) => setFormData((prev) => ({ ...prev, active: e.target.checked }))} />
+          <label htmlFor="partner-active" className="text-sm">Parceiro ativo para exibição pública</label>
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={savePartner} disabled={saving}>
+            {saving ? 'Salvando...' : <><Save className="h-4 w-4 mr-2" /> Salvar parceiro</>}
+          </Button>
+        </div>
+      </Card>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        {partners.length === 0 ? (
+          <Card className="p-8 text-center text-gray-500 lg:col-span-2">
+            Nenhum parceiro cadastrado no momento.
+          </Card>
+        ) : partners.map((partner) => (
+          <Card key={partner.id} className="p-5 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-lg font-bold">{partner.name}</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-line">{partner.description}</p>
               </div>
-              <div className="mt-3">
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <textarea
-                  value={formData.instructor_1_description}
-                  onChange={(e) => setFormData({ ...formData, instructor_1_description: e.target.value })}
-                  placeholder="Breve descrição do instrutor..."
-                  className="w-full p-3 border rounded-lg min-h-[80px]"
-                />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => startEdit(partner)}><Edit3 className="h-4 w-4" /></Button>
+                <Button size="sm" variant="outline" onClick={() => deletePartner(partner)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
 
-            {/* Instrutor 2 */}
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-3">Instrutor/Responsável 2 (Opcional)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nome</label>
-                  <Input
-                    value={formData.instructor_2_name}
-                    onChange={(e) => setFormData({ ...formData, instructor_2_name: e.target.value })}
-                    placeholder="Nome do instrutor"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Telefone</label>
-                  <Input
-                    value={formData.instructor_2_phone}
-                    onChange={(e) => setFormData({ ...formData, instructor_2_phone: e.target.value })}
-                    placeholder="(21) 99999-9999"
-                  />
-                </div>
-              </div>
-              <div className="mt-3">
-                <label className="block text-sm font-medium mb-2">Descrição</label>
-                <textarea
-                  value={formData.instructor_2_description}
-                  onChange={(e) => setFormData({ ...formData, instructor_2_description: e.target.value })}
-                  placeholder="Breve descrição do instrutor..."
-                  className="w-full p-3 border rounded-lg min-h-[80px]"
-                />
-              </div>
+            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+              {partner.phone && <span>{partner.phone}</span>}
+              {partner.email && <span className="flex items-center gap-1"><Mail className="h-4 w-4" /> {partner.email}</span>}
+              {partner.website_url && <span className="flex items-center gap-1"><LinkIcon className="h-4 w-4" /> {partner.website_url}</span>}
             </div>
 
-            {/* Destaques do Curso */}
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-3">Destaques do Curso/Serviço</h4>
-              <div className="flex gap-2 mb-3">
-                <Input
-                  value={newHighlight}
-                  onChange={(e) => setNewHighlight(e.target.value)}
-                  placeholder="Ex: Técnicas avançadas de pintura"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHighlight())}
-                />
-                <Button onClick={addHighlight} size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
+            {partner.highlights?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {partner.highlights.map((item, index) => (
+                  <span key={`${item}-${index}`} className="rounded-full bg-purple-100 text-purple-700 px-3 py-1 text-xs">{item}</span>
+                ))}
               </div>
-              <div className="space-y-2">
-                {formData.highlights.map((highlight, index) => (
-                  <div key={index} className="flex items-center gap-2 bg-gray-50 p-2 rounded">
-                    <span className="flex-1 text-sm">{highlight}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeHighlight(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+            )}
+
+            {partner.images?.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {partner.images.slice(0, 3).map((image, index) => (
+                  <div key={`${image}-${index}`} className="rounded overflow-hidden border bg-gray-50">
+                    <img src={image} alt={partner.name} className="w-full h-24 object-cover" />
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Upload de Imagens */}
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-3">Galeria de Imagens</h4>
-              <div className="mb-4">
-                <label className="cursor-pointer">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600">Clique para selecionar imagens</p>
-                    <p className="text-xs text-gray-400 mt-1">PNG, JPG até 5MB cada</p>
-                  </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {imagePreviewUrls.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {imagePreviewUrls.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border"
-                      />
-                      <button
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Configurações */}
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="rounded"
-                  />
-                  <span className="text-sm">Parceiro ativo (visível no site)</span>
-                </label>
-
-                <div className="flex items-center gap-2">
-                  <label className="text-sm">Ordem de exibição:</label>
-                  <Input
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Botões de Ação */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={handleSave}
-                disabled={uploadingImages}
-                className="bg-gradient-to-r from-blue-600 to-purple-600"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {uploadingImages ? 'Fazendo upload...' : 'Salvar Parceiro'}
-              </Button>
-              <Button onClick={handleCancel} variant="outline">
-                <X className="h-4 w-4 mr-2" />
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Lista de Parceiros */}
-      {!isCreating && !editingPartner && (
-        <div className="space-y-4">
-          {/* 🛡️ ESCUDO APLICADO AQUI NO .LENGTH E NO .MAP */}
-          {(partners || []).length === 0 ? (
-            <Card className="p-12 text-center">
-              <ImageIcon className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-600 mb-4">Nenhum parceiro cadastrado ainda</p>
-              <Button onClick={startCreating} className="bg-gradient-to-r from-blue-600 to-purple-600">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Primeiro Parceiro
-              </Button>
-            </Card>
-          ) : (
-            (partners || []).map(partner => (
-              <Card key={partner._id} className="p-6">
-                <div className="flex gap-6">
-                  {/* Imagem de Preview */}
-                  {partner.images && partner.images.length > 0 && (
-                    <img
-                      src={partner.images[0]}
-                      alt={partner.name}
-                      className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
-                    />
-                  )}
-
-                  {/* Informações */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-xl font-bold">{partner.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{partner.description.substring(0, 150)}...</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => startEditing(partner)}>
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(partner._id)}
-                          className="text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      {partner.phone && (
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-4 w-4" />
-                          {partner.phone}
-                        </div>
-                      )}
-                      {partner.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-4 w-4" />
-                          {partner.email}
-                        </div>
-                      )}
-                      {partner.instructor_1_name && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          {partner.instructor_1_name}
-                          {partner.instructor_2_name && ` & ${partner.instructor_2_name}`}
-                        </div>
-                      )}
-                      <div className={`px-2 py-1 rounded text-xs font-semibold ${partner.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {partner.is_active ? 'Ativo' : 'Inativo'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))
-          )}
-        </div>
-      )}
+            )}
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
