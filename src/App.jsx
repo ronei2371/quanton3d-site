@@ -139,7 +139,7 @@ function App() {
     setGalleryLoading(true)
     setGalleryError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/visual-knowledge?limit=50`)
+      const response = await fetch(`${API_BASE_URL}/gallery?limit=50`)
       const text = await response.text()
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -150,16 +150,20 @@ function App() {
       } catch {
         throw new Error('Resposta inesperada do servidor ao carregar a galeria.')
       }
-      const normalized = Array.isArray(data.items) ? data.items : []
+      const normalized = Array.isArray(data.gallery) ? data.gallery : Array.isArray(data.images) ? data.images : []
       const formatted = normalized
         .map(item => ({
           url: item.imageUrl || item.image || '',
-          desc: item.title || item.description || ''
+          desc: item.note || item.description || '',
+          resin: item.resin || '',
+          printer: item.printer || '',
+          name: item.name || '',
+          settings: item.settings || {}
         }))
         .filter(item => item.url)
       setGalleryImages(formatted)
       if (!formatted.length) {
-        setGalleryError('Nenhuma foto enviada ainda. Seja o primeiro a compartilhar!')
+        setGalleryError('Nenhuma foto aprovada ainda. Assim que a revisão liberar, elas aparecem aqui.')
       }
     } catch (error) {
       console.error('Erro ao carregar galeria pública:', error)

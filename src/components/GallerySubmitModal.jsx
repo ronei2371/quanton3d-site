@@ -19,7 +19,8 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
     exposureNormal: '',
     exposureBase: '',
     baseLayers: '',
-    notes: ''
+    notes: '',
+    allowPublic: true
   })
   const [imageFile, setImageFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -43,7 +44,8 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
       exposureNormal: '',
       exposureBase: '',
       baseLayers: '',
-      notes: ''
+      notes: '',
+      allowPublic: true
     })
     setImageFile(null)
     setPreviewUrl('')
@@ -92,6 +94,7 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
       payload.append('exposureBase', formData.exposureBase)
       payload.append('baseLayers', formData.baseLayers)
       payload.append('notes', formData.notes)
+      payload.append('allowPublic', String(formData.allowPublic))
       if (imageFile) {
         payload.append('image', imageFile)
       }
@@ -184,6 +187,19 @@ export function GallerySubmitModal({ isOpen, onClose, apiBaseUrl, onSuccess }) {
               )}
             </div>
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border p-3 bg-gray-50 dark:bg-gray-800">
+            <input
+              type="checkbox"
+              checked={formData.allowPublic}
+              onChange={(e) => handleChange('allowPublic', e.target.checked)}
+              className="mt-1"
+            />
+            <div>
+              <p className="text-sm font-medium">Permito que outros clientes vejam minha foto e as configurações usadas após aprovação da Quanton3D.</p>
+              <p className="text-xs text-gray-500">Você continua enviando para revisão mesmo se desmarcar esta opção.</p>
+            </div>
+          </label>
 
           <div>
             <label className="text-sm font-medium">Observações</label>

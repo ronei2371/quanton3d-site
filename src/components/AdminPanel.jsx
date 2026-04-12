@@ -271,7 +271,10 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
+ codex/perform-frontend-build-integrity-audit-xrpvj8
+
       finalPath.startsWith('/auth') ||
+ main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -353,6 +356,8 @@ export function AdminPanel({ onClose }) {
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
   const [contacts, setContacts] = useState([])
+  const [contactsSearch, setContactsSearch] = useState('')
+  const [contactsDateFilter, setContactsDateFilter] = useState('')
 
   const [paramsLoading, setParamsLoading] = useState(false)
   const [paramsResins, setParamsResins] = useState([])
@@ -410,6 +415,26 @@ export function AdminPanel({ onClose }) {
     return digits.length ? digits : ''
   }, [])
 
+  const normalizeLeadOrigin = useCallback((value) => {
+    const raw = String(value || '').trim()
+    const normalized = raw.toLowerCase()
+    if (!normalized) return 'Outros'
+    if (normalized.includes('insta')) return 'Instagram'
+    if (normalized.includes('you')) return 'YouTube'
+    if (normalized.includes('google')) return 'Google'
+    if (normalized.includes('indica')) return 'Indicação'
+    if (normalized.includes('cliente')) return 'Já sou cliente'
+    if (normalized.includes('mercado livre') || normalized.includes('shopee') || normalized.includes('marketplace')) return 'Marketplace'
+    return raw
+  }, [])
+
+  const toDateInputValue = useCallback((value) => {
+    if (!value) return ''
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return parsed.toISOString().slice(0, 10)
+  }, [])
+
   // ==================== CORREÇÃO 3: FUNÇÕES LOAD ====================
   const loadCustomRequests = async (tokenToUse) => {
     try {
@@ -423,6 +448,23 @@ export function AdminPanel({ onClose }) {
       setCustomRequests(data.formulations || data.requests || [])
     } catch (error) {
       console.error('Erro ao carregar pedidos customizados:', error)
+    }
+  }
+
+  const loadClients = async (tokenOverride) => {
+    const token = tokenOverride || safeAdminToken
+    if (!token) return
+    try {
+      const response = await fetch(buildAdminUrl('/clients'), {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (handleUnauthorizedResponse(response.status)) return
+      const data = await response.json()
+      const list = Array.isArray(data.clients) ? data.clients : []
+      setContacts(list)
+      setContactCount(list.length)
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error)
     }
   }
 
@@ -672,6 +714,7 @@ export function AdminPanel({ onClose }) {
       setContactRefreshKey((key) => key + 1)
       await Promise.all([
         loadCustomRequests(tokenToUse),
+        loadClients(tokenToUse),
         loadVisualKnowledge(tokenToUse),
         loadPendingVisualPhotos(tokenToUse),
         loadParamsData(tokenToUse),
@@ -868,22 +911,11 @@ export function AdminPanel({ onClose }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
-        <Card className="relative w-full max-w-md space-y-4 rounded-2xl border border-white/20 bg-white/95 p-8 shadow-2xl backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
-          {onClose && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="absolute right-3 top-3 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          )}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-blue-950 flex items-center justify-center p-4">
+        <Card className="p-8 max-w-md w-full space-y-4">
           <div>
-            <h2 className="mb-2 text-center text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
-            <p className="text-center text-sm text-gray-500">Informe a URL do backend oficial e sua senha de administrador.</p>
+            <h2 className="text-2xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Painel Administrativo</h2>
+            <p className="text-sm text-center text-gray-500">Informe a URL do backend oficial e sua senha de administrador.</p>
           </div>
           <div className="space-y-3">
             <Input
@@ -981,49 +1013,107 @@ export function AdminPanel({ onClose }) {
           {activeTab === 'metrics' && (
             <>
               <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
-              {/* Métricas de origem dos clientes mantida do seu original */}
-              <div className="mt-8">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Origem dos Clientes
-                </h3>
-                {(() => {
-                  const marketingStats = {
-                    Instagram: contacts.filter(c => c.origin?.toLowerCase() === 'instagram').length,
-                    YouTube: contacts.filter(c => c.origin?.toLowerCase() === 'youtube').length,
-                    Google: contacts.filter(c => c.origin?.toLowerCase() === 'google').length,
-                    Outros: contacts.filter(c => c.origin && 
-                      c.origin.toLowerCase() !== 'instagram' && 
-                      c.origin.toLowerCase() !== 'youtube' && 
-                      c.origin.toLowerCase() !== 'google').length
-                  };
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <Card className="p-6 bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">📱 Instagram</span></div>
-                        <div className="text-4xl font-bold">{marketingStats.Instagram}</div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
-                      <Card className="p-6 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🎥 YouTube</span></div>
-                        <div className="text-4xl font-bold">{marketingStats.YouTube}</div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
-                      <Card className="p-6 bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🔍 Google</span></div>
-                        <div className="text-4xl font-bold">{marketingStats.Google}</div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
-                      <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🌐 Outros</span></div>
-                        <div className="text-4xl font-bold">{marketingStats.Outros}</div>
-                        <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                      </Card>
+              {(() => {
+                const filteredContacts = contacts.filter((client) => {
+                  const origin = normalizeLeadOrigin(client.origin || client.howDidYouHear)
+                  const haystack = [client.name, client.email, client.phone, origin, client.howDidYouHear].filter(Boolean).join(' ').toLowerCase()
+                  const matchesSearch = !contactsSearch.trim() || haystack.includes(contactsSearch.trim().toLowerCase())
+                  const matchesDate = !contactsDateFilter || toDateInputValue(client.createdAt) === contactsDateFilter
+                  return matchesSearch && matchesDate
+                })
+
+                const marketingStats = filteredContacts.reduce((acc, client) => {
+                  const origin = normalizeLeadOrigin(client.origin || client.howDidYouHear)
+                  if (origin === 'Instagram') acc.Instagram += 1
+                  else if (origin === 'YouTube') acc.YouTube += 1
+                  else if (origin === 'Google') acc.Google += 1
+                  else acc.Outros += 1
+                  return acc
+                }, { Instagram: 0, YouTube: 0, Google: 0, Outros: 0 })
+
+                return (
+                  <div className="mt-8 space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        Origem dos Clientes
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Card className="p-6 bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-shadow">
+                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">📱 Instagram</span></div>
+                          <div className="text-4xl font-bold">{marketingStats.Instagram}</div>
+                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                        </Card>
+                        <Card className="p-6 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg hover:shadow-xl transition-shadow">
+                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🎥 YouTube</span></div>
+                          <div className="text-4xl font-bold">{marketingStats.YouTube}</div>
+                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                        </Card>
+                        <Card className="p-6 bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-shadow">
+                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🔍 Google</span></div>
+                          <div className="text-4xl font-bold">{marketingStats.Google}</div>
+                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                        </Card>
+                        <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-lg hover:shadow-xl transition-shadow">
+                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🌐 Outros</span></div>
+                          <div className="text-4xl font-bold">{marketingStats.Outros}</div>
+                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+                        </Card>
+                      </div>
                     </div>
-                  );
-                })()}
-                <p className="text-xs text-gray-500 mt-4 text-center">💡 Para ver as métricas reais, acesse a aba "Contatos" primeiro.</p>
-              </div>
+
+                    <Card className="p-4 space-y-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-semibold">Clientes cadastrados</h4>
+                          <p className="text-sm text-gray-500">Nome, data e como conheceu a Quanton3D.</p>
+                        </div>
+                        <div className="flex flex-col md:flex-row gap-2">
+                          <Input
+                            value={contactsSearch}
+                            onChange={(event) => setContactsSearch(event.target.value)}
+                            placeholder="Buscar nome, contato ou origem"
+                            className="md:w-80"
+                          />
+                          <Input
+                            type="date"
+                            value={contactsDateFilter}
+                            onChange={(event) => setContactsDateFilter(event.target.value)}
+                            className="md:w-48"
+                          />
+                        </div>
+                      </div>
+
+                      {filteredContacts.length === 0 ? (
+                        <div className="rounded-lg border bg-gray-50 p-6 text-center text-gray-500">Nenhum cliente encontrado para este filtro.</div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-left text-gray-500">
+                                <th className="py-2 pr-4">Nome</th>
+                                <th className="py-2 pr-4">Contato</th>
+                                <th className="py-2 pr-4">Como conheceu</th>
+                                <th className="py-2 pr-4">Data</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredContacts.map((client) => (
+                                <tr key={client.id} className="border-b last:border-0">
+                                  <td className="py-3 pr-4 font-medium">{client.name || 'Cliente'}</td>
+                                  <td className="py-3 pr-4">{client.phone || client.email || '-'}</td>
+                                  <td className="py-3 pr-4">{normalizeLeadOrigin(client.origin || client.howDidYouHear)}</td>
+                                  <td className="py-3 pr-4">{formatDateTime(client.createdAt)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                )
+              })()}
             </>
           )}
           
@@ -1032,12 +1122,13 @@ export function AdminPanel({ onClose }) {
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
           {activeTab === 'gallery' && (
-            <InternalGalleryTab
+            <GalleryTab
               isAdmin={isAdmin}
               isVisible={true}
               adminToken={safeAdminToken}
-              apiBaseUrl={apiBaseUrl}
+              buildAdminUrl={buildAdminUrl}
               onPendingCountChange={setGalleryPendingCount}
+              refreshKey={galleryRefreshKey}
               onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
             />
           )}
