@@ -58,6 +58,35 @@ const deriveDefaultApiBase = () => {
   return 'https://quanton3d-bot-v2.onrender.com'
 }
 
+
+const ADMIN_ORIGIN_CARDS = [
+  { key: 'instagram', label: 'Instagram', icon: '📱', gradient: 'from-pink-500 to-purple-600' },
+  { key: 'youtube', label: 'YouTube', icon: '🎥', gradient: 'from-red-500 to-red-700' },
+  { key: 'google', label: 'Google / Pesquisa', icon: '🔎', gradient: 'from-sky-500 to-emerald-500' },
+  { key: 'indicacao', label: 'Indicação de amigo', icon: '🤝', gradient: 'from-amber-500 to-orange-600' },
+  { key: 'marketplace', label: 'Mercado Livre / Shopee', icon: '🛒', gradient: 'from-orange-500 to-yellow-600' },
+  { key: 'cliente', label: 'Já sou cliente', icon: '💙', gradient: 'from-indigo-500 to-violet-700' },
+  { key: 'outros', label: 'Outros', icon: '🌐', gradient: 'from-cyan-500 to-blue-700' }
+]
+
+const normalizeAdminOrigin = (value = '') => {
+  const normalized = value
+    .toString()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+
+  if (!normalized) return 'outros'
+  if (normalized.includes('instagram')) return 'instagram'
+  if (normalized.includes('youtube')) return 'youtube'
+  if (normalized.includes('google')) return 'google'
+  if (normalized.includes('indic')) return 'indicacao'
+  if (normalized.includes('mercado livre') || normalized.includes('shopee') || normalized.includes('marketplace')) return 'marketplace'
+  if (normalized.includes('ja sou cliente')) return 'cliente'
+  return 'outros'
+}
+
 // --- GALERIA INTERNA BLINDADA (mantida do seu original) ---
 function InternalGalleryTab({ isAdmin, isVisible, adminToken, onPendingCountChange, apiBaseUrl, onUnauthorized }) {
   const baseUrl = apiBaseUrl || deriveDefaultApiBase()
@@ -271,7 +300,10 @@ export function AdminPanel({ onClose }) {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
     const shouldSkipPrefix = finalPath.startsWith('/api') ||
+ codex/perform-frontend-build-integrity-audit-xrpvj8
+
       finalPath.startsWith('/auth') ||
+ main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -353,8 +385,6 @@ export function AdminPanel({ onClose }) {
   const [contactCount, setContactCount] = useState(0)
   const [contactRefreshKey, setContactRefreshKey] = useState(0)
   const [contacts, setContacts] = useState([])
-  const [contactsSearch, setContactsSearch] = useState('')
-  const [contactsDateFilter, setContactsDateFilter] = useState('')
 
   const [paramsLoading, setParamsLoading] = useState(false)
   const [paramsResins, setParamsResins] = useState([])
@@ -412,26 +442,6 @@ export function AdminPanel({ onClose }) {
     return digits.length ? digits : ''
   }, [])
 
-  const normalizeLeadOrigin = useCallback((value) => {
-    const raw = String(value || '').trim()
-    const normalized = raw.toLowerCase()
-    if (!normalized) return 'Outros'
-    if (normalized.includes('insta')) return 'Instagram'
-    if (normalized.includes('you')) return 'YouTube'
-    if (normalized.includes('google')) return 'Google'
-    if (normalized.includes('indica')) return 'Indicação'
-    if (normalized.includes('cliente')) return 'Já sou cliente'
-    if (normalized.includes('mercado livre') || normalized.includes('shopee') || normalized.includes('marketplace')) return 'Marketplace'
-    return raw
-  }, [])
-
-  const toDateInputValue = useCallback((value) => {
-    if (!value) return ''
-    const parsed = new Date(value)
-    if (Number.isNaN(parsed.getTime())) return ''
-    return parsed.toISOString().slice(0, 10)
-  }, [])
-
   // ==================== CORREÇÃO 3: FUNÇÕES LOAD ====================
   const loadCustomRequests = async (tokenToUse) => {
     try {
@@ -448,22 +458,23 @@ export function AdminPanel({ onClose }) {
     }
   }
 
-  const loadClients = async (tokenOverride) => {
-    const token = tokenOverride || safeAdminToken
-    if (!token) return
-    try {
-      const response = await fetch(buildAdminUrl('/clients'), {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (handleUnauthorizedResponse(response.status)) return
-      const data = await response.json()
-      const list = Array.isArray(data.clients) ? data.clients : []
-      setContacts(list)
-      setContactCount(list.length)
-    } catch (error) {
-      console.error('Erro ao carregar clientes:', error)
-    }
+
+const loadRegisteredContacts = async (tokenOverride) => {
+  const token = tokenOverride || safeAdminToken
+  if (!token) return
+  try {
+    const response = await fetch(buildAdminUrl('/contacts'), {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (handleUnauthorizedResponse(response.status)) return
+    const data = await response.json().catch(() => ({}))
+    const items = data.contacts || []
+    setContacts(items)
+    setContactCount(items.length)
+  } catch (error) {
+    console.error('Erro ao carregar clientes cadastrados:', error)
   }
+}
 
   const loadParamsData = async (tokenOverride) => {
     const token = tokenOverride || safeAdminToken
@@ -711,11 +722,11 @@ export function AdminPanel({ onClose }) {
       setContactRefreshKey((key) => key + 1)
       await Promise.all([
         loadCustomRequests(tokenToUse),
-        loadClients(tokenToUse),
         loadVisualKnowledge(tokenToUse),
         loadPendingVisualPhotos(tokenToUse),
         loadParamsData(tokenToUse),
-        loadRagStatus(tokenToUse)
+        loadRagStatus(tokenToUse),
+        loadRegisteredContacts(tokenToUse)
       ])
       setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
@@ -1007,125 +1018,47 @@ export function AdminPanel({ onClose }) {
             </div>
           )}
 
-          {activeTab === 'metrics' && (
-            <>
-              <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
-              {(() => {
-                const filteredContacts = contacts.filter((client) => {
-                  const origin = normalizeLeadOrigin(client.origin || client.howDidYouHear)
-                  const haystack = [client.name, client.email, client.phone, origin, client.howDidYouHear].filter(Boolean).join(' ').toLowerCase()
-                  const matchesSearch = !contactsSearch.trim() || haystack.includes(contactsSearch.trim().toLowerCase())
-                  const matchesDate = !contactsDateFilter || toDateInputValue(client.createdAt) === contactsDateFilter
-                  return matchesSearch && matchesDate
-                })
-
-                const marketingStats = filteredContacts.reduce((acc, client) => {
-                  const origin = normalizeLeadOrigin(client.origin || client.howDidYouHear)
-                  if (origin === 'Instagram') acc.Instagram += 1
-                  else if (origin === 'YouTube') acc.YouTube += 1
-                  else if (origin === 'Google') acc.Google += 1
-                  else acc.Outros += 1
-                  return acc
-                }, { Instagram: 0, YouTube: 0, Google: 0, Outros: 0 })
-
-                return (
-                  <div className="mt-8 space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" />
-                        Origem dos Clientes
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className="p-6 bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-shadow">
-                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">📱 Instagram</span></div>
-                          <div className="text-4xl font-bold">{marketingStats.Instagram}</div>
-                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                        </Card>
-                        <Card className="p-6 bg-gradient-to-br from-red-500 to-red-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🎥 YouTube</span></div>
-                          <div className="text-4xl font-bold">{marketingStats.YouTube}</div>
-                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                        </Card>
-                        <Card className="p-6 bg-gradient-to-br from-blue-500 to-green-500 text-white shadow-lg hover:shadow-xl transition-shadow">
-                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🔍 Google</span></div>
-                          <div className="text-4xl font-bold">{marketingStats.Google}</div>
-                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                        </Card>
-                        <Card className="p-6 bg-gradient-to-br from-indigo-500 to-purple-700 text-white shadow-lg hover:shadow-xl transition-shadow">
-                          <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">🌐 Outros</span></div>
-                          <div className="text-4xl font-bold">{marketingStats.Outros}</div>
-                          <p className="text-xs mt-2 opacity-75">Total de clientes</p>
-                        </Card>
-                      </div>
-                    </div>
-
-                    <Card className="p-4 space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div>
-                          <h4 className="text-lg font-semibold">Clientes cadastrados</h4>
-                          <p className="text-sm text-gray-500">Nome, data e como conheceu a Quanton3D.</p>
-                        </div>
-                        <div className="flex flex-col md:flex-row gap-2">
-                          <Input
-                            value={contactsSearch}
-                            onChange={(event) => setContactsSearch(event.target.value)}
-                            placeholder="Buscar nome, contato ou origem"
-                            className="md:w-80"
-                          />
-                          <Input
-                            type="date"
-                            value={contactsDateFilter}
-                            onChange={(event) => setContactsDateFilter(event.target.value)}
-                            className="md:w-48"
-                          />
-                        </div>
-                      </div>
-
-                      {filteredContacts.length === 0 ? (
-                        <div className="rounded-lg border bg-gray-50 p-6 text-center text-gray-500">Nenhum cliente encontrado para este filtro.</div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-sm">
-                            <thead>
-                              <tr className="border-b text-left text-gray-500">
-                                <th className="py-2 pr-4">Nome</th>
-                                <th className="py-2 pr-4">Contato</th>
-                                <th className="py-2 pr-4">Como conheceu</th>
-                                <th className="py-2 pr-4">Data</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {filteredContacts.map((client) => (
-                                <tr key={client.id} className="border-b last:border-0">
-                                  <td className="py-3 pr-4 font-medium">{client.name || 'Cliente'}</td>
-                                  <td className="py-3 pr-4">{client.phone || client.email || '-'}</td>
-                                  <td className="py-3 pr-4">{normalizeLeadOrigin(client.origin || client.howDidYouHear)}</td>
-                                  <td className="py-3 pr-4">{formatDateTime(client.createdAt)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </Card>
-                  </div>
-                )
-              })()}
-            </>
-          )}
+          
+{activeTab === 'metrics' && (
+  <>
+    <MetricsTab apiToken={safeAdminToken} buildAdminUrl={buildAdminUrl} refreshKey={metricsRefreshKey} />
+    <div className="mt-8">
+      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <BarChart3 className="h-5 w-5" />
+        Origem dos Clientes
+      </h3>
+      {(() => {
+        const marketingStats = Object.fromEntries(ADMIN_ORIGIN_CARDS.map((item) => [item.key, 0]))
+        contacts.forEach((contact) => {
+          marketingStats[normalizeAdminOrigin(contact.origin)] += 1
+        })
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {ADMIN_ORIGIN_CARDS.map((item) => (
+              <Card key={item.key} className={`p-6 bg-gradient-to-br ${item.gradient} text-white shadow-lg hover:shadow-xl transition-shadow`}>
+                <div className="flex items-center justify-between mb-2"><span className="text-sm font-medium opacity-90">{item.icon} {item.label}</span></div>
+                <div className="text-4xl font-bold">{marketingStats[item.key] || 0}</div>
+                <p className="text-xs mt-2 opacity-75">Total de clientes</p>
+              </Card>
+            ))}
+          </div>
+        )
+      })()}
+    </div>
+  </>
+)}
           
           {activeTab === 'suggestions' && <SuggestionsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setSuggestionsCount} refreshKey={suggestionsRefreshKey} />}
           
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
           {activeTab === 'gallery' && (
-            <GalleryTab
+            <InternalGalleryTab
               isAdmin={isAdmin}
               isVisible={true}
               adminToken={safeAdminToken}
-              buildAdminUrl={buildAdminUrl}
+              apiBaseUrl={apiBaseUrl}
               onPendingCountChange={setGalleryPendingCount}
-              refreshKey={galleryRefreshKey}
               onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
             />
           )}
@@ -1137,7 +1070,7 @@ export function AdminPanel({ onClose }) {
           {activeTab === 'partners' && (
             <div className="p-4">
               <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar.</p></div>}>
-                <PartnersManager isAdmin={isAdmin} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />
+                <PartnersManager isAdmin={isAdmin} />
               </ErrorBoundary>
             </div>
           )}

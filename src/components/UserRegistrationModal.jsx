@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button.jsx'
 import { Card } from '@/components/ui/card.jsx'
@@ -19,7 +19,7 @@ const initialForm = {
   name: '',
   phone: '',
   email: '',
-  origin: '' // Novo campo: Como nos conheceu
+  origin: ''
 }
 
 const originOptions = [
@@ -43,17 +43,15 @@ export function UserRegistrationModal({ isPrivacyAccepted, onComplete }) {
     try {
       const stored = localStorage.getItem(USER_PROFILE_STORAGE_KEY)
       return stored ? JSON.parse(stored) : null
-    } catch (err) {
+    } catch (_err) {
       return null
     }
   }, [])
 
-  const profileExists = useMemo(() => Boolean(loadStoredProfile()), [loadStoredProfile])
-
   useEffect(() => {
     if (!isPrivacyAccepted) return
     const stored = loadStoredProfile()
-    if (stored) {
+    if (stored?.name && stored?.phone && stored?.email) {
       onComplete?.(stored)
       setIsOpen(false)
       return
@@ -64,12 +62,14 @@ export function UserRegistrationModal({ isPrivacyAccepted, onComplete }) {
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (field === 'phone') setPhoneError('')
+    if (submitError) setSubmitError('')
   }
 
   const persistProfile = (profile) => {
+    if (typeof window === 'undefined') return
     try {
       localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(profile))
-    } catch (err) {
+    } catch (_err) {
       console.warn('Erro ao salvar localmente')
     }
     window.dispatchEvent(new CustomEvent('quanton3d:user-registered', { detail: profile }))
@@ -92,28 +92,59 @@ export function UserRegistrationModal({ isPrivacyAccepted, onComplete }) {
 
     setIsSubmitting(true)
     try {
-      const payload = { ...formData, resin: 'Redes Sociais', problemType: 'Novo Cadastro' }
+      let sessionId = ''
+      if (typeof window !== 'undefined') {
+        try {
+          const chatState = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || '{}')
+          sessionId = chatState?.sessionId || ''
+        } catch (_err) {
+          sessionId = ''
+        }
+      }
+
+      const payload = {
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        origin: formData.origin,
+        howDidYouHear: formData.origin,
+        source: formData.origin,
+        sessionId
+      }
+
       const response = await fetch(REGISTER_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
 
-      if (!response.ok) throw new Error('Erro ao registrar.')
-
       const data = await response.json().catch(() => ({}))
-      const profile = data?.user || formData
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Erro ao registrar.')
+      }
+
+      const profile = {
+        name: payload.name,
+        phone: payload.phone,
+        email: payload.email,
+        origin: payload.origin,
+        howDidYouHear: payload.origin,
+        registeredAt: data?.user?.createdAt || new Date().toISOString(),
+        id: data?.user?.id || data?.id || null
+      }
+
       persistProfile(profile)
       onComplete?.(profile)
+      setFormData(initialForm)
       setIsOpen(false)
-    } catch (err) {
+    } catch (_err) {
       setSubmitError('Erro ao salvar seus dados. Tente novamente.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (!isOpen || profileExists) return null
+  if (!isOpen) return null
 
   return (
     <AnimatePresence>
@@ -149,6 +180,7 @@ export function UserRegistrationModal({ isPrivacyAccepted, onComplete }) {
                 <div className="space-y-1">
                   <label className="text-sm font-medium flex gap-2"><PhoneCall className="h-4 w-4"/> WhatsApp *</label>
                   <input type="tel" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} className="w-full p-3 border rounded-lg bg-gray-50 dark:bg-gray-800" placeholder="(31) 99999-0000" required />
+                  {phoneError && <p className="text-xs text-red-600">{phoneError}</p>}
                 </div>
               </div>
 
@@ -161,7 +193,7 @@ export function UserRegistrationModal({ isPrivacyAccepted, onComplete }) {
                   <label className="text-sm font-medium flex gap-2"><Share2 className="h-4 w-4"/> Como nos conheceu? *</label>
                   <select value={formData.origin} onChange={(e) => handleChange('origin', e.target.value)} className="w-full p-3 border rounded-lg bg-gray-50 dark:bg-gray-800" required>
                     <option value="">Selecione...</option>
-                    {originOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {originOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
               </div>
@@ -171,10 +203,10 @@ export function UserRegistrationModal({ isPrivacyAccepted, onComplete }) {
               <div className="pt-4 border-t mt-6">
                 <p className="text-center text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Siga a Quanton3D nas redes</p>
                 <div className="flex justify-center gap-4">
-                  <Button type="button" variant="outline" onClick={() => window.open('https://instagram.com/quanton3d')} className="flex gap-2 border-pink-200 hover:bg-pink-50 text-pink-600">
+                  <Button type="button" variant="outline" onClick={() => window.open('https://instagram.com/quanton3d', '_blank')} className="flex gap-2 border-pink-200 hover:bg-pink-50 text-pink-600">
                     <Instagram className="h-4 w-4" /> Instagram
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => window.open('https://youtube.com/@quanton3d')} className="flex gap-2 border-red-200 hover:bg-red-50 text-red-600">
+                  <Button type="button" variant="outline" onClick={() => window.open('https://youtube.com/@quanton3d', '_blank')} className="flex gap-2 border-red-200 hover:bg-red-50 text-red-600">
                     <Youtube className="h-4 w-4" /> YouTube
                   </Button>
                 </div>
