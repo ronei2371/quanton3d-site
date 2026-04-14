@@ -299,11 +299,9 @@ export function AdminPanel({ onClose }) {
   const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
-    const shouldSkipPrefix = finalPath.startsWith('/api') ||
- codex/perform-frontend-build-integrity-audit-xrpvj8
-
+    const shouldSkipPrefix =
+      finalPath.startsWith('/api') ||
       finalPath.startsWith('/auth') ||
- main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -1053,24 +1051,25 @@ const loadRegisteredContacts = async (tokenOverride) => {
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
           {activeTab === 'gallery' && (
-            <InternalGalleryTab
+            <GalleryTab
               isAdmin={isAdmin}
               isVisible={true}
               adminToken={safeAdminToken}
-              apiBaseUrl={apiBaseUrl}
+              buildAdminUrl={buildAdminUrl}
               onPendingCountChange={setGalleryPendingCount}
+              refreshKey={galleryRefreshKey}
               onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
             />
           )}
           
-          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
+          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />}
           
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           
           {activeTab === 'partners' && (
             <div className="p-4">
               <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar.</p></div>}>
-                <PartnersManager isAdmin={isAdmin} />
+                <PartnersManager isAdmin={isAdmin} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />
               </ErrorBoundary>
             </div>
           )}

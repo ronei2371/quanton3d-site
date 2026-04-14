@@ -22,7 +22,7 @@ export function useAdminMetrics(adminToken, { refreshKey = 0, enabled = true, bu
     setError(null)
 
     try {
-      const metricsUrl = buildAdminUrl ? buildAdminUrl('/health/metrics') : '/health/metrics'
+      const metricsUrl = buildAdminUrl ? buildAdminUrl('/metrics') : '/metrics'
       const response = await fetch(metricsUrl, {
         headers: {
           Authorization: `Bearer ${resolvedToken}`,

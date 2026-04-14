@@ -91,7 +91,7 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContact
 
   const updateContact = async (contactId, payload, successMessage) => {
     try {
-      const response = await fetch(buildAdminUrl(`/contacts/${contactId}`), {
+      const response = await fetch(buildAdminUrl(`/contacts/${contactId}/block`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

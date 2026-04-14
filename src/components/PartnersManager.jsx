@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -65,7 +65,7 @@ export function PartnersManager({ isAdmin, buildAdminUrl, adminToken }) {
     reader.readAsDataURL(file)
   })
 
-  const loadPartners = async () => {
+  const loadPartners = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(buildAdminUrl('/partners'), {
@@ -84,11 +84,11 @@ export function PartnersManager({ isAdmin, buildAdminUrl, adminToken }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [authHeaders, buildAdminUrl])
 
   useEffect(() => {
     loadPartners()
-  }, [])
+  }, [loadPartners])
 
   const startCreate = () => {
     resetForm()
