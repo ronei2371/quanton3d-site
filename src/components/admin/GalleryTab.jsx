@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Camera, RefreshCw, AlertTriangle, Loader2, Image as ImageIcon, Check, Trash2, Eye, X } from 'lucide-react'
@@ -22,9 +22,8 @@ const settingsRows = (settings = {}) => {
 
 function GalleryPreviewModal({ entry, onClose }) {
   if (!entry) return null
-
   return (
-    <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-auto p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">Visualização da peça</h3>
@@ -32,7 +31,6 @@ function GalleryPreviewModal({ entry, onClose }) {
             <X className="h-4 w-4 mr-1" /> Fechar
           </Button>
         </div>
-
         <div className="rounded-xl overflow-hidden bg-gray-100">
           {entry.imageUrl ? (
             <img src={entry.imageUrl} alt={entry.resin || 'Foto enviada'} className="w-full h-auto object-contain" />
@@ -42,42 +40,22 @@ function GalleryPreviewModal({ entry, onClose }) {
             </div>
           )}
         </div>
-
-        <div className="mt-4 grid md:grid-cols-2 gap-3 text-sm">
-          <p><strong>Cliente:</strong> {entry.name || 'Cliente'}</p>
-          <p><strong>Contato:</strong> {entry.contact || 'Não informado'}</p>
-          <p><strong>Resina:</strong> {entry.resin || '—'}</p>
-          <p><strong>Impressora:</strong> {entry.printer || '—'}</p>
-          <p><strong>Status:</strong> {entry.status || 'pending'}</p>
-          <p><strong>Enviado em:</strong> {formatDate(entry.createdAt)}</p>
-        </div>
-
-        {entry.note && (
-          <div className="mt-4 text-sm">
-            <strong>Observações:</strong>
-            <p className="mt-1 whitespace-pre-wrap">{entry.note}</p>
-          </div>
-        )}
       </div>
     </div>
   )
 }
 
-function GalleryEntryCard({ entry, isAdmin, onApprove, onDelete, onView, busyId }) {
+function GalleryEntryCard({ entry, onApprove, onDelete, onView, busyId }) {
   const rows = settingsRows(entry.settings)
   const isBusy = busyId === entry.id
 
   return (
     <Card className="p-4 flex flex-col gap-3">
       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-        {entry.imageUrl ? (
-          <img src={entry.imageUrl} alt={entry.resin || 'Foto enviada'} className="w-full h-full object-cover" />
-        ) : (
-          <div className="text-center text-gray-400 px-4">
-            <ImageIcon className="h-10 w-10 mx-auto mb-2" />
-            <p className="text-xs">{entry.hasImage ? 'Imagem disponível sob demanda' : 'Sem imagem'}</p>
-          </div>
-        )}
+        <div className="text-center text-gray-400 px-4">
+          <ImageIcon className="h-10 w-10 mx-auto mb-2" />
+          <p className="text-xs">{entry.hasImage ? 'Clique em Ver foto' : 'Sem imagem'}</p>
+        </div>
       </div>
 
       <div className="space-y-1 text-sm">
@@ -86,7 +64,6 @@ function GalleryEntryCard({ entry, isAdmin, onApprove, onDelete, onView, busyId 
         <p><strong>Resina:</strong> {entry.resin || '—'}</p>
         <p><strong>Impressora:</strong> {entry.printer || '—'}</p>
         <p><strong>Enviado em:</strong> {formatDate(entry.createdAt)}</p>
-        <p><strong>Exibir para outros clientes:</strong> {entry.allowPublic === false ? 'Não' : 'Sim'}</p>
         {entry.note && <p><strong>Observações:</strong> {entry.note}</p>}
       </div>
 
@@ -102,31 +79,24 @@ function GalleryEntryCard({ entry, isAdmin, onApprove, onDelete, onView, busyId 
         </div>
       )}
 
-      <div className="flex gap-2 mt-auto flex-wrap">
-        {entry.hasImage && (
-          <Button variant="outline" size="sm" onClick={() => onView(entry)} disabled={isBusy}>
-            <Eye className="h-4 w-4 mr-2" /> Ver foto
-          </Button>
-        )}
-
-        {isAdmin && entry.status !== 'approved' && (
+      <div className="flex flex-wrap gap-2 mt-auto">
+        <Button variant="outline" size="sm" onClick={() => onView(entry)} disabled={isBusy}>
+          <Eye className="h-4 w-4 mr-2" /> Ver foto
+        </Button>
+        {entry.status !== 'approved' && (
           <Button className="bg-green-600 hover:bg-green-700" size="sm" onClick={() => onApprove(entry)} disabled={isBusy}>
             <Check className="h-4 w-4 mr-2" /> Aprovar
           </Button>
         )}
-
-        {isAdmin && (
-          <Button variant="outline" size="sm" onClick={() => onDelete(entry)} disabled={isBusy}>
-            <Trash2 className="h-4 w-4 mr-2" /> Excluir
-          </Button>
-        )}
+        <Button variant="outline" size="sm" onClick={() => onDelete(entry)} disabled={isBusy}>
+          <Trash2 className="h-4 w-4 mr-2" /> Excluir
+        </Button>
       </div>
     </Card>
   )
 }
 
 export function GalleryTab({
-  isAdmin,
   isVisible,
   adminToken,
   buildAdminUrl,
@@ -139,18 +109,27 @@ export function GalleryTab({
   const [error, setError] = useState(null)
   const [busyId, setBusyId] = useState('')
   const [previewEntry, setPreviewEntry] = useState(null)
+  const callbacksRef = useRef({ onPendingCountChange, onUnauthorized })
+  const inFlightRef = useRef(false)
+
+  useEffect(() => {
+    callbacksRef.current = { onPendingCountChange, onUnauthorized }
+  }, [onPendingCountChange, onUnauthorized])
 
   const loadEntries = useCallback(async () => {
-    if (!isVisible) return
+    if (!isVisible || inFlightRef.current) return
+    inFlightRef.current = true
+  }, [])
+
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(buildAdminUrl('/gallery/all', { limit: 12, lite: 1 }), {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      const response = await fetch(buildAdminUrl('/gallery/all', { limit: 8, lite: 1 }), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+        cache: 'no-store'
       })
       if (response.status === 401) {
-        onUnauthorized?.()
-        setLoading(false)
+        callbacksRef.current.onUnauthorized?.()
         return
       }
       const data = await response.json().catch(() => ({}))
@@ -159,15 +138,16 @@ export function GalleryTab({
       }
       const list = Array.isArray(data.entries) ? data.entries : Array.isArray(data.images) ? data.images : []
       setEntries(list)
-      onPendingCountChange?.(list.filter((item) => (item.status || '').toLowerCase() !== 'approved').length)
+      callbacksRef.current.onPendingCountChange?.(list.filter((item) => (item.status || '').toLowerCase() !== 'approved').length)
     } catch (err) {
       console.error('Erro ao carregar galeria:', err)
       setError(err.message || 'Não foi possível carregar as fotos enviadas pelos clientes.')
       setEntries([])
     } finally {
       setLoading(false)
+      inFlightRef.current = false
     }
-  }, [adminToken, buildAdminUrl, isVisible, onPendingCountChange, onUnauthorized])
+  }, [adminToken, buildAdminUrl, isVisible])
 
   useEffect(() => {
     loadEntries()
@@ -230,14 +210,11 @@ export function GalleryTab({
   }
 
   const handleView = async (entry) => {
-    if (entry.imageUrl) {
-      setPreviewEntry(entry)
-      return
-    }
     setBusyId(entry.id)
     try {
       const response = await fetch(buildAdminUrl(`/gallery/${entry.id}`), {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+        cache: 'no-store'
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok || data.success === false) {
@@ -300,7 +277,7 @@ export function GalleryTab({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {pendingEntries.map((entry) => (
-                  <GalleryEntryCard key={entry.id} entry={entry} isAdmin={isAdmin} onApprove={handleApprove} onDelete={handleDelete} onView={handleView} busyId={busyId} />
+                  <GalleryEntryCard key={entry.id} entry={entry} onApprove={handleApprove} onDelete={handleDelete} onView={handleView} busyId={busyId} />
                 ))}
               </div>
             )}
@@ -316,7 +293,7 @@ export function GalleryTab({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {approvedEntries.map((entry) => (
-                  <GalleryEntryCard key={entry.id} entry={entry} isAdmin={isAdmin} onApprove={handleApprove} onDelete={handleDelete} onView={handleView} busyId={busyId} />
+                  <GalleryEntryCard key={entry.id} entry={entry} onApprove={handleApprove} onDelete={handleDelete} onView={handleView} busyId={busyId} />
                 ))}
               </div>
             )}

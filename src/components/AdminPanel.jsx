@@ -299,9 +299,11 @@ export function AdminPanel({ onClose }) {
   const buildAdminUrl = useCallback((path, params = {}, baseOverride) => {
     let finalPath = path.startsWith('/') ? path : `/${path}`
 
-    const shouldSkipPrefix =
-      finalPath.startsWith('/api') ||
+    const shouldSkipPrefix = finalPath.startsWith('/api') ||
+ codex/perform-frontend-build-integrity-audit-xrpvj8
+
       finalPath.startsWith('/auth') ||
+ main
       finalPath.startsWith('/admin') ||
       finalPath.startsWith('/health')
 
@@ -378,6 +380,9 @@ export function AdminPanel({ onClose }) {
   const [loading, setLoading] = useState(false)
   const [knowledgeRefreshKey, setKnowledgeRefreshKey] = useState(0)
   const [customRequests, setCustomRequests] = useState([])
+  const [customStatusFilter, setCustomStatusFilter] = useState('all')
+  const [customDateFilter, setCustomDateFilter] = useState('')
+  const [updatingCustomId, setUpdatingCustomId] = useState(null)
   const [galleryPendingCount, setGalleryPendingCount] = useState(0)
   const [galleryRefreshKey, setGalleryRefreshKey] = useState(0)
   const [contactCount, setContactCount] = useState(0)
@@ -439,6 +444,69 @@ export function AdminPanel({ onClose }) {
     const digits = phone.replace(/\D/g, '')
     return digits.length ? digits : ''
   }, [])
+
+
+  const getCustomRequestId = useCallback((request) => request?.id || request?._id || null, [])
+
+  const getCustomRequestStatus = useCallback((request) => {
+    return (request?.status || 'pending').toLowerCase()
+  }, [])
+
+  const getCustomRequestStatusLabel = useCallback((status) => {
+    const normalized = (status || 'pending').toLowerCase()
+    if (normalized === 'resolved' || normalized === 'completed') return 'Resolvido'
+    if (normalized === 'in_progress' || normalized === 'processing') return 'Em andamento'
+    return 'Pendente'
+  }, [])
+
+  const customRequestsFiltered = useMemo(() => {
+    return customRequests.filter((request) => {
+      const status = getCustomRequestStatus(request)
+      const rawDate = request?.createdAt || request?.date || request?.updatedAt
+      const parsedDate = rawDate ? new Date(rawDate) : null
+      const isoDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : ''
+      const statusOk = customStatusFilter === 'all' ? true : status === customStatusFilter
+      const dateOk = customDateFilter ? isoDate === customDateFilter : true
+      return statusOk && dateOk
+    })
+  }, [customDateFilter, customRequests, customStatusFilter, getCustomRequestStatus])
+
+  const updateCustomRequestStatus = useCallback(async (request, nextStatus) => {
+    const requestId = getCustomRequestId(request)
+    if (!requestId) {
+      toast.error('Pedido inválido')
+      return
+    }
+
+    setUpdatingCustomId(requestId)
+    try {
+      const response = await fetch(buildAdminUrl(`/formulations/${requestId}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(safeAdminToken ? { Authorization: `Bearer ${safeAdminToken}` } : {})
+        },
+        body: JSON.stringify({ status: nextStatus })
+      })
+
+      if (handleUnauthorizedResponse(response.status)) return
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok || data.success === false) {
+        throw new Error(data?.error || 'Não foi possível atualizar o status')
+      }
+
+      setCustomRequests((prev) => prev.map((item) => (
+        getCustomRequestId(item) === requestId ? { ...item, status: nextStatus } : item
+      )))
+      toast.success('Status atualizado com sucesso')
+    } catch (error) {
+      console.error('Erro ao atualizar formulação:', error)
+      toast.error(error.message || 'Erro ao atualizar status')
+    } finally {
+      setUpdatingCustomId(null)
+    }
+  }, [buildAdminUrl, getCustomRequestId, handleUnauthorizedResponse, safeAdminToken])
 
   // ==================== CORREÇÃO 3: FUNÇÕES LOAD ====================
   const loadCustomRequests = async (tokenToUse) => {
@@ -718,12 +786,15 @@ const loadRegisteredContacts = async (tokenOverride) => {
       setOrdersRefreshKey((key) => key + 1)
       setKnowledgeRefreshKey((key) => key + 1)
       setContactRefreshKey((key) => key + 1)
-      setGalleryRefreshKey((key) => key + 1)
-
       await Promise.all([
         loadCustomRequests(tokenToUse),
+        loadVisualKnowledge(tokenToUse),
+        loadPendingVisualPhotos(tokenToUse),
+        loadParamsData(tokenToUse),
+        loadRagStatus(tokenToUse),
         loadRegisteredContacts(tokenToUse)
       ])
+      setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
       console.error('Erro ao atualizar painel:', error)
     } finally {
@@ -762,8 +833,9 @@ const loadRegisteredContacts = async (tokenOverride) => {
   }, [adminToken, autoLoginAttempted, autoAdminPassword, autoAdminUsername, autoAdminSecret, customApiBaseInput, apiBaseUrl, defaultApiBase])
 
   useEffect(() => {
-    if (!isAuthenticated || !safeAdminToken) return
-    loadRegisteredContacts(safeAdminToken)
+    if (isAuthenticated && safeAdminToken) {
+      refreshAllData()
+    }
   }, [isAuthenticated, safeAdminToken])
 
   const addResin = async () => {
@@ -1047,27 +1119,24 @@ const loadRegisteredContacts = async (tokenOverride) => {
           {activeTab === 'orders' && <OrdersTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setOrdersPendingCount} refreshKey={ordersRefreshKey} />}
           
           {activeTab === 'gallery' && (
-            <GalleryTab
+            <InternalGalleryTab
               isAdmin={isAdmin}
               isVisible={true}
               adminToken={safeAdminToken}
-              buildAdminUrl={buildAdminUrl}
+              apiBaseUrl={apiBaseUrl}
               onPendingCountChange={setGalleryPendingCount}
-              refreshKey={galleryRefreshKey}
               onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
             />
           )}
-            />
-          )}
           
-          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />}
+          {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} />}
           
           {activeTab === 'contacts' && <ContactsTab isAdmin={isAdmin} isVisible={true} adminToken={safeAdminToken} buildAdminUrl={buildAdminUrl} onCountChange={setContactCount} onContactsChange={setContacts} refreshKey={contactRefreshKey} />}
           
           {activeTab === 'partners' && (
             <div className="p-4">
               <ErrorBoundary fallback={<div className="p-4 bg-red-50 text-red-700 rounded"><p>❌ Erro ao carregar Parceiros. Tente atualizar.</p></div>}>
-                <PartnersManager isAdmin={isAdmin} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />
+                <PartnersManager isAdmin={isAdmin} />
               </ErrorBoundary>
             </div>
           )}
@@ -1194,25 +1263,85 @@ const loadRegisteredContacts = async (tokenOverride) => {
           )}
 
           {activeTab === 'custom' && (
-            <div>
-              {customRequests.length === 0 ? <p className="text-center p-8 text-gray-500">Sem pedidos.</p> : customRequests.map((req, i) => {
+            <div className="space-y-4">
+              <Card className="p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold">Formulações personalizadas</h3>
+                    <p className="text-sm text-gray-500">Filtre por data e altere o status para não se perder entre pendentes e resolvidas.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={customStatusFilter}
+                      onChange={(e) => setCustomStatusFilter(e.target.value)}
+                      className="border p-2 rounded bg-white dark:bg-gray-700"
+                    >
+                      <option value="all">Todos</option>
+                      <option value="pending">Pendentes</option>
+                      <option value="in_progress">Em andamento</option>
+                      <option value="resolved">Resolvidos</option>
+                    </select>
+                    <Input
+                      type="date"
+                      value={customDateFilter}
+                      onChange={(e) => setCustomDateFilter(e.target.value)}
+                      className="w-[180px]"
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              {customRequestsFiltered.length === 0 ? (
+                <p className="text-center p-8 text-gray-500">Sem pedidos para este filtro.</p>
+              ) : customRequestsFiltered.map((req, i) => {
                 const phoneDigits = resolveRequestPhone(req)
                 const featureText = resolveRequestFeature(req)
                 const requestDate = resolveRequestDate(req)
+                const requestId = getCustomRequestId(req)
+                const requestStatus = getCustomRequestStatus(req)
+                const isUpdating = updatingCustomId === requestId
 
                 return (
-                  <Card key={req.id || i} className="p-4 mb-4">
-                    <div className="flex justify-between">
-                      <h4 className="font-bold">{req.name || 'Cliente'}</h4>
-                      <span className="text-xs">{requestDate}</span>
+                  <Card key={requestId || i} className="p-4 mb-4">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold">{req.name || 'Cliente'}</h4>
+                        <p className="text-xs text-gray-500">{requestDate}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                          requestStatus === 'resolved'
+                            ? 'bg-green-100 text-green-700'
+                            : requestStatus === 'in_progress'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {getCustomRequestStatusLabel(requestStatus)}
+                        </span>
+
+                        <select
+                          value={requestStatus}
+                          onChange={(e) => updateCustomRequestStatus(req, e.target.value)}
+                          disabled={isUpdating}
+                          className="border p-2 rounded bg-white dark:bg-gray-700 text-sm"
+                        >
+                          <option value="pending">Pendente</option>
+                          <option value="in_progress">Em andamento</option>
+                          <option value="resolved">Resolvido</option>
+                        </select>
+                      </div>
                     </div>
-                    <p className="text-sm">Característica: {featureText}</p>
+
+                    <p className="text-sm mt-3">Característica: {featureText}</p>
                     {req.color && <p className="text-sm text-gray-600">Cor desejada: {req.color}</p>}
-                    {req.email && <p className="text-xs text-gray-500">Email: {req.email}</p>}
+                    {req.details && <p className="text-sm text-gray-600">Detalhes: {req.details}</p>}
+                    {req.email && <p className="text-xs text-gray-500 mt-1">Email: {req.email}</p>}
+
                     {phoneDigits && (
                       <Button
                         size="sm"
-                        className="mt-2 bg-green-600"
+                        className="mt-3 bg-green-600"
                         onClick={() => window.open(`https://wa.me/55${phoneDigits}`)}
                       >
                         <Phone className="h-4 w-4 mr-2" /> WhatsApp
