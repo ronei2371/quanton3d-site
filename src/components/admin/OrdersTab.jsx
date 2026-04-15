@@ -42,35 +42,95 @@ const getStatusTone = (status) => {
   return 'bg-gray-100 text-gray-800'
 }
 
+const mapFormulationToOrderLike = (item) => {
+  return {
+    _id: item?._id || item?.id,
+    id: item?._id || item?.id,
+    customerName: item?.name || 'Cliente',
+    name: item?.name || 'Cliente',
+    phone: item?.phone || '',
+    email: item?.email || '',
+    notes: [
+      item?.desiredFeature ? `Característica: ${item.desiredFeature}` : '',
+      item?.color ? `Cor desejada: ${item.color}` : '',
+      item?.details ? `Detalhes: ${item.details}` : ''
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
+    createdAt: item?.createdAt || item?.date || item?.updatedAt || null,
+    status: 'pending',
+    items: []
+  }
+}
+
 export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, refreshKey, adminToken }) {
   const [orders, setOrders] = useState([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [loading, setLoading] = useState(false)
   const [updatingOrderId, setUpdatingOrderId] = useState(null)
+  const [sourceType, setSourceType] = useState('orders')
 
   const loadOrders = useCallback(async () => {
+    if (!isVisible) return
+
     setLoading(true)
     try {
-      const response = await fetch(buildAdminUrl('/api/orders'), {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      const authHeaders = adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+
+      const ordersResponse = await fetch(buildAdminUrl('/orders'), {
+        headers: authHeaders
       })
-      const data = await response.json()
-      const fetchedOrders = data.orders || []
-      setOrders(fetchedOrders)
 
-      const pendingCount = fetchedOrders.filter((order) => {
-        const status = (order.status || '').toLowerCase()
-        return status !== 'completed' && status !== 'delivered' && status !== 'cancelled' && status !== 'canceled'
-      }).length
+      if (ordersResponse.ok) {
+        const data = await ordersResponse.json().catch(() => ({}))
+        const fetchedOrders = Array.isArray(data.orders) ? data.orders : []
+        setOrders(fetchedOrders)
+        setSourceType('orders')
 
-      onCountChange?.(pendingCount)
+        const pendingCount = fetchedOrders.filter((order) => {
+          const status = (order.status || '').toLowerCase()
+          return status !== 'completed' && status !== 'delivered' && status !== 'cancelled' && status !== 'canceled'
+        }).length
+
+        onCountChange?.(pendingCount)
+        return
+      }
+
+      if (ordersResponse.status !== 404) {
+        const data = await ordersResponse.json().catch(() => ({}))
+        throw new Error(data?.error || 'Erro ao carregar pedidos')
+      }
+
+      const formulationsResponse = await fetch(buildAdminUrl('/formulations'), {
+        headers: authHeaders
+      })
+
+      const formulationsData = await formulationsResponse.json().catch(() => ({}))
+
+      if (!formulationsResponse.ok || formulationsData.success === false) {
+        throw new Error(formulationsData?.error || 'Erro ao carregar formulações')
+      }
+
+      const formulations = Array.isArray(formulationsData.formulations)
+        ? formulationsData.formulations
+        : Array.isArray(formulationsData.requests)
+          ? formulationsData.requests
+          : []
+
+      const mapped = formulations.map(mapFormulationToOrderLike)
+
+      setOrders(mapped)
+      setSourceType('formulations')
+      onCountChange?.(mapped.length)
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error)
-      toast.error('Erro ao carregar pedidos')
+      toast.error(error.message || 'Erro ao carregar pedidos')
+      setOrders([])
+      onCountChange?.(0)
     } finally {
       setLoading(false)
     }
-  }, [adminToken, buildAdminUrl, onCountChange])
+  }, [adminToken, buildAdminUrl, isVisible, onCountChange])
 
   useEffect(() => {
     loadOrders()
@@ -90,6 +150,11 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
   }, [orders])
 
   const updateOrderStatus = useCallback(async (order, nextStatus) => {
+    if (sourceType !== 'orders') {
+      toast.info('Este item veio de Formulações. Ainda não há alteração de status nessa rota.')
+      return
+    }
+
     const orderId = getOrderId(order)
     if (!orderId) {
       toast.error('Pedido inválido')
@@ -98,7 +163,7 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
 
     setUpdatingOrderId(orderId)
     try {
-      const response = await fetch(buildAdminUrl(`/api/orders/${orderId}`), {
+      const response = await fetch(buildAdminUrl(`/orders/${orderId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -107,9 +172,9 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
         body: JSON.stringify({ status: nextStatus })
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
 
-      if (data.success) {
+      if (response.ok && data.success) {
         setOrders((prev) => prev.map((item) => (getOrderId(item) === orderId ? { ...item, status: nextStatus } : item)))
         toast.success('Status do pedido atualizado!')
         return
@@ -122,7 +187,7 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
     } finally {
       setUpdatingOrderId(null)
     }
-  }, [adminToken, buildAdminUrl])
+  }, [adminToken, buildAdminUrl, sourceType])
 
   const cancelOrder = useCallback(async (order) => {
     await updateOrderStatus(order, 'cancelled')
@@ -141,7 +206,11 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
               <ShoppingBag className="h-5 w-5" />
               Pedidos Recebidos
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Acompanhe o status dos pedidos enviados pelos clientes.</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {sourceType === 'orders'
+                ? 'Acompanhe o status dos pedidos enviados pelos clientes.'
+                : 'Exibindo formulações customizadas enquanto a rota de pedidos não está disponível.'}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <select
@@ -245,64 +314,69 @@ export function OrdersTab({ buildAdminUrl, isAdmin, isVisible, onCountChange, re
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700"
-                    onClick={() => window.open(`https://wa.me/55${order.phone.replace(/\D/g, '')}?text=Olá ${order.customerName || order.name}, estamos atualizando seu pedido.`, '_blank')}
+                    onClick={() => window.open(`https://wa.me/55${order.phone.replace(/\D/g, '')}?text=Olá ${order.customerName || order.name}, estamos analisando sua solicitação.`, '_blank')}
                   >
                     <Phone className="h-4 w-4 mr-2" />
                     WhatsApp
                   </Button>
                 )}
+
                 {order.email && (
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(`mailto:${order.email}?subject=Atualização do pedido&body=Olá ${order.customerName || order.name || ''},%0A%0AEstamos acompanhando seu pedido.`)}
+                    onClick={() => window.open(`mailto:${order.email}?subject=Atualização da solicitação&body=Olá ${order.customerName || order.name || ''},%0A%0AEstamos acompanhando sua solicitação.`)}
                   >
                     <Mail className="h-4 w-4 mr-2" />
                     Email
                   </Button>
                 )}
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isUpdating}
-                  onClick={() => updateOrderStatus(order, 'in_progress')}
-                >
-                  <Clock className="h-4 w-4 mr-2" />
-                  {isUpdating ? 'Atualizando...' : 'Em produção'}
-                </Button>
+                {sourceType === 'orders' && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isUpdating}
+                      onClick={() => updateOrderStatus(order, 'in_progress')}
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      {isUpdating ? 'Atualizando...' : 'Em produção'}
+                    </Button>
 
-                <Button
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={isUpdating}
-                  onClick={() => updateOrderStatus(order, 'approved')}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  {isUpdating ? 'Atualizando...' : 'Aprovar'}
-                </Button>
+                    <Button
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                      disabled={isUpdating}
+                      onClick={() => updateOrderStatus(order, 'approved')}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      {isUpdating ? 'Atualizando...' : 'Aprovar'}
+                    </Button>
 
-                <Button
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700"
-                  disabled={isUpdating}
-                  onClick={() => markCompleted(order)}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  {isUpdating ? 'Atualizando...' : 'Concluir'}
-                </Button>
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                      disabled={isUpdating}
+                      onClick={() => markCompleted(order)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      {isUpdating ? 'Atualizando...' : 'Concluir'}
+                    </Button>
 
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-red-600 border-red-300 hover:bg-red-50"
-                    disabled={isUpdating}
-                    onClick={() => cancelOrder(order)}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    {isUpdating ? 'Atualizando...' : 'Cancelar'}
-                  </Button>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                        disabled={isUpdating}
+                        onClick={() => cancelOrder(order)}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        {isUpdating ? 'Atualizando...' : 'Cancelar'}
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </Card>
