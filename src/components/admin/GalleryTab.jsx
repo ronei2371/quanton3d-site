@@ -22,6 +22,7 @@ const settingsRows = (settings = {}) => {
 
 function GalleryPreviewModal({ entry, onClose }) {
   if (!entry) return null
+
   return (
     <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-auto p-4">
@@ -31,9 +32,14 @@ function GalleryPreviewModal({ entry, onClose }) {
             <X className="h-4 w-4 mr-1" /> Fechar
           </Button>
         </div>
+
         <div className="rounded-xl overflow-hidden bg-gray-100">
           {entry.imageUrl ? (
-            <img src={entry.imageUrl} alt={entry.resin || 'Foto enviada'} className="w-full h-auto object-contain" />
+            <img
+              src={entry.imageUrl}
+              alt={entry.resin || 'Foto enviada'}
+              className="w-full h-auto object-contain"
+            />
           ) : (
             <div className="h-80 flex items-center justify-center text-gray-400">
               <ImageIcon className="h-12 w-12" />
@@ -83,11 +89,18 @@ function GalleryEntryCard({ entry, onApprove, onDelete, onView, busyId }) {
         <Button variant="outline" size="sm" onClick={() => onView(entry)} disabled={isBusy}>
           <Eye className="h-4 w-4 mr-2" /> Ver foto
         </Button>
+
         {entry.status !== 'approved' && (
-          <Button className="bg-green-600 hover:bg-green-700" size="sm" onClick={() => onApprove(entry)} disabled={isBusy}>
+          <Button
+            className="bg-green-600 hover:bg-green-700"
+            size="sm"
+            onClick={() => onApprove(entry)}
+            disabled={isBusy}
+          >
             <Check className="h-4 w-4 mr-2" /> Aprovar
           </Button>
         )}
+
         <Button variant="outline" size="sm" onClick={() => onDelete(entry)} disabled={isBusy}>
           <Trash2 className="h-4 w-4 mr-2" /> Excluir
         </Button>
@@ -118,27 +131,37 @@ export function GalleryTab({
 
   const loadEntries = useCallback(async () => {
     if (!isVisible || inFlightRef.current) return
-    inFlightRef.current = true
-  }, [])
 
+    inFlightRef.current = true
     setLoading(true)
     setError(null)
+
     try {
       const response = await fetch(buildAdminUrl('/gallery/all', { limit: 8, lite: 1 }), {
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
         cache: 'no-store'
       })
+
       if (response.status === 401) {
         callbacksRef.current.onUnauthorized?.()
         return
       }
+
       const data = await response.json().catch(() => ({}))
       if (!response.ok || data.success === false) {
         throw new Error(data?.error || 'Não foi possível carregar a galeria')
       }
-      const list = Array.isArray(data.entries) ? data.entries : Array.isArray(data.images) ? data.images : []
+
+      const list = Array.isArray(data.entries)
+        ? data.entries
+        : Array.isArray(data.images)
+          ? data.images
+          : []
+
       setEntries(list)
-      callbacksRef.current.onPendingCountChange?.(list.filter((item) => (item.status || '').toLowerCase() !== 'approved').length)
+      callbacksRef.current.onPendingCountChange?.(
+        list.filter((item) => (item.status || '').toLowerCase() !== 'approved').length
+      )
     } catch (err) {
       console.error('Erro ao carregar galeria:', err)
       setError(err.message || 'Não foi possível carregar as fotos enviadas pelos clientes.')
@@ -150,13 +173,15 @@ export function GalleryTab({
   }, [adminToken, buildAdminUrl, isVisible])
 
   useEffect(() => {
+    if (!isVisible) return
     loadEntries()
-  }, [loadEntries, refreshKey])
+  }, [isVisible, loadEntries, refreshKey])
 
   const pendingEntries = useMemo(
     () => entries.filter((item) => (item.status || '').toLowerCase() !== 'approved'),
     [entries]
   )
+
   const approvedEntries = useMemo(
     () => entries.filter((item) => (item.status || '').toLowerCase() === 'approved'),
     [entries]
@@ -173,10 +198,12 @@ export function GalleryTab({
         },
         body: JSON.stringify({ allowPublic: entry.allowPublic !== false })
       })
+
       const data = await response.json().catch(() => ({}))
       if (!response.ok || data.success === false) {
         throw new Error(data?.error || 'Não foi possível aprovar o item')
       }
+
       toast.success('Item aprovado com sucesso')
       await loadEntries()
     } catch (error) {
@@ -189,16 +216,19 @@ export function GalleryTab({
 
   const handleDelete = async (entry) => {
     if (!window.confirm(`Deseja excluir o envio de ${entry.name || 'Cliente'}?`)) return
+
     setBusyId(entry.id)
     try {
       const response = await fetch(buildAdminUrl(`/gallery/${entry.id}`), {
         method: 'DELETE',
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
+
       const data = await response.json().catch(() => ({}))
       if (!response.ok || data.success === false) {
         throw new Error(data?.error || 'Não foi possível excluir o item')
       }
+
       toast.success('Item removido com sucesso')
       await loadEntries()
     } catch (error) {
@@ -216,10 +246,12 @@ export function GalleryTab({
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
         cache: 'no-store'
       })
+
       const data = await response.json().catch(() => ({}))
       if (!response.ok || data.success === false) {
         throw new Error(data?.error || 'Não foi possível carregar a imagem')
       }
+
       setPreviewEntry(data.entry || null)
     } catch (error) {
       console.error(error)
@@ -254,6 +286,7 @@ export function GalleryTab({
           <Camera className="h-6 w-6 text-blue-600" />
           Galeria de configurações enviadas
         </h2>
+
         <Button onClick={loadEntries} disabled={loading} size="sm">
           {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           {loading ? 'Carregando...' : 'Atualizar'}
@@ -272,12 +305,20 @@ export function GalleryTab({
               <Eye className="h-5 w-5 text-amber-600" />
               <h3 className="text-lg font-bold">Pendentes ({pendingEntries.length})</h3>
             </div>
+
             {pendingEntries.length === 0 ? (
               <Card className="p-8 text-center text-gray-500">Nenhum envio pendente no momento.</Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {pendingEntries.map((entry) => (
-                  <GalleryEntryCard key={entry.id} entry={entry} onApprove={handleApprove} onDelete={handleDelete} onView={handleView} busyId={busyId} />
+                  <GalleryEntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onApprove={handleApprove}
+                    onDelete={handleDelete}
+                    onView={handleView}
+                    busyId={busyId}
+                  />
                 ))}
               </div>
             )}
@@ -288,12 +329,20 @@ export function GalleryTab({
               <Check className="h-5 w-5 text-green-600" />
               <h3 className="text-lg font-bold">Aprovadas ({approvedEntries.length})</h3>
             </div>
+
             {approvedEntries.length === 0 ? (
               <Card className="p-8 text-center text-gray-500">Nenhum envio aprovado ainda.</Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {approvedEntries.map((entry) => (
-                  <GalleryEntryCard key={entry.id} entry={entry} onApprove={handleApprove} onDelete={handleDelete} onView={handleView} busyId={busyId} />
+                  <GalleryEntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onApprove={handleApprove}
+                    onDelete={handleDelete}
+                    onView={handleView}
+                    busyId={busyId}
+                  />
                 ))}
               </div>
             )}
