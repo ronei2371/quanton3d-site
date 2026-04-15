@@ -1057,6 +1057,8 @@ const loadRegisteredContacts = async (tokenOverride) => {
               onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
             />
           )}
+            />
+          )}
           
           {activeTab === 'documents' && <DocumentsTab isAdmin={isAdmin} refreshKey={knowledgeRefreshKey} buildAdminUrl={buildAdminUrl} adminToken={safeAdminToken} />}
           

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Ban, Phone, Trash2, RefreshCw, Search, CalendarDays, ShieldCheck } from 'lucide-react'
+import { Ban, Phone, Trash2, RefreshCw, Search, CalendarDays, History, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 const ORIGIN_CARDS = [
@@ -45,6 +45,8 @@ const matchesDate = (value, selectedDate) => {
 
 export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContactsChange, refreshKey, adminToken }) {
   const [contacts, setContacts] = useState([])
+  const [entries, setEntries] = useState([])
+  const [summary, setSummary] = useState(Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0])))
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
@@ -57,10 +59,13 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContact
         headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
       })
       const data = await response.json().catch(() => ({}))
-      const items = data.contacts || []
-      setContacts(items)
-      onCountChange?.(items.length)
-      onContactsChange?.(items)
+      const uniqueContacts = Array.isArray(data.contacts) ? data.contacts : []
+      const historyEntries = Array.isArray(data.entries) ? data.entries : Array.isArray(data.logs) ? data.logs : []
+      setContacts(uniqueContacts)
+      setEntries(historyEntries)
+      setSummary(data.summary || Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0])))
+      onCountChange?.(historyEntries.length || uniqueContacts.length)
+      onContactsChange?.(uniqueContacts)
     } catch (error) {
       console.error('Erro ao carregar clientes cadastrados:', error)
       toast.error('Erro ao carregar clientes cadastrados')
@@ -73,21 +78,32 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContact
     loadContacts()
   }, [loadContacts, refreshKey])
 
+  const filteredEntries = useMemo(() => {
+    const term = normalizeText(search)
+    return entries.filter((entry) => {
+      const haystack = [entry.name, entry.phone, entry.email, entry.origin, entry.howDidYouHear].map(normalizeText).join(' ')
+      return (!term || haystack.includes(term)) && matchesDate(entry.createdAt, selectedDate)
+    })
+  }, [entries, search, selectedDate])
+
   const filteredContacts = useMemo(() => {
     const term = normalizeText(search)
     return contacts.filter((contact) => {
       const haystack = [contact.name, contact.phone, contact.email, contact.origin].map(normalizeText).join(' ')
-      return (!term || haystack.includes(term)) && matchesDate(contact.createdAt, selectedDate)
+      return (!term || haystack.includes(term))
     })
-  }, [contacts, search, selectedDate])
+  }, [contacts, search])
 
   const metrics = useMemo(() => {
-    const summary = Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0]))
-    contacts.forEach((contact) => {
-      summary[normalizeOriginKey(contact.origin)] += 1
+    const fallback = Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0]))
+    const source = entries.length ? entries : contacts
+
+    source.forEach((item) => {
+      fallback[normalizeOriginKey(item.origin || item.howDidYouHear)] += 1
     })
-    return summary
-  }, [contacts])
+
+    return { ...fallback, ...summary }
+  }, [contacts, entries, summary])
 
   const updateContact = async (contactId, payload, successMessage) => {
     try {
@@ -147,15 +163,15 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContact
               <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
             </div>
             <div className="text-4xl font-bold">{metrics[card.key] || 0}</div>
-            <p className="text-xs mt-2 opacity-80">Total de clientes</p>
+            <p className="text-xs mt-2 opacity-80">Total de entradas</p>
           </Card>
         ))}
       </div>
 
       <Card className="p-5 space-y-4">
         <div>
-          <h4 className="text-2xl font-bold">Clientes cadastrados</h4>
-          <p className="text-sm text-gray-500">Nome, data e como conheceu a Quanton3D.</p>
+          <h4 className="text-2xl font-bold flex items-center gap-2"><History className="h-5 w-5" /> Histórico de entradas</h4>
+          <p className="text-sm text-gray-500">Cada novo cadastro gera uma entrada com data e origem.</p>
         </div>
 
         <div className="grid md:grid-cols-[1fr_180px] gap-3">
@@ -187,6 +203,45 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContact
                 <th className="py-3 pr-4">Contato</th>
                 <th className="py-3 pr-4">Como conheceu</th>
                 <th className="py-3 pr-4">Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEntries.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="py-10 text-center text-gray-500">Nenhuma entrada encontrada.</td>
+                </tr>
+              ) : filteredEntries.map((entry) => (
+                <tr key={entry.id} className="border-b last:border-0">
+                  <td className="py-3 pr-4 font-medium">{entry.name || '-'}</td>
+                  <td className="py-3 pr-4">
+                    <div className="flex flex-col">
+                      <span>{entry.phone || '-'}</span>
+                      {entry.email && <span className="text-xs text-gray-500">{entry.email}</span>}
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4">{entry.howDidYouHear || entry.origin || 'Outros'}</td>
+                  <td className="py-3 pr-4">{formatDate(entry.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card className="p-5 space-y-4">
+        <div>
+          <h4 className="text-2xl font-bold flex items-center gap-2"><Users className="h-5 w-5" /> Cadastros únicos</h4>
+          <p className="text-sm text-gray-500">Clientes únicos usados para bloqueio, exclusão e contato direto.</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500 border-b">
+                <th className="py-3 pr-4">Nome</th>
+                <th className="py-3 pr-4">Contato</th>
+                <th className="py-3 pr-4">Origem principal</th>
+                <th className="py-3 pr-4">Última atualização</th>
                 <th className="py-3 pr-4">Status</th>
                 <th className="py-3">Ações</th>
               </tr>
@@ -205,8 +260,8 @@ export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContact
                       {contact.email && <span className="text-xs text-gray-500">{contact.email}</span>}
                     </div>
                   </td>
-                  <td className="py-3 pr-4">{contact.origin || 'Outros'}</td>
-                  <td className="py-3 pr-4">{formatDate(contact.createdAt)}</td>
+                  <td className="py-3 pr-4">{contact.originLabel || contact.origin || 'Outros'}</td>
+                  <td className="py-3 pr-4">{formatDate(contact.updatedAt || contact.lastSeenAt || contact.createdAt)}</td>
                   <td className="py-3 pr-4">
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${contact.blocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                       {contact.blocked ? 'Bloqueado' : 'Ativo'}
