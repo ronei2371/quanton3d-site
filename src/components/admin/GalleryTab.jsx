@@ -92,8 +92,9 @@ export function GalleryTab({
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(buildAdminUrl('/gallery/all', { limit: 60 }), {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+      const response = await fetch(buildAdminUrl('/gallery/all', { limit: 12 }), {
+        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+        cache: 'no-store'
       })
       if (response.status === 401) {
         onUnauthorized?.()
