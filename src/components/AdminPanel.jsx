@@ -718,15 +718,12 @@ const loadRegisteredContacts = async (tokenOverride) => {
       setOrdersRefreshKey((key) => key + 1)
       setKnowledgeRefreshKey((key) => key + 1)
       setContactRefreshKey((key) => key + 1)
+      setGalleryRefreshKey((key) => key + 1)
+
       await Promise.all([
         loadCustomRequests(tokenToUse),
-        loadVisualKnowledge(tokenToUse),
-        loadPendingVisualPhotos(tokenToUse),
-        loadParamsData(tokenToUse),
-        loadRagStatus(tokenToUse),
         loadRegisteredContacts(tokenToUse)
       ])
-      setGalleryRefreshKey((key) => key + 1)
     } catch (error) {
       console.error('Erro ao atualizar painel:', error)
     } finally {
@@ -765,9 +762,8 @@ const loadRegisteredContacts = async (tokenOverride) => {
   }, [adminToken, autoLoginAttempted, autoAdminPassword, autoAdminUsername, autoAdminSecret, customApiBaseInput, apiBaseUrl, defaultApiBase])
 
   useEffect(() => {
-    if (isAuthenticated && safeAdminToken) {
-      refreshAllData()
-    }
+    if (!isAuthenticated || !safeAdminToken) return
+    loadRegisteredContacts(safeAdminToken)
   }, [isAuthenticated, safeAdminToken])
 
   const addResin = async () => {
@@ -1059,6 +1055,8 @@ const loadRegisteredContacts = async (tokenOverride) => {
               onPendingCountChange={setGalleryPendingCount}
               refreshKey={galleryRefreshKey}
               onUnauthorized={() => handleLogout('Sessão expirada. Faça login novamente.')}
+            />
+          )}
             />
           )}
           
