@@ -1,31 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Ban, Phone, Trash2, RefreshCw, Search, CalendarDays, History, Users } from 'lucide-react'
-import { toast } from 'sonner'
+import { Input } from '@/components/ui/input.jsx'
+import { Calendar, RefreshCw, Search } from 'lucide-react'
 
-const ORIGIN_CARDS = [
-  { key: 'instagram', label: 'Instagram', icon: '📱', gradient: 'from-pink-500 to-purple-600' },
-  { key: 'youtube', label: 'YouTube', icon: '🎥', gradient: 'from-red-500 to-red-700' },
-  { key: 'google', label: 'Google / Pesquisa', icon: '🔎', gradient: 'from-sky-500 to-emerald-500' },
-  { key: 'indicacao', label: 'Indicação de amigo', icon: '🤝', gradient: 'from-amber-500 to-orange-600' },
-  { key: 'marketplace', label: 'Mercado Livre / Shopee', icon: '🛒', gradient: 'from-orange-500 to-yellow-600' },
-  { key: 'cliente', label: 'Já sou cliente', icon: '💙', gradient: 'from-indigo-500 to-violet-700' },
-  { key: 'outros', label: 'Outros', icon: '🌐', gradient: 'from-cyan-500 to-blue-700' }
-]
+const normalizeOrigin = (value = '') => {
+  const normalized = String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
 
-const normalizeText = (value = '') => value.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-
-const normalizeOriginKey = (value = '') => {
-  const normalized = normalizeText(value)
-  if (!normalized) return 'outros'
-  if (normalized.includes('instagram')) return 'instagram'
-  if (normalized.includes('youtube')) return 'youtube'
-  if (normalized.includes('google')) return 'google'
-  if (normalized.includes('indic')) return 'indicacao'
-  if (normalized.includes('mercado livre') || normalized.includes('shopee') || normalized.includes('marketplace')) return 'marketplace'
-  if (normalized.includes('ja sou cliente')) return 'cliente'
-  return 'outros'
+  if (!normalized) return 'Outros'
+  if (normalized.includes('instagram')) return 'Instagram'
+  if (normalized.includes('youtube')) return 'YouTube'
+  if (normalized.includes('google')) return 'Google / Pesquisa'
+  if (normalized.includes('indic')) return 'Indicação de amigo'
+  if (
+    normalized.includes('mercado livre') ||
+    normalized.includes('shopee') ||
+    normalized.includes('marketplace')
+  ) {
+    return 'Mercado Livre / Shopee'
+  }
+  if (normalized.includes('ja sou cliente')) return 'Já sou cliente'
+  return 'Outros'
 }
 
 const formatDate = (value) => {
@@ -35,264 +34,190 @@ const formatDate = (value) => {
   return date.toLocaleString('pt-BR')
 }
 
-const matchesDate = (value, selectedDate) => {
-  if (!selectedDate) return true
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return false
-  const iso = date.toISOString().slice(0, 10)
-  return iso === selectedDate
+const extractItems = (data) => {
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.contacts)) return data.contacts
+  if (Array.isArray(data?.items)) return data.items
+  return []
 }
 
-export function ContactsTab({ buildAdminUrl, isVisible, onCountChange, onContactsChange, refreshKey, adminToken }) {
+const normalizeContact = (item) => ({
+  id: item?.id || item?._id || `${item?.email || ''}-${item?.phone || ''}-${item?.createdAt || ''}`,
+  name: item?.name || item?.fullName || 'Sem nome',
+  phone: item?.phone || item?.telefone || item?.whatsapp || '',
+  email: item?.email || '',
+  origin: normalizeOrigin(item?.origin || item?.source || item?.comoConheceu || ''),
+  createdAt: item?.createdAt || item?.date || item?.updatedAt || null,
+})
+
+export function ContactsTab({
+  isVisible = true,
+  adminToken = '',
+  buildAdminUrl,
+  onCountChange,
+  onContactsChange,
+  refreshKey = 0,
+}) {
   const [contacts, setContacts] = useState([])
-  const [entries, setEntries] = useState([])
-  const [summary, setSummary] = useState(Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0])))
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [selectedDate, setSelectedDate] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+
+  const authHeaders = useCallback(
+    (extra = {}) => {
+      if (!adminToken) return extra
+      return {
+        ...extra,
+        Authorization: `Bearer ${adminToken}`,
+      }
+    },
+    [adminToken]
+  )
 
   const loadContacts = useCallback(async () => {
     if (!isVisible) return
+
     setLoading(true)
+    setError('')
+
     try {
       const response = await fetch(buildAdminUrl('/contacts'), {
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
+        headers: authHeaders(),
+        cache: 'no-store',
       })
+
       const data = await response.json().catch(() => ({}))
-      const uniqueContacts = Array.isArray(data.contacts) ? data.contacts : []
-      const historyEntries = Array.isArray(data.entries) ? data.entries : Array.isArray(data.logs) ? data.logs : []
-      setContacts(uniqueContacts)
-      setEntries(historyEntries)
-      setSummary(data.summary || Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0])))
-      onCountChange?.(historyEntries.length || uniqueContacts.length)
-      onContactsChange?.(uniqueContacts)
-    } catch (error) {
-      console.error('Erro ao carregar clientes cadastrados:', error)
-      toast.error('Erro ao carregar clientes cadastrados')
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Erro ao carregar contatos')
+      }
+
+      const items = extractItems(data)
+        .map(normalizeContact)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+
+      setContacts(items)
+      onCountChange?.(items.length)
+      onContactsChange?.(items)
+    } catch (err) {
+      console.error('[ContactsTab] Erro ao carregar contatos:', err)
+      setError(err?.message || 'Erro ao carregar contatos')
+      setContacts([])
+      onCountChange?.(0)
+      onContactsChange?.([])
     } finally {
       setLoading(false)
     }
-  }, [adminToken, buildAdminUrl, isVisible, onCountChange, onContactsChange])
+  }, [authHeaders, buildAdminUrl, isVisible, onContactsChange, onCountChange])
 
   useEffect(() => {
     loadContacts()
   }, [loadContacts, refreshKey])
 
-  const filteredEntries = useMemo(() => {
-    const term = normalizeText(search)
-    return entries.filter((entry) => {
-      const haystack = [entry.name, entry.phone, entry.email, entry.origin, entry.howDidYouHear].map(normalizeText).join(' ')
-      return (!term || haystack.includes(term)) && matchesDate(entry.createdAt, selectedDate)
-    })
-  }, [entries, search, selectedDate])
-
   const filteredContacts = useMemo(() => {
-    const term = normalizeText(search)
-    return contacts.filter((contact) => {
-      const haystack = [contact.name, contact.phone, contact.email, contact.origin].map(normalizeText).join(' ')
-      return (!term || haystack.includes(term))
+    return contacts.filter((item) => {
+      const text = `${item.name} ${item.phone} ${item.email} ${item.origin}`
+        .toLowerCase()
+        .trim()
+
+      const searchOk = search.trim()
+        ? text.includes(search.trim().toLowerCase())
+        : true
+
+      const dateOk = (() => {
+        if (!dateFilter) return true
+        if (!item.createdAt) return false
+        const date = new Date(item.createdAt)
+        if (Number.isNaN(date.getTime())) return false
+        const iso = date.toISOString().slice(0, 10)
+        return iso === dateFilter
+      })()
+
+      return searchOk && dateOk
     })
-  }, [contacts, search])
-
-  const metrics = useMemo(() => {
-    const fallback = Object.fromEntries(ORIGIN_CARDS.map((item) => [item.key, 0]))
-    const source = entries.length ? entries : contacts
-
-    source.forEach((item) => {
-      fallback[normalizeOriginKey(item.origin || item.howDidYouHear)] += 1
-    })
-
-    return { ...fallback, ...summary }
-  }, [contacts, entries, summary])
-
-  const updateContact = async (contactId, payload, successMessage) => {
-    try {
-      const response = await fetch(buildAdminUrl(`/contacts/${contactId}/block`), {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
-        },
-        body: JSON.stringify(payload)
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.success) {
-        throw new Error(data?.error || 'Falha ao atualizar contato')
-      }
-      toast.success(successMessage)
-      loadContacts()
-    } catch (error) {
-      console.error('Erro ao atualizar contato:', error)
-      toast.error(error.message || 'Falha ao atualizar contato')
-    }
-  }
-
-  const deleteContact = async (contactId) => {
-    if (!window.confirm('Deseja excluir este cadastro?')) return
-    try {
-      const response = await fetch(buildAdminUrl(`/contacts/${contactId}`), {
-        method: 'DELETE',
-        headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined
-      })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.success) {
-        throw new Error(data?.error || 'Falha ao excluir cadastro')
-      }
-      toast.success('Cadastro excluído com sucesso')
-      loadContacts()
-    } catch (error) {
-      console.error('Erro ao excluir contato:', error)
-      toast.error(error.message || 'Falha ao excluir cadastro')
-    }
-  }
+  }, [contacts, dateFilter, search])
 
   return (
-    <div className={isVisible ? 'space-y-6' : 'hidden'}>
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xl font-bold">Origem dos Clientes</h3>
-        <Button size="sm" variant="outline" onClick={loadContacts} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {ORIGIN_CARDS.map((card) => (
-          <Card key={card.key} className={`p-6 bg-gradient-to-br ${card.gradient} text-white shadow-lg`}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium opacity-90">{card.icon} {card.label}</span>
-            </div>
-            <div className="text-4xl font-bold">{metrics[card.key] || 0}</div>
-            <p className="text-xs mt-2 opacity-80">Total de entradas</p>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="p-5 space-y-4">
-        <div>
-          <h4 className="text-2xl font-bold flex items-center gap-2"><History className="h-5 w-5" /> Histórico de entradas</h4>
-          <p className="text-sm text-gray-500">Cada novo cadastro gera uma entrada com data e origem.</p>
-        </div>
-
-        <div className="grid md:grid-cols-[1fr_180px] gap-3">
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar nome, contato ou origem"
-              className="w-full rounded-lg border bg-white px-10 py-3"
-            />
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-2xl font-bold">Histórico de entradas</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Cada novo cadastro gera uma entrada com data e origem.
+            </p>
           </div>
-          <div className="relative">
-            <CalendarDays className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full rounded-lg border bg-white px-3 py-3"
-            />
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500 border-b">
-                <th className="py-3 pr-4">Nome</th>
-                <th className="py-3 pr-4">Contato</th>
-                <th className="py-3 pr-4">Como conheceu</th>
-                <th className="py-3 pr-4">Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEntries.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="py-10 text-center text-gray-500">Nenhuma entrada encontrada.</td>
-                </tr>
-              ) : filteredEntries.map((entry) => (
-                <tr key={entry.id} className="border-b last:border-0">
-                  <td className="py-3 pr-4 font-medium">{entry.name || '-'}</td>
-                  <td className="py-3 pr-4">
-                    <div className="flex flex-col">
-                      <span>{entry.phone || '-'}</span>
-                      {entry.email && <span className="text-xs text-gray-500">{entry.email}</span>}
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4">{entry.howDidYouHear || entry.origin || 'Outros'}</td>
-                  <td className="py-3 pr-4">{formatDate(entry.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Button variant="outline" onClick={loadContacts} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
         </div>
       </Card>
 
-      <Card className="p-5 space-y-4">
-        <div>
-          <h4 className="text-2xl font-bold flex items-center gap-2"><Users className="h-5 w-5" /> Cadastros únicos</h4>
-          <p className="text-sm text-gray-500">Clientes únicos usados para bloqueio, exclusão e contato direto.</p>
+      {error && (
+        <Card className="p-4 border-red-200 bg-red-50 text-red-700">
+          {error}
+        </Card>
+      )}
+
+      <Card className="p-4">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              placeholder="Buscar nome, contato ou origem"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <div className="relative md:w-[160px]">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="pl-9"
+            />
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500 border-b">
-                <th className="py-3 pr-4">Nome</th>
-                <th className="py-3 pr-4">Contato</th>
-                <th className="py-3 pr-4">Origem principal</th>
-                <th className="py-3 pr-4">Última atualização</th>
-                <th className="py-3 pr-4">Status</th>
-                <th className="py-3">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredContacts.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="py-10 text-center text-gray-500">Nenhum cadastro encontrado.</td>
+        {loading ? (
+          <div className="py-8 text-center text-gray-500">Carregando contatos...</div>
+        ) : filteredContacts.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">
+            Nenhum contato encontrado para este filtro.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-3 font-medium">Nome</th>
+                  <th className="pb-3 font-medium">Contato</th>
+                  <th className="pb-3 font-medium">Como conheceu</th>
+                  <th className="pb-3 font-medium">Data</th>
                 </tr>
-              ) : filteredContacts.map((contact) => (
-                <tr key={contact.id} className={`border-b last:border-0 ${contact.blocked ? 'opacity-60' : ''}`}>
-                  <td className="py-3 pr-4 font-medium">{contact.name || '-'}</td>
-                  <td className="py-3 pr-4">
-                    <div className="flex flex-col">
-                      <span>{contact.phone || '-'}</span>
-                      {contact.email && <span className="text-xs text-gray-500">{contact.email}</span>}
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4">{contact.originLabel || contact.origin || 'Outros'}</td>
-                  <td className="py-3 pr-4">{formatDate(contact.updatedAt || contact.lastSeenAt || contact.createdAt)}</td>
-                  <td className="py-3 pr-4">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${contact.blocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {contact.blocked ? 'Bloqueado' : 'Ativo'}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {contact.phone && (
-                        <Button size="sm" variant="outline" onClick={() => window.open(`https://wa.me/55${String(contact.phone).replace(/\D/g, '')}`, '_blank')}>
-                          <Phone className="h-4 w-4 mr-1" /> WhatsApp
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={contact.blocked ? 'border-green-200 text-green-700' : 'border-amber-200 text-amber-700'}
-                        onClick={() => updateContact(contact.id, { blocked: !contact.blocked }, contact.blocked ? 'Cadastro desbloqueado' : 'Cadastro bloqueado')}
-                      >
-                        <Ban className="h-4 w-4 mr-1" />
-                        {contact.blocked ? 'Desbloquear' : 'Bloquear'}
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-red-200 text-red-700" onClick={() => deleteContact(contact.id)}>
-                        <Trash2 className="h-4 w-4 mr-1" /> Excluir
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredContacts.map((item) => (
+                  <tr key={item.id} className="border-b last:border-b-0">
+                    <td className="py-4 pr-4 font-medium">{item.name}</td>
+                    <td className="py-4 pr-4">
+                      <div>{item.phone || '-'}</div>
+                      <div className="text-xs text-gray-500">{item.email || '-'}</div>
+                    </td>
+                    <td className="py-4 pr-4">{item.origin}</td>
+                    <td className="py-4">{formatDate(item.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   )
